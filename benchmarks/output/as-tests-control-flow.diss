@@ -1,0 +1,1121 @@
+Reading benchmarks/compiled/as-tests-control-flow.pvm...
+Successfully decoded as SPI format
+Jump Table: [33, 10, 1454]
+
+Instructions:
+  PC 0x0000: Jump { offset: 10 }
+  PC 0x0005: Trap
+  PC 0x0006: Fallthrough
+  PC 0x0007: Fallthrough
+  PC 0x0008: Fallthrough
+  PC 0x0009: Fallthrough
+  PC 0x000a: AddImm64 { dst: 1, src: 1, value: -16 }
+  PC 0x000d: StoreIndU64 { base: 1, src: 7, offset: 0 }
+  PC 0x000f: StoreIndU64 { base: 1, src: 8, offset: 8 }
+  PC 0x0012: LoadImm64 { reg: 0, value: 2 }
+  PC 0x001c: Jump { offset: 1426 }
+  PC 0x0021: LoadIndU64 { dst: 7, base: 1, offset: 0 }
+  PC 0x0023: LoadIndU64 { dst: 8, base: 1, offset: 8 }
+  PC 0x0026: AddImm64 { dst: 1, src: 1, value: 16 }
+  PC 0x0029: AddImm64 { dst: 1, src: 1, value: -944 }
+  PC 0x002d: AddImm64 { dst: 7, src: 7, value: -327680 }
+  PC 0x0032: StoreIndU64 { base: 1, src: 7, offset: 40 }
+  PC 0x0035: StoreIndU64 { base: 1, src: 8, offset: 48 }
+  PC 0x0038: Fallthrough
+  PC 0x0039: LoadImm { reg: 2, value: 196620 }
+  PC 0x003e: LoadIndU32 { dst: 4, base: 2, offset: 0 }
+  PC 0x0040: StoreIndU64 { base: 1, src: 4, offset: 56 }
+  PC 0x0043: LoadImm { reg: 2, value: 196620 }
+  PC 0x0048: LoadIndU32 { dst: 4, base: 2, offset: 0 }
+  PC 0x004a: StoreIndU64 { base: 1, src: 4, offset: 64 }
+  PC 0x004d: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x004f: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0051: StoreIndU64 { base: 1, src: 2, offset: 72 }
+  PC 0x0054: LoadImm { reg: 3, value: 4 }
+  PC 0x0057: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x005a: StoreIndU64 { base: 1, src: 4, offset: 80 }
+  PC 0x005d: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x005f: StoreIndU64 { base: 1, src: 2, offset: 88 }
+  PC 0x0062: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0064: StoreIndU64 { base: 1, src: 2, offset: 96 }
+  PC 0x0067: LoadImm { reg: 3, value: 268 }
+  PC 0x006b: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x006e: StoreIndU64 { base: 1, src: 4, offset: 104 }
+  PC 0x0071: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0073: StoreIndU64 { base: 1, src: 2, offset: 112 }
+  PC 0x0076: LoadImm { reg: 2, value: 196624 }
+  PC 0x007b: LoadIndU32 { dst: 4, base: 2, offset: 0 }
+  PC 0x007d: StoreIndU64 { base: 1, src: 4, offset: 120 }
+  PC 0x0080: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0082: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0084: StoreIndU64 { base: 1, src: 2, offset: 128 }
+  PC 0x0088: LoadImm { reg: 3, value: 16 }
+  PC 0x008b: ShloL32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x008e: StoreIndU64 { base: 1, src: 4, offset: 136 }
+  PC 0x0092: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0094: StoreIndU64 { base: 1, src: 2, offset: 144 }
+  PC 0x0098: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x009a: StoreIndU64 { base: 1, src: 2, offset: 152 }
+  PC 0x009e: LoadImm { reg: 3, value: 15 }
+  PC 0x00a1: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x00a4: StoreIndU64 { base: 1, src: 4, offset: 160 }
+  PC 0x00a8: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x00aa: StoreIndU64 { base: 1, src: 2, offset: 168 }
+  PC 0x00ae: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x00b0: StoreIndU64 { base: 1, src: 2, offset: 176 }
+  PC 0x00b4: LoadImm { reg: 3, value: -16 }
+  PC 0x00b7: And { dst: 4, src1: 2, src2: 3 }
+  PC 0x00ba: StoreIndU64 { base: 1, src: 4, offset: 184 }
+  PC 0x00be: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x00c0: StoreIndU64 { base: 1, src: 2, offset: 192 }
+  PC 0x00c4: LoadIndU64 { dst: 2, base: 1, offset: 112 }
+  PC 0x00c7: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x00c9: StoreIndU64 { base: 1, src: 2, offset: 200 }
+  PC 0x00cd: LoadIndU64 { dst: 2, base: 1, offset: 192 }
+  PC 0x00d1: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x00d3: StoreIndU64 { base: 1, src: 2, offset: 208 }
+  PC 0x00d7: LoadIndU64 { dst: 2, base: 1, offset: 200 }
+  PC 0x00db: LoadIndU64 { dst: 3, base: 1, offset: 208 }
+  PC 0x00df: SetLtU { dst: 4, src1: 3, src2: 2 }
+  PC 0x00e2: StoreIndU64 { base: 1, src: 4, offset: 216 }
+  PC 0x00e6: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x00e8: StoreIndU64 { base: 1, src: 2, offset: 224 }
+  PC 0x00ec: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x00ee: StoreIndU64 { base: 1, src: 2, offset: 232 }
+  PC 0x00f2: LoadImm { reg: 3, value: 0 }
+  PC 0x00f4: Xor { dst: 4, src1: 2, src2: 3 }
+  PC 0x00f7: LoadImm { reg: 8, value: 0 }
+  PC 0x00f9: SetLtU { dst: 4, src1: 8, src2: 4 }
+  PC 0x00fc: StoreIndU64 { base: 1, src: 4, offset: 240 }
+  PC 0x0100: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0102: BranchNeImm { reg: 2, value: 0, offset: 40 }
+  PC 0x0108: Jump { offset: 347 }
+  PC 0x010d: LoadImm { reg: 2, value: 196612 }
+  PC 0x0112: LoadIndU32 { dst: 2, base: 2, offset: 0 }
+  PC 0x0114: LoadImm { reg: 3, value: 196616 }
+  PC 0x0119: LoadIndU32 { dst: 3, base: 3, offset: 0 }
+  PC 0x011b: AddImm32 { dst: 7, src: 2, value: 327680 }
+  PC 0x0120: Add64 { dst: 8, src1: 7, src2: 3 }
+  PC 0x0123: LoadImm { reg: 2, value: -65536 }
+  PC 0x0128: JumpInd { reg: 2, offset: 0 }
+  PC 0x012a: LoadIndU64 { dst: 2, base: 1, offset: 112 }
+  PC 0x012d: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x012f: StoreIndU64 { base: 1, src: 2, offset: 248 }
+  PC 0x0133: LoadIndU64 { dst: 2, base: 1, offset: 192 }
+  PC 0x0137: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0139: StoreIndU64 { base: 1, src: 2, offset: 256 }
+  PC 0x013d: LoadIndU64 { dst: 2, base: 1, offset: 248 }
+  PC 0x0141: LoadIndU64 { dst: 3, base: 1, offset: 256 }
+  PC 0x0145: Sub32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0148: StoreIndU64 { base: 1, src: 4, offset: 264 }
+  PC 0x014c: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x014e: StoreIndU64 { base: 1, src: 2, offset: 272 }
+  PC 0x0152: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0154: StoreIndU64 { base: 1, src: 2, offset: 280 }
+  PC 0x0158: LoadImm { reg: 3, value: 65535 }
+  PC 0x015d: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0160: StoreIndU64 { base: 1, src: 4, offset: 288 }
+  PC 0x0164: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0166: StoreIndU64 { base: 1, src: 2, offset: 296 }
+  PC 0x016a: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x016c: StoreIndU64 { base: 1, src: 2, offset: 304 }
+  PC 0x0170: LoadImm { reg: 3, value: -65536 }
+  PC 0x0175: And { dst: 4, src1: 2, src2: 3 }
+  PC 0x0178: StoreIndU64 { base: 1, src: 4, offset: 312 }
+  PC 0x017c: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x017e: StoreIndU64 { base: 1, src: 2, offset: 320 }
+  PC 0x0182: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0184: StoreIndU64 { base: 1, src: 2, offset: 328 }
+  PC 0x0188: LoadImm { reg: 3, value: 16 }
+  PC 0x018b: ShloR32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x018e: StoreIndU64 { base: 1, src: 4, offset: 336 }
+  PC 0x0192: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0194: StoreIndU64 { base: 1, src: 2, offset: 344 }
+  PC 0x0198: LoadIndU64 { dst: 2, base: 1, offset: 120 }
+  PC 0x019b: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x019d: StoreIndU64 { base: 1, src: 2, offset: 352 }
+  PC 0x01a1: LoadIndU64 { dst: 2, base: 1, offset: 344 }
+  PC 0x01a5: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x01a7: StoreIndU64 { base: 1, src: 2, offset: 360 }
+  PC 0x01ab: LoadIndU64 { dst: 2, base: 1, offset: 352 }
+  PC 0x01af: LoadIndU64 { dst: 3, base: 1, offset: 360 }
+  PC 0x01b3: SetLtS { dst: 4, src1: 3, src2: 2 }
+  PC 0x01b6: StoreIndU64 { base: 1, src: 4, offset: 368 }
+  PC 0x01ba: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x01bc: StoreIndU64 { base: 1, src: 2, offset: 376 }
+  PC 0x01c0: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x01c2: StoreIndU64 { base: 1, src: 2, offset: 384 }
+  PC 0x01c6: LoadImm { reg: 3, value: 0 }
+  PC 0x01c8: Xor { dst: 4, src1: 2, src2: 3 }
+  PC 0x01cb: LoadImm { reg: 8, value: 0 }
+  PC 0x01cd: SetLtU { dst: 4, src1: 8, src2: 4 }
+  PC 0x01d0: StoreIndU64 { base: 1, src: 4, offset: 392 }
+  PC 0x01d4: LoadIndU64 { dst: 4, base: 1, offset: 344 }
+  PC 0x01d8: StoreIndU64 { base: 1, src: 4, offset: 400 }
+  PC 0x01dc: LoadIndU64 { dst: 2, base: 1, offset: 392 }
+  PC 0x01e0: BranchEqImm { reg: 2, value: 0, offset: 14 }
+  PC 0x01e6: LoadIndU64 { dst: 4, base: 1, offset: 120 }
+  PC 0x01e9: StoreIndU64 { base: 1, src: 4, offset: 400 }
+  PC 0x01ed: Fallthrough
+  PC 0x01ee: LoadIndU64 { dst: 5, base: 1, offset: 400 }
+  PC 0x01f2: LoadImm { reg: 2, value: 196624 }
+  PC 0x01f7: LoadIndU32 { dst: 4, base: 2, offset: 0 }
+  PC 0x01f9: Add32 { dst: 6, src1: 4, src2: 5 }
+  PC 0x01fc: BranchLtU { reg1: 4, reg2: 6, offset: 39 }
+  PC 0x0202: LoadImm { reg: 5, value: 256 }
+  PC 0x0206: BranchLtU { reg1: 6, reg2: 5, offset: 29 }
+  PC 0x020c: LoadImm { reg: 5, value: 196624 }
+  PC 0x0211: StoreIndU32 { base: 5, src: 6, offset: 0 }
+  PC 0x0213: Sub32 { dst: 5, src1: 6, src2: 4 }
+  PC 0x0216: LoadImm { reg: 6, value: 16 }
+  PC 0x0219: ShloL32 { dst: 5, src1: 5, src2: 6 }
+  PC 0x021c: Sbrk { dst: 5, src: 5 }
+  PC 0x021e: Jump { offset: 9 }
+  PC 0x0223: LoadImm { reg: 4, value: -1 }
+  PC 0x0226: Fallthrough
+  PC 0x0227: StoreIndU64 { base: 1, src: 4, offset: 408 }
+  PC 0x022b: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x022d: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x022f: StoreIndU64 { base: 1, src: 2, offset: 416 }
+  PC 0x0233: LoadImm { reg: 3, value: 0 }
+  PC 0x0235: SetLtS { dst: 4, src1: 2, src2: 3 }
+  PC 0x0238: StoreIndU64 { base: 1, src: 4, offset: 424 }
+  PC 0x023c: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x023e: StoreIndU64 { base: 1, src: 2, offset: 432 }
+  PC 0x0242: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0244: StoreIndU64 { base: 1, src: 2, offset: 440 }
+  PC 0x0248: LoadImm { reg: 3, value: 0 }
+  PC 0x024a: Xor { dst: 4, src1: 2, src2: 3 }
+  PC 0x024d: LoadImm { reg: 8, value: 0 }
+  PC 0x024f: SetLtU { dst: 4, src1: 8, src2: 4 }
+  PC 0x0252: StoreIndU64 { base: 1, src: 4, offset: 448 }
+  PC 0x0256: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0258: BranchNeImm { reg: 2, value: 0, offset: 148 }
+  PC 0x025e: Jump { offset: 259 }
+  PC 0x0263: Jump { offset: 5 }
+  PC 0x0268: LoadIndU64 { dst: 2, base: 1, offset: 112 }
+  PC 0x026b: LoadImm { reg: 3, value: 196620 }
+  PC 0x0270: StoreIndU32 { base: 3, src: 2, offset: 0 }
+  PC 0x0272: LoadIndU64 { dst: 2, base: 1, offset: 56 }
+  PC 0x0275: LoadImm { reg: 3, value: 268 }
+  PC 0x0279: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+  PC 0x027e: LoadIndU64 { dst: 2, base: 1, offset: 88 }
+  PC 0x0281: LoadImm { reg: 3, value: 196608 }
+  PC 0x0286: StoreIndU32 { base: 3, src: 2, offset: 0 }
+  PC 0x0288: LoadIndU64 { dst: 2, base: 1, offset: 40 }
+  PC 0x028b: LoadIndU32 { dst: 4, base: 2, offset: 327680 }
+  PC 0x0290: StoreIndU64 { base: 1, src: 4, offset: 464 }
+  PC 0x0294: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0296: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0298: StoreIndU64 { base: 1, src: 2, offset: 472 }
+  PC 0x029c: LoadImm { reg: 3, value: 10 }
+  PC 0x029f: SetLtS { dst: 4, src1: 3, src2: 2 }
+  PC 0x02a2: StoreIndU64 { base: 1, src: 4, offset: 480 }
+  PC 0x02a6: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x02a8: StoreIndU64 { base: 1, src: 2, offset: 488 }
+  PC 0x02ac: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x02ae: StoreIndU64 { base: 1, src: 2, offset: 496 }
+  PC 0x02b2: LoadImm { reg: 3, value: 0 }
+  PC 0x02b4: Xor { dst: 4, src1: 2, src2: 3 }
+  PC 0x02b7: LoadImm { reg: 8, value: 0 }
+  PC 0x02b9: SetLtU { dst: 4, src1: 8, src2: 4 }
+  PC 0x02bc: StoreIndU64 { base: 1, src: 4, offset: 504 }
+  PC 0x02c0: LoadImm { reg: 4, value: 2 }
+  PC 0x02c3: StoreIndU64 { base: 1, src: 4, offset: 512 }
+  PC 0x02c7: LoadIndU64 { dst: 2, base: 1, offset: 504 }
+  PC 0x02cb: BranchEqImm { reg: 2, value: 0, offset: 14 }
+  PC 0x02d1: LoadImm { reg: 4, value: 1 }
+  PC 0x02d4: StoreIndU64 { base: 1, src: 4, offset: 512 }
+  PC 0x02d8: Fallthrough
+  PC 0x02d9: LoadImm { reg: 2, value: 0 }
+  PC 0x02db: LoadIndU64 { dst: 3, base: 1, offset: 512 }
+  PC 0x02df: StoreIndU64 { base: 1, src: 2, offset: 568 }
+  PC 0x02e3: StoreIndU64 { base: 1, src: 3, offset: 576 }
+  PC 0x02e7: Jump { offset: 143 }
+  PC 0x02ec: LoadIndU64 { dst: 5, base: 1, offset: 344 }
+  PC 0x02f0: LoadImm { reg: 2, value: 196624 }
+  PC 0x02f5: LoadIndU32 { dst: 4, base: 2, offset: 0 }
+  PC 0x02f7: Add32 { dst: 6, src1: 4, src2: 5 }
+  PC 0x02fa: BranchLtU { reg1: 4, reg2: 6, offset: 39 }
+  PC 0x0300: LoadImm { reg: 5, value: 256 }
+  PC 0x0304: BranchLtU { reg1: 6, reg2: 5, offset: 29 }
+  PC 0x030a: LoadImm { reg: 5, value: 196624 }
+  PC 0x030f: StoreIndU32 { base: 5, src: 6, offset: 0 }
+  PC 0x0311: Sub32 { dst: 5, src1: 6, src2: 4 }
+  PC 0x0314: LoadImm { reg: 6, value: 16 }
+  PC 0x0317: ShloL32 { dst: 5, src1: 5, src2: 6 }
+  PC 0x031a: Sbrk { dst: 5, src: 5 }
+  PC 0x031c: Jump { offset: 9 }
+  PC 0x0321: LoadImm { reg: 4, value: -1 }
+  PC 0x0324: Fallthrough
+  PC 0x0325: StoreIndU64 { base: 1, src: 4, offset: 520 }
+  PC 0x0329: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x032b: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x032d: StoreIndU64 { base: 1, src: 2, offset: 528 }
+  PC 0x0331: LoadImm { reg: 3, value: 0 }
+  PC 0x0333: SetLtS { dst: 4, src1: 2, src2: 3 }
+  PC 0x0336: StoreIndU64 { base: 1, src: 4, offset: 536 }
+  PC 0x033a: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x033c: StoreIndU64 { base: 1, src: 2, offset: 544 }
+  PC 0x0340: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0342: StoreIndU64 { base: 1, src: 2, offset: 552 }
+  PC 0x0346: LoadImm { reg: 3, value: 0 }
+  PC 0x0348: Xor { dst: 4, src1: 2, src2: 3 }
+  PC 0x034b: LoadImm { reg: 8, value: 0 }
+  PC 0x034d: SetLtU { dst: 4, src1: 8, src2: 4 }
+  PC 0x0350: StoreIndU64 { base: 1, src: 4, offset: 560 }
+  PC 0x0354: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0356: BranchNeImm { reg: 2, value: 0, offset: 21 }
+  PC 0x035c: Jump { offset: 16 }
+  PC 0x0361: Jump { offset: 5 }
+  PC 0x0366: Jump { offset: -254 }
+  PC 0x036b: Trap
+  PC 0x036c: Jump { offset: 5 }
+  PC 0x0371: Jump { offset: -11 }
+  PC 0x0376: LoadIndU64 { dst: 2, base: 1, offset: 464 }
+  PC 0x037a: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x037c: StoreIndU64 { base: 1, src: 2, offset: 584 }
+  PC 0x0380: LoadIndU64 { dst: 2, base: 1, offset: 568 }
+  PC 0x0384: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0386: StoreIndU64 { base: 1, src: 2, offset: 592 }
+  PC 0x038a: LoadIndU64 { dst: 2, base: 1, offset: 584 }
+  PC 0x038e: LoadIndU64 { dst: 3, base: 1, offset: 592 }
+  PC 0x0392: SetLtS { dst: 4, src1: 3, src2: 2 }
+  PC 0x0395: StoreIndU64 { base: 1, src: 4, offset: 600 }
+  PC 0x0399: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x039b: StoreIndU64 { base: 1, src: 2, offset: 608 }
+  PC 0x039f: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x03a1: StoreIndU64 { base: 1, src: 2, offset: 616 }
+  PC 0x03a5: LoadImm { reg: 3, value: 0 }
+  PC 0x03a7: Xor { dst: 4, src1: 2, src2: 3 }
+  PC 0x03aa: LoadImm { reg: 8, value: 0 }
+  PC 0x03ac: SetLtU { dst: 4, src1: 8, src2: 4 }
+  PC 0x03af: StoreIndU64 { base: 1, src: 4, offset: 624 }
+  PC 0x03b3: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x03b5: BranchNeImm { reg: 2, value: 0, offset: 30 }
+  PC 0x03bb: Jump { offset: 93 }
+  PC 0x03c0: LoadImm { reg: 2, value: 0 }
+  PC 0x03c2: LoadIndU64 { dst: 3, base: 1, offset: 576 }
+  PC 0x03c6: StoreIndU64 { base: 1, src: 2, offset: 680 }
+  PC 0x03ca: StoreIndU64 { base: 1, src: 3, offset: 688 }
+  PC 0x03ce: Jump { offset: 84 }
+  PC 0x03d3: LoadIndU64 { dst: 2, base: 1, offset: 576 }
+  PC 0x03d7: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x03d9: StoreIndU64 { base: 1, src: 2, offset: 632 }
+  PC 0x03dd: LoadImm { reg: 3, value: 1 }
+  PC 0x03e0: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x03e3: StoreIndU64 { base: 1, src: 4, offset: 640 }
+  PC 0x03e7: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x03e9: StoreIndU64 { base: 1, src: 2, offset: 648 }
+  PC 0x03ed: LoadIndU64 { dst: 2, base: 1, offset: 568 }
+  PC 0x03f1: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x03f3: StoreIndU64 { base: 1, src: 2, offset: 656 }
+  PC 0x03f7: LoadImm { reg: 3, value: 1 }
+  PC 0x03fa: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x03fd: StoreIndU64 { base: 1, src: 4, offset: 664 }
+  PC 0x0401: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0403: StoreIndU64 { base: 1, src: 2, offset: 672 }
+  PC 0x0407: LoadIndU64 { dst: 3, base: 1, offset: 648 }
+  PC 0x040b: StoreIndU64 { base: 1, src: 2, offset: 568 }
+  PC 0x040f: StoreIndU64 { base: 1, src: 3, offset: 576 }
+  PC 0x0413: Jump { offset: -157 }
+  PC 0x0418: Jump { offset: 5 }
+  PC 0x041d: Jump { offset: -93 }
+  PC 0x0422: LoadIndU64 { dst: 2, base: 1, offset: 680 }
+  PC 0x0426: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0428: StoreIndU64 { base: 1, src: 2, offset: 696 }
+  PC 0x042c: LoadImm { reg: 3, value: 5 }
+  PC 0x042f: SetLtS { dst: 4, src1: 2, src2: 3 }
+  PC 0x0432: StoreIndU64 { base: 1, src: 4, offset: 704 }
+  PC 0x0436: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0438: StoreIndU64 { base: 1, src: 2, offset: 712 }
+  PC 0x043c: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x043e: StoreIndU64 { base: 1, src: 2, offset: 720 }
+  PC 0x0442: LoadImm { reg: 3, value: 0 }
+  PC 0x0444: Xor { dst: 4, src1: 2, src2: 3 }
+  PC 0x0447: LoadImm { reg: 8, value: 0 }
+  PC 0x0449: SetLtU { dst: 4, src1: 8, src2: 4 }
+  PC 0x044c: StoreIndU64 { base: 1, src: 4, offset: 728 }
+  PC 0x0450: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0452: BranchNeImm { reg: 2, value: 0, offset: 68 }
+  PC 0x0458: Jump { offset: 81 }
+  PC 0x045d: LoadImm { reg: 2, value: 196608 }
+  PC 0x0462: LoadIndU32 { dst: 4, base: 2, offset: 0 }
+  PC 0x0464: StoreIndU64 { base: 1, src: 4, offset: 736 }
+  PC 0x0468: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x046a: LoadIndU64 { dst: 3, base: 1, offset: 688 }
+  PC 0x046e: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+  PC 0x0473: LoadImm { reg: 2, value: 196608 }
+  PC 0x0478: LoadIndU32 { dst: 4, base: 2, offset: 0 }
+  PC 0x047a: StoreIndU64 { base: 1, src: 4, offset: 752 }
+  PC 0x047e: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0480: LoadImm { reg: 3, value: 196612 }
+  PC 0x0485: StoreIndU32 { base: 3, src: 2, offset: 0 }
+  PC 0x0487: LoadImm { reg: 2, value: 4 }
+  PC 0x048a: LoadImm { reg: 3, value: 196616 }
+  PC 0x048f: StoreIndU32 { base: 3, src: 2, offset: 0 }
+  PC 0x0491: Jump { offset: -900 }
+  PC 0x0496: LoadImm { reg: 2, value: 0 }
+  PC 0x0498: LoadIndU64 { dst: 3, base: 1, offset: 688 }
+  PC 0x049c: StoreIndU64 { base: 1, src: 2, offset: 760 }
+  PC 0x04a0: StoreIndU64 { base: 1, src: 3, offset: 768 }
+  PC 0x04a4: Jump { offset: 15 }
+  PC 0x04a9: Jump { offset: 5 }
+  PC 0x04ae: Jump { offset: -81 }
+  PC 0x04b3: LoadIndU64 { dst: 2, base: 1, offset: 760 }
+  PC 0x04b7: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x04b9: StoreIndU64 { base: 1, src: 2, offset: 776 }
+  PC 0x04bd: LoadImm { reg: 3, value: 5 }
+  PC 0x04c0: SetLtS { dst: 4, src1: 2, src2: 3 }
+  PC 0x04c3: StoreIndU64 { base: 1, src: 4, offset: 784 }
+  PC 0x04c7: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x04c9: StoreIndU64 { base: 1, src: 2, offset: 792 }
+  PC 0x04cd: LoadIndU64 { dst: 2, base: 1, offset: 760 }
+  PC 0x04d1: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x04d3: StoreIndU64 { base: 1, src: 2, offset: 800 }
+  PC 0x04d7: LoadImm { reg: 3, value: 2 }
+  PC 0x04da: SetLtS { dst: 4, src1: 3, src2: 2 }
+  PC 0x04dd: SetLtUImm { dst: 4, src: 4, value: 1 }
+  PC 0x04e0: StoreIndU64 { base: 1, src: 4, offset: 808 }
+  PC 0x04e4: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x04e6: StoreIndU64 { base: 1, src: 2, offset: 816 }
+  PC 0x04ea: LoadIndU64 { dst: 2, base: 1, offset: 792 }
+  PC 0x04ee: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x04f0: StoreIndU64 { base: 1, src: 2, offset: 824 }
+  PC 0x04f4: LoadIndU64 { dst: 2, base: 1, offset: 816 }
+  PC 0x04f8: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x04fa: StoreIndU64 { base: 1, src: 2, offset: 832 }
+  PC 0x04fe: LoadIndU64 { dst: 2, base: 1, offset: 824 }
+  PC 0x0502: LoadIndU64 { dst: 3, base: 1, offset: 832 }
+  PC 0x0506: And { dst: 4, src1: 2, src2: 3 }
+  PC 0x0509: StoreIndU64 { base: 1, src: 4, offset: 840 }
+  PC 0x050d: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x050f: StoreIndU64 { base: 1, src: 2, offset: 848 }
+  PC 0x0513: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0515: StoreIndU64 { base: 1, src: 2, offset: 856 }
+  PC 0x0519: LoadImm { reg: 3, value: 0 }
+  PC 0x051b: Xor { dst: 4, src1: 2, src2: 3 }
+  PC 0x051e: LoadImm { reg: 8, value: 0 }
+  PC 0x0520: SetLtU { dst: 4, src1: 8, src2: 4 }
+  PC 0x0523: StoreIndU64 { base: 1, src: 4, offset: 864 }
+  PC 0x0527: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0529: BranchNeImm { reg: 2, value: 0, offset: 54 }
+  PC 0x052f: Jump { offset: 117 }
+  PC 0x0534: LoadIndU64 { dst: 2, base: 1, offset: 680 }
+  PC 0x0538: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x053a: StoreIndU64 { base: 1, src: 2, offset: 872 }
+  PC 0x053e: LoadImm { reg: 3, value: 1 }
+  PC 0x0541: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0544: StoreIndU64 { base: 1, src: 4, offset: 880 }
+  PC 0x0548: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x054a: StoreIndU64 { base: 1, src: 2, offset: 888 }
+  PC 0x054e: LoadIndU64 { dst: 3, base: 1, offset: 768 }
+  PC 0x0552: StoreIndU64 { base: 1, src: 2, offset: 680 }
+  PC 0x0556: StoreIndU64 { base: 1, src: 3, offset: 688 }
+  PC 0x055a: Jump { offset: -312 }
+  PC 0x055f: LoadIndU64 { dst: 2, base: 1, offset: 768 }
+  PC 0x0563: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0565: StoreIndU64 { base: 1, src: 2, offset: 896 }
+  PC 0x0569: LoadImm { reg: 3, value: 1 }
+  PC 0x056c: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x056f: StoreIndU64 { base: 1, src: 4, offset: 904 }
+  PC 0x0573: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0575: StoreIndU64 { base: 1, src: 2, offset: 912 }
+  PC 0x0579: LoadIndU64 { dst: 2, base: 1, offset: 760 }
+  PC 0x057d: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x057f: StoreIndU64 { base: 1, src: 2, offset: 920 }
+  PC 0x0583: LoadImm { reg: 3, value: 1 }
+  PC 0x0586: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0589: StoreIndU64 { base: 1, src: 4, offset: 928 }
+  PC 0x058d: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x058f: StoreIndU64 { base: 1, src: 2, offset: 936 }
+  PC 0x0593: LoadIndU64 { dst: 3, base: 1, offset: 912 }
+  PC 0x0597: StoreIndU64 { base: 1, src: 2, offset: 760 }
+  PC 0x059b: StoreIndU64 { base: 1, src: 3, offset: 768 }
+  PC 0x059f: Jump { offset: -236 }
+  PC 0x05a4: Jump { offset: 5 }
+  PC 0x05a9: Jump { offset: -117 }
+  PC 0x05ae: LoadImm64 { reg: 2, value: 4277993472 }
+  PC 0x05b8: AddImm64 { dst: 3, src: 1, value: -40 }
+  PC 0x05bb: BranchGeU { reg1: 2, reg2: 3, offset: 7 }
+  PC 0x05c1: Trap
+  PC 0x05c2: AddImm64 { dst: 1, src: 1, value: -40 }
+  PC 0x05c5: StoreIndU64 { base: 1, src: 0, offset: 0 }
+  PC 0x05c7: StoreIndU64 { base: 1, src: 9, offset: 8 }
+  PC 0x05ca: StoreIndU64 { base: 1, src: 10, offset: 16 }
+  PC 0x05cd: StoreIndU64 { base: 1, src: 11, offset: 24 }
+  PC 0x05d0: StoreIndU64 { base: 1, src: 12, offset: 32 }
+  PC 0x05d3: Fallthrough
+  PC 0x05d4: LoadImm { reg: 2, value: 1036 }
+  PC 0x05d8: LoadImm { reg: 3, value: 196620 }
+  PC 0x05dd: StoreIndU32 { base: 3, src: 2, offset: 0 }
+  PC 0x05df: Jump { offset: 5 }
+  PC 0x05e4: LoadIndU64 { dst: 9, base: 1, offset: 8 }
+  PC 0x05e7: LoadIndU64 { dst: 10, base: 1, offset: 16 }
+  PC 0x05ea: LoadIndU64 { dst: 11, base: 1, offset: 24 }
+  PC 0x05ed: LoadIndU64 { dst: 12, base: 1, offset: 32 }
+  PC 0x05f0: LoadIndU64 { dst: 0, base: 1, offset: 0 }
+  PC 0x05f2: AddImm64 { dst: 1, src: 1, value: 40 }
+  PC 0x05f5: JumpInd { reg: 0, offset: 0 }
+
+=== Control Flow Graph ===
+Entry PC: 0x0000
+Number of blocks: 52
+
+Block @ 0x0000 - 0x0005:
+    0x0000: Jump { offset: 10 }
+  Successors: 0x000a
+
+Block @ 0x0005 - 0x0006:
+    0x0005: Trap
+  Successors: (none)
+
+Block @ 0x0006 - 0x000a:
+    0x0006: Fallthrough
+    0x0007: Fallthrough
+    0x0008: Fallthrough
+    0x0009: Fallthrough
+  Successors: 0x000a
+
+Block @ 0x000a - 0x0021:
+    0x000a: AddImm64 { dst: 1, src: 1, value: -16 }
+    0x000d: StoreIndU64 { base: 1, src: 7, offset: 0 }
+    0x000f: StoreIndU64 { base: 1, src: 8, offset: 8 }
+    0x0012: LoadImm64 { reg: 0, value: 2 }
+    0x001c: Jump { offset: 1426 }
+  Successors: 0x05ae
+  Predecessors: 0x0000, 0x0006
+
+Block @ 0x0021 - 0x0108:
+    0x0021: LoadIndU64 { dst: 7, base: 1, offset: 0 }
+    0x0023: LoadIndU64 { dst: 8, base: 1, offset: 8 }
+    0x0026: AddImm64 { dst: 1, src: 1, value: 16 }
+    0x0029: AddImm64 { dst: 1, src: 1, value: -944 }
+    0x002d: AddImm64 { dst: 7, src: 7, value: -327680 }
+    0x0032: StoreIndU64 { base: 1, src: 7, offset: 40 }
+    0x0035: StoreIndU64 { base: 1, src: 8, offset: 48 }
+    0x0038: Fallthrough
+    0x0039: LoadImm { reg: 2, value: 196620 }
+    0x003e: LoadIndU32 { dst: 4, base: 2, offset: 0 }
+    0x0040: StoreIndU64 { base: 1, src: 4, offset: 56 }
+    0x0043: LoadImm { reg: 2, value: 196620 }
+    0x0048: LoadIndU32 { dst: 4, base: 2, offset: 0 }
+    0x004a: StoreIndU64 { base: 1, src: 4, offset: 64 }
+    0x004d: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x004f: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0051: StoreIndU64 { base: 1, src: 2, offset: 72 }
+    0x0054: LoadImm { reg: 3, value: 4 }
+    0x0057: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x005a: StoreIndU64 { base: 1, src: 4, offset: 80 }
+    0x005d: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x005f: StoreIndU64 { base: 1, src: 2, offset: 88 }
+    0x0062: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0064: StoreIndU64 { base: 1, src: 2, offset: 96 }
+    0x0067: LoadImm { reg: 3, value: 268 }
+    0x006b: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x006e: StoreIndU64 { base: 1, src: 4, offset: 104 }
+    0x0071: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0073: StoreIndU64 { base: 1, src: 2, offset: 112 }
+    0x0076: LoadImm { reg: 2, value: 196624 }
+    0x007b: LoadIndU32 { dst: 4, base: 2, offset: 0 }
+    0x007d: StoreIndU64 { base: 1, src: 4, offset: 120 }
+    0x0080: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0082: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0084: StoreIndU64 { base: 1, src: 2, offset: 128 }
+    0x0088: LoadImm { reg: 3, value: 16 }
+    0x008b: ShloL32 { dst: 4, src1: 2, src2: 3 }
+    0x008e: StoreIndU64 { base: 1, src: 4, offset: 136 }
+    0x0092: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0094: StoreIndU64 { base: 1, src: 2, offset: 144 }
+    0x0098: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x009a: StoreIndU64 { base: 1, src: 2, offset: 152 }
+    0x009e: LoadImm { reg: 3, value: 15 }
+    0x00a1: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x00a4: StoreIndU64 { base: 1, src: 4, offset: 160 }
+    0x00a8: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x00aa: StoreIndU64 { base: 1, src: 2, offset: 168 }
+    0x00ae: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x00b0: StoreIndU64 { base: 1, src: 2, offset: 176 }
+    0x00b4: LoadImm { reg: 3, value: -16 }
+    0x00b7: And { dst: 4, src1: 2, src2: 3 }
+    0x00ba: StoreIndU64 { base: 1, src: 4, offset: 184 }
+    0x00be: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x00c0: StoreIndU64 { base: 1, src: 2, offset: 192 }
+    0x00c4: LoadIndU64 { dst: 2, base: 1, offset: 112 }
+    0x00c7: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x00c9: StoreIndU64 { base: 1, src: 2, offset: 200 }
+    0x00cd: LoadIndU64 { dst: 2, base: 1, offset: 192 }
+    0x00d1: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x00d3: StoreIndU64 { base: 1, src: 2, offset: 208 }
+    0x00d7: LoadIndU64 { dst: 2, base: 1, offset: 200 }
+    0x00db: LoadIndU64 { dst: 3, base: 1, offset: 208 }
+    0x00df: SetLtU { dst: 4, src1: 3, src2: 2 }
+    0x00e2: StoreIndU64 { base: 1, src: 4, offset: 216 }
+    0x00e6: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x00e8: StoreIndU64 { base: 1, src: 2, offset: 224 }
+    0x00ec: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x00ee: StoreIndU64 { base: 1, src: 2, offset: 232 }
+    0x00f2: LoadImm { reg: 3, value: 0 }
+    0x00f4: Xor { dst: 4, src1: 2, src2: 3 }
+    0x00f7: LoadImm { reg: 8, value: 0 }
+    0x00f9: SetLtU { dst: 4, src1: 8, src2: 4 }
+    0x00fc: StoreIndU64 { base: 1, src: 4, offset: 240 }
+    0x0100: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0102: BranchNeImm { reg: 2, value: 0, offset: 40 }
+  Successors: 0x012a, 0x0108
+
+Block @ 0x0108 - 0x010d:
+    0x0108: Jump { offset: 347 }
+  Successors: 0x0263
+  Predecessors: 0x0021
+
+Block @ 0x010d - 0x012a:
+    0x010d: LoadImm { reg: 2, value: 196612 }
+    0x0112: LoadIndU32 { dst: 2, base: 2, offset: 0 }
+    0x0114: LoadImm { reg: 3, value: 196616 }
+    0x0119: LoadIndU32 { dst: 3, base: 3, offset: 0 }
+    0x011b: AddImm32 { dst: 7, src: 2, value: 327680 }
+    0x0120: Add64 { dst: 8, src1: 7, src2: 3 }
+    0x0123: LoadImm { reg: 2, value: -65536 }
+    0x0128: JumpInd { reg: 2, offset: 0 }
+  Successors: 0x012a
+  Predecessors: 0x045d
+
+Block @ 0x012a - 0x01e6:
+    0x012a: LoadIndU64 { dst: 2, base: 1, offset: 112 }
+    0x012d: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x012f: StoreIndU64 { base: 1, src: 2, offset: 248 }
+    0x0133: LoadIndU64 { dst: 2, base: 1, offset: 192 }
+    0x0137: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0139: StoreIndU64 { base: 1, src: 2, offset: 256 }
+    0x013d: LoadIndU64 { dst: 2, base: 1, offset: 248 }
+    0x0141: LoadIndU64 { dst: 3, base: 1, offset: 256 }
+    0x0145: Sub32 { dst: 4, src1: 2, src2: 3 }
+    0x0148: StoreIndU64 { base: 1, src: 4, offset: 264 }
+    0x014c: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x014e: StoreIndU64 { base: 1, src: 2, offset: 272 }
+    0x0152: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0154: StoreIndU64 { base: 1, src: 2, offset: 280 }
+    0x0158: LoadImm { reg: 3, value: 65535 }
+    0x015d: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x0160: StoreIndU64 { base: 1, src: 4, offset: 288 }
+    0x0164: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0166: StoreIndU64 { base: 1, src: 2, offset: 296 }
+    0x016a: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x016c: StoreIndU64 { base: 1, src: 2, offset: 304 }
+    0x0170: LoadImm { reg: 3, value: -65536 }
+    0x0175: And { dst: 4, src1: 2, src2: 3 }
+    0x0178: StoreIndU64 { base: 1, src: 4, offset: 312 }
+    0x017c: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x017e: StoreIndU64 { base: 1, src: 2, offset: 320 }
+    0x0182: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0184: StoreIndU64 { base: 1, src: 2, offset: 328 }
+    0x0188: LoadImm { reg: 3, value: 16 }
+    0x018b: ShloR32 { dst: 4, src1: 2, src2: 3 }
+    0x018e: StoreIndU64 { base: 1, src: 4, offset: 336 }
+    0x0192: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0194: StoreIndU64 { base: 1, src: 2, offset: 344 }
+    0x0198: LoadIndU64 { dst: 2, base: 1, offset: 120 }
+    0x019b: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x019d: StoreIndU64 { base: 1, src: 2, offset: 352 }
+    0x01a1: LoadIndU64 { dst: 2, base: 1, offset: 344 }
+    0x01a5: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x01a7: StoreIndU64 { base: 1, src: 2, offset: 360 }
+    0x01ab: LoadIndU64 { dst: 2, base: 1, offset: 352 }
+    0x01af: LoadIndU64 { dst: 3, base: 1, offset: 360 }
+    0x01b3: SetLtS { dst: 4, src1: 3, src2: 2 }
+    0x01b6: StoreIndU64 { base: 1, src: 4, offset: 368 }
+    0x01ba: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x01bc: StoreIndU64 { base: 1, src: 2, offset: 376 }
+    0x01c0: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x01c2: StoreIndU64 { base: 1, src: 2, offset: 384 }
+    0x01c6: LoadImm { reg: 3, value: 0 }
+    0x01c8: Xor { dst: 4, src1: 2, src2: 3 }
+    0x01cb: LoadImm { reg: 8, value: 0 }
+    0x01cd: SetLtU { dst: 4, src1: 8, src2: 4 }
+    0x01d0: StoreIndU64 { base: 1, src: 4, offset: 392 }
+    0x01d4: LoadIndU64 { dst: 4, base: 1, offset: 344 }
+    0x01d8: StoreIndU64 { base: 1, src: 4, offset: 400 }
+    0x01dc: LoadIndU64 { dst: 2, base: 1, offset: 392 }
+    0x01e0: BranchEqImm { reg: 2, value: 0, offset: 14 }
+  Successors: 0x01ee, 0x01e6
+  Predecessors: 0x0021, 0x010d
+
+Block @ 0x01e6 - 0x01ee:
+    0x01e6: LoadIndU64 { dst: 4, base: 1, offset: 120 }
+    0x01e9: StoreIndU64 { base: 1, src: 4, offset: 400 }
+    0x01ed: Fallthrough
+  Successors: 0x01ee
+  Predecessors: 0x012a
+
+Block @ 0x01ee - 0x0202:
+    0x01ee: LoadIndU64 { dst: 5, base: 1, offset: 400 }
+    0x01f2: LoadImm { reg: 2, value: 196624 }
+    0x01f7: LoadIndU32 { dst: 4, base: 2, offset: 0 }
+    0x01f9: Add32 { dst: 6, src1: 4, src2: 5 }
+    0x01fc: BranchLtU { reg1: 4, reg2: 6, offset: 39 }
+  Successors: 0x0223, 0x0202
+  Predecessors: 0x012a, 0x01e6
+
+Block @ 0x0202 - 0x020c:
+    0x0202: LoadImm { reg: 5, value: 256 }
+    0x0206: BranchLtU { reg1: 6, reg2: 5, offset: 29 }
+  Successors: 0x0223, 0x020c
+  Predecessors: 0x01ee
+
+Block @ 0x020c - 0x0223:
+    0x020c: LoadImm { reg: 5, value: 196624 }
+    0x0211: StoreIndU32 { base: 5, src: 6, offset: 0 }
+    0x0213: Sub32 { dst: 5, src1: 6, src2: 4 }
+    0x0216: LoadImm { reg: 6, value: 16 }
+    0x0219: ShloL32 { dst: 5, src1: 5, src2: 6 }
+    0x021c: Sbrk { dst: 5, src: 5 }
+    0x021e: Jump { offset: 9 }
+  Successors: 0x0227
+  Predecessors: 0x0202
+
+Block @ 0x0223 - 0x0227:
+    0x0223: LoadImm { reg: 4, value: -1 }
+    0x0226: Fallthrough
+  Successors: 0x0227
+  Predecessors: 0x01ee, 0x0202
+
+Block @ 0x0227 - 0x025e:
+    0x0227: StoreIndU64 { base: 1, src: 4, offset: 408 }
+    0x022b: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x022d: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x022f: StoreIndU64 { base: 1, src: 2, offset: 416 }
+    0x0233: LoadImm { reg: 3, value: 0 }
+    0x0235: SetLtS { dst: 4, src1: 2, src2: 3 }
+    0x0238: StoreIndU64 { base: 1, src: 4, offset: 424 }
+    0x023c: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x023e: StoreIndU64 { base: 1, src: 2, offset: 432 }
+    0x0242: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0244: StoreIndU64 { base: 1, src: 2, offset: 440 }
+    0x0248: LoadImm { reg: 3, value: 0 }
+    0x024a: Xor { dst: 4, src1: 2, src2: 3 }
+    0x024d: LoadImm { reg: 8, value: 0 }
+    0x024f: SetLtU { dst: 4, src1: 8, src2: 4 }
+    0x0252: StoreIndU64 { base: 1, src: 4, offset: 448 }
+    0x0256: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0258: BranchNeImm { reg: 2, value: 0, offset: 148 }
+  Successors: 0x02ec, 0x025e
+  Predecessors: 0x020c, 0x0223
+
+Block @ 0x025e - 0x0263:
+    0x025e: Jump { offset: 259 }
+  Successors: 0x0361
+  Predecessors: 0x0227
+
+Block @ 0x0263 - 0x0268:
+    0x0263: Jump { offset: 5 }
+  Successors: 0x0268
+  Predecessors: 0x0108
+
+Block @ 0x0268 - 0x02d1:
+    0x0268: LoadIndU64 { dst: 2, base: 1, offset: 112 }
+    0x026b: LoadImm { reg: 3, value: 196620 }
+    0x0270: StoreIndU32 { base: 3, src: 2, offset: 0 }
+    0x0272: LoadIndU64 { dst: 2, base: 1, offset: 56 }
+    0x0275: LoadImm { reg: 3, value: 268 }
+    0x0279: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+    0x027e: LoadIndU64 { dst: 2, base: 1, offset: 88 }
+    0x0281: LoadImm { reg: 3, value: 196608 }
+    0x0286: StoreIndU32 { base: 3, src: 2, offset: 0 }
+    0x0288: LoadIndU64 { dst: 2, base: 1, offset: 40 }
+    0x028b: LoadIndU32 { dst: 4, base: 2, offset: 327680 }
+    0x0290: StoreIndU64 { base: 1, src: 4, offset: 464 }
+    0x0294: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0296: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0298: StoreIndU64 { base: 1, src: 2, offset: 472 }
+    0x029c: LoadImm { reg: 3, value: 10 }
+    0x029f: SetLtS { dst: 4, src1: 3, src2: 2 }
+    0x02a2: StoreIndU64 { base: 1, src: 4, offset: 480 }
+    0x02a6: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x02a8: StoreIndU64 { base: 1, src: 2, offset: 488 }
+    0x02ac: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x02ae: StoreIndU64 { base: 1, src: 2, offset: 496 }
+    0x02b2: LoadImm { reg: 3, value: 0 }
+    0x02b4: Xor { dst: 4, src1: 2, src2: 3 }
+    0x02b7: LoadImm { reg: 8, value: 0 }
+    0x02b9: SetLtU { dst: 4, src1: 8, src2: 4 }
+    0x02bc: StoreIndU64 { base: 1, src: 4, offset: 504 }
+    0x02c0: LoadImm { reg: 4, value: 2 }
+    0x02c3: StoreIndU64 { base: 1, src: 4, offset: 512 }
+    0x02c7: LoadIndU64 { dst: 2, base: 1, offset: 504 }
+    0x02cb: BranchEqImm { reg: 2, value: 0, offset: 14 }
+  Successors: 0x02d9, 0x02d1
+  Predecessors: 0x0263, 0x0366
+
+Block @ 0x02d1 - 0x02d9:
+    0x02d1: LoadImm { reg: 4, value: 1 }
+    0x02d4: StoreIndU64 { base: 1, src: 4, offset: 512 }
+    0x02d8: Fallthrough
+  Successors: 0x02d9
+  Predecessors: 0x0268
+
+Block @ 0x02d9 - 0x02ec:
+    0x02d9: LoadImm { reg: 2, value: 0 }
+    0x02db: LoadIndU64 { dst: 3, base: 1, offset: 512 }
+    0x02df: StoreIndU64 { base: 1, src: 2, offset: 568 }
+    0x02e3: StoreIndU64 { base: 1, src: 3, offset: 576 }
+    0x02e7: Jump { offset: 143 }
+  Successors: 0x0376
+  Predecessors: 0x0268, 0x02d1
+
+Block @ 0x02ec - 0x0300:
+    0x02ec: LoadIndU64 { dst: 5, base: 1, offset: 344 }
+    0x02f0: LoadImm { reg: 2, value: 196624 }
+    0x02f5: LoadIndU32 { dst: 4, base: 2, offset: 0 }
+    0x02f7: Add32 { dst: 6, src1: 4, src2: 5 }
+    0x02fa: BranchLtU { reg1: 4, reg2: 6, offset: 39 }
+  Successors: 0x0321, 0x0300
+  Predecessors: 0x0227
+
+Block @ 0x0300 - 0x030a:
+    0x0300: LoadImm { reg: 5, value: 256 }
+    0x0304: BranchLtU { reg1: 6, reg2: 5, offset: 29 }
+  Successors: 0x0321, 0x030a
+  Predecessors: 0x02ec
+
+Block @ 0x030a - 0x0321:
+    0x030a: LoadImm { reg: 5, value: 196624 }
+    0x030f: StoreIndU32 { base: 5, src: 6, offset: 0 }
+    0x0311: Sub32 { dst: 5, src1: 6, src2: 4 }
+    0x0314: LoadImm { reg: 6, value: 16 }
+    0x0317: ShloL32 { dst: 5, src1: 5, src2: 6 }
+    0x031a: Sbrk { dst: 5, src: 5 }
+    0x031c: Jump { offset: 9 }
+  Successors: 0x0325
+  Predecessors: 0x0300
+
+Block @ 0x0321 - 0x0325:
+    0x0321: LoadImm { reg: 4, value: -1 }
+    0x0324: Fallthrough
+  Successors: 0x0325
+  Predecessors: 0x02ec, 0x0300
+
+Block @ 0x0325 - 0x035c:
+    0x0325: StoreIndU64 { base: 1, src: 4, offset: 520 }
+    0x0329: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x032b: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x032d: StoreIndU64 { base: 1, src: 2, offset: 528 }
+    0x0331: LoadImm { reg: 3, value: 0 }
+    0x0333: SetLtS { dst: 4, src1: 2, src2: 3 }
+    0x0336: StoreIndU64 { base: 1, src: 4, offset: 536 }
+    0x033a: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x033c: StoreIndU64 { base: 1, src: 2, offset: 544 }
+    0x0340: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0342: StoreIndU64 { base: 1, src: 2, offset: 552 }
+    0x0346: LoadImm { reg: 3, value: 0 }
+    0x0348: Xor { dst: 4, src1: 2, src2: 3 }
+    0x034b: LoadImm { reg: 8, value: 0 }
+    0x034d: SetLtU { dst: 4, src1: 8, src2: 4 }
+    0x0350: StoreIndU64 { base: 1, src: 4, offset: 560 }
+    0x0354: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0356: BranchNeImm { reg: 2, value: 0, offset: 21 }
+  Successors: 0x036b, 0x035c
+  Predecessors: 0x030a, 0x0321
+
+Block @ 0x035c - 0x0361:
+    0x035c: Jump { offset: 16 }
+  Successors: 0x036c
+  Predecessors: 0x0325
+
+Block @ 0x0361 - 0x0366:
+    0x0361: Jump { offset: 5 }
+  Successors: 0x0366
+  Predecessors: 0x025e
+
+Block @ 0x0366 - 0x036b:
+    0x0366: Jump { offset: -254 }
+  Successors: 0x0268
+  Predecessors: 0x0361, 0x0371
+
+Block @ 0x036b - 0x036c:
+    0x036b: Trap
+  Successors: (none)
+  Predecessors: 0x0325
+
+Block @ 0x036c - 0x0371:
+    0x036c: Jump { offset: 5 }
+  Successors: 0x0371
+  Predecessors: 0x035c
+
+Block @ 0x0371 - 0x0376:
+    0x0371: Jump { offset: -11 }
+  Successors: 0x0366
+  Predecessors: 0x036c
+
+Block @ 0x0376 - 0x03bb:
+    0x0376: LoadIndU64 { dst: 2, base: 1, offset: 464 }
+    0x037a: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x037c: StoreIndU64 { base: 1, src: 2, offset: 584 }
+    0x0380: LoadIndU64 { dst: 2, base: 1, offset: 568 }
+    0x0384: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0386: StoreIndU64 { base: 1, src: 2, offset: 592 }
+    0x038a: LoadIndU64 { dst: 2, base: 1, offset: 584 }
+    0x038e: LoadIndU64 { dst: 3, base: 1, offset: 592 }
+    0x0392: SetLtS { dst: 4, src1: 3, src2: 2 }
+    0x0395: StoreIndU64 { base: 1, src: 4, offset: 600 }
+    0x0399: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x039b: StoreIndU64 { base: 1, src: 2, offset: 608 }
+    0x039f: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x03a1: StoreIndU64 { base: 1, src: 2, offset: 616 }
+    0x03a5: LoadImm { reg: 3, value: 0 }
+    0x03a7: Xor { dst: 4, src1: 2, src2: 3 }
+    0x03aa: LoadImm { reg: 8, value: 0 }
+    0x03ac: SetLtU { dst: 4, src1: 8, src2: 4 }
+    0x03af: StoreIndU64 { base: 1, src: 4, offset: 624 }
+    0x03b3: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x03b5: BranchNeImm { reg: 2, value: 0, offset: 30 }
+  Successors: 0x03d3, 0x03bb
+  Predecessors: 0x02d9, 0x03d3
+
+Block @ 0x03bb - 0x03c0:
+    0x03bb: Jump { offset: 93 }
+  Successors: 0x0418
+  Predecessors: 0x0376
+
+Block @ 0x03c0 - 0x03d3:
+    0x03c0: LoadImm { reg: 2, value: 0 }
+    0x03c2: LoadIndU64 { dst: 3, base: 1, offset: 576 }
+    0x03c6: StoreIndU64 { base: 1, src: 2, offset: 680 }
+    0x03ca: StoreIndU64 { base: 1, src: 3, offset: 688 }
+    0x03ce: Jump { offset: 84 }
+  Successors: 0x0422
+  Predecessors: 0x041d
+
+Block @ 0x03d3 - 0x0418:
+    0x03d3: LoadIndU64 { dst: 2, base: 1, offset: 576 }
+    0x03d7: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x03d9: StoreIndU64 { base: 1, src: 2, offset: 632 }
+    0x03dd: LoadImm { reg: 3, value: 1 }
+    0x03e0: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x03e3: StoreIndU64 { base: 1, src: 4, offset: 640 }
+    0x03e7: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x03e9: StoreIndU64 { base: 1, src: 2, offset: 648 }
+    0x03ed: LoadIndU64 { dst: 2, base: 1, offset: 568 }
+    0x03f1: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x03f3: StoreIndU64 { base: 1, src: 2, offset: 656 }
+    0x03f7: LoadImm { reg: 3, value: 1 }
+    0x03fa: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x03fd: StoreIndU64 { base: 1, src: 4, offset: 664 }
+    0x0401: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0403: StoreIndU64 { base: 1, src: 2, offset: 672 }
+    0x0407: LoadIndU64 { dst: 3, base: 1, offset: 648 }
+    0x040b: StoreIndU64 { base: 1, src: 2, offset: 568 }
+    0x040f: StoreIndU64 { base: 1, src: 3, offset: 576 }
+    0x0413: Jump { offset: -157 }
+  Successors: 0x0376
+  Predecessors: 0x0376
+
+Block @ 0x0418 - 0x041d:
+    0x0418: Jump { offset: 5 }
+  Successors: 0x041d
+  Predecessors: 0x03bb
+
+Block @ 0x041d - 0x0422:
+    0x041d: Jump { offset: -93 }
+  Successors: 0x03c0
+  Predecessors: 0x0418
+
+Block @ 0x0422 - 0x0458:
+    0x0422: LoadIndU64 { dst: 2, base: 1, offset: 680 }
+    0x0426: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0428: StoreIndU64 { base: 1, src: 2, offset: 696 }
+    0x042c: LoadImm { reg: 3, value: 5 }
+    0x042f: SetLtS { dst: 4, src1: 2, src2: 3 }
+    0x0432: StoreIndU64 { base: 1, src: 4, offset: 704 }
+    0x0436: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0438: StoreIndU64 { base: 1, src: 2, offset: 712 }
+    0x043c: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x043e: StoreIndU64 { base: 1, src: 2, offset: 720 }
+    0x0442: LoadImm { reg: 3, value: 0 }
+    0x0444: Xor { dst: 4, src1: 2, src2: 3 }
+    0x0447: LoadImm { reg: 8, value: 0 }
+    0x0449: SetLtU { dst: 4, src1: 8, src2: 4 }
+    0x044c: StoreIndU64 { base: 1, src: 4, offset: 728 }
+    0x0450: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0452: BranchNeImm { reg: 2, value: 0, offset: 68 }
+  Successors: 0x0496, 0x0458
+  Predecessors: 0x03c0, 0x0534
+
+Block @ 0x0458 - 0x045d:
+    0x0458: Jump { offset: 81 }
+  Successors: 0x04a9
+  Predecessors: 0x0422
+
+Block @ 0x045d - 0x0496:
+    0x045d: LoadImm { reg: 2, value: 196608 }
+    0x0462: LoadIndU32 { dst: 4, base: 2, offset: 0 }
+    0x0464: StoreIndU64 { base: 1, src: 4, offset: 736 }
+    0x0468: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x046a: LoadIndU64 { dst: 3, base: 1, offset: 688 }
+    0x046e: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+    0x0473: LoadImm { reg: 2, value: 196608 }
+    0x0478: LoadIndU32 { dst: 4, base: 2, offset: 0 }
+    0x047a: StoreIndU64 { base: 1, src: 4, offset: 752 }
+    0x047e: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0480: LoadImm { reg: 3, value: 196612 }
+    0x0485: StoreIndU32 { base: 3, src: 2, offset: 0 }
+    0x0487: LoadImm { reg: 2, value: 4 }
+    0x048a: LoadImm { reg: 3, value: 196616 }
+    0x048f: StoreIndU32 { base: 3, src: 2, offset: 0 }
+    0x0491: Jump { offset: -900 }
+  Successors: 0x010d
+  Predecessors: 0x04ae
+
+Block @ 0x0496 - 0x04a9:
+    0x0496: LoadImm { reg: 2, value: 0 }
+    0x0498: LoadIndU64 { dst: 3, base: 1, offset: 688 }
+    0x049c: StoreIndU64 { base: 1, src: 2, offset: 760 }
+    0x04a0: StoreIndU64 { base: 1, src: 3, offset: 768 }
+    0x04a4: Jump { offset: 15 }
+  Successors: 0x04b3
+  Predecessors: 0x0422
+
+Block @ 0x04a9 - 0x04ae:
+    0x04a9: Jump { offset: 5 }
+  Successors: 0x04ae
+  Predecessors: 0x0458
+
+Block @ 0x04ae - 0x04b3:
+    0x04ae: Jump { offset: -81 }
+  Successors: 0x045d
+  Predecessors: 0x04a9
+
+Block @ 0x04b3 - 0x052f:
+    0x04b3: LoadIndU64 { dst: 2, base: 1, offset: 760 }
+    0x04b7: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x04b9: StoreIndU64 { base: 1, src: 2, offset: 776 }
+    0x04bd: LoadImm { reg: 3, value: 5 }
+    0x04c0: SetLtS { dst: 4, src1: 2, src2: 3 }
+    0x04c3: StoreIndU64 { base: 1, src: 4, offset: 784 }
+    0x04c7: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x04c9: StoreIndU64 { base: 1, src: 2, offset: 792 }
+    0x04cd: LoadIndU64 { dst: 2, base: 1, offset: 760 }
+    0x04d1: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x04d3: StoreIndU64 { base: 1, src: 2, offset: 800 }
+    0x04d7: LoadImm { reg: 3, value: 2 }
+    0x04da: SetLtS { dst: 4, src1: 3, src2: 2 }
+    0x04dd: SetLtUImm { dst: 4, src: 4, value: 1 }
+    0x04e0: StoreIndU64 { base: 1, src: 4, offset: 808 }
+    0x04e4: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x04e6: StoreIndU64 { base: 1, src: 2, offset: 816 }
+    0x04ea: LoadIndU64 { dst: 2, base: 1, offset: 792 }
+    0x04ee: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x04f0: StoreIndU64 { base: 1, src: 2, offset: 824 }
+    0x04f4: LoadIndU64 { dst: 2, base: 1, offset: 816 }
+    0x04f8: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x04fa: StoreIndU64 { base: 1, src: 2, offset: 832 }
+    0x04fe: LoadIndU64 { dst: 2, base: 1, offset: 824 }
+    0x0502: LoadIndU64 { dst: 3, base: 1, offset: 832 }
+    0x0506: And { dst: 4, src1: 2, src2: 3 }
+    0x0509: StoreIndU64 { base: 1, src: 4, offset: 840 }
+    0x050d: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x050f: StoreIndU64 { base: 1, src: 2, offset: 848 }
+    0x0513: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0515: StoreIndU64 { base: 1, src: 2, offset: 856 }
+    0x0519: LoadImm { reg: 3, value: 0 }
+    0x051b: Xor { dst: 4, src1: 2, src2: 3 }
+    0x051e: LoadImm { reg: 8, value: 0 }
+    0x0520: SetLtU { dst: 4, src1: 8, src2: 4 }
+    0x0523: StoreIndU64 { base: 1, src: 4, offset: 864 }
+    0x0527: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0529: BranchNeImm { reg: 2, value: 0, offset: 54 }
+  Successors: 0x055f, 0x052f
+  Predecessors: 0x0496, 0x055f
+
+Block @ 0x052f - 0x0534:
+    0x052f: Jump { offset: 117 }
+  Successors: 0x05a4
+  Predecessors: 0x04b3
+
+Block @ 0x0534 - 0x055f:
+    0x0534: LoadIndU64 { dst: 2, base: 1, offset: 680 }
+    0x0538: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x053a: StoreIndU64 { base: 1, src: 2, offset: 872 }
+    0x053e: LoadImm { reg: 3, value: 1 }
+    0x0541: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x0544: StoreIndU64 { base: 1, src: 4, offset: 880 }
+    0x0548: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x054a: StoreIndU64 { base: 1, src: 2, offset: 888 }
+    0x054e: LoadIndU64 { dst: 3, base: 1, offset: 768 }
+    0x0552: StoreIndU64 { base: 1, src: 2, offset: 680 }
+    0x0556: StoreIndU64 { base: 1, src: 3, offset: 688 }
+    0x055a: Jump { offset: -312 }
+  Successors: 0x0422
+  Predecessors: 0x05a9
+
+Block @ 0x055f - 0x05a4:
+    0x055f: LoadIndU64 { dst: 2, base: 1, offset: 768 }
+    0x0563: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0565: StoreIndU64 { base: 1, src: 2, offset: 896 }
+    0x0569: LoadImm { reg: 3, value: 1 }
+    0x056c: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x056f: StoreIndU64 { base: 1, src: 4, offset: 904 }
+    0x0573: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0575: StoreIndU64 { base: 1, src: 2, offset: 912 }
+    0x0579: LoadIndU64 { dst: 2, base: 1, offset: 760 }
+    0x057d: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x057f: StoreIndU64 { base: 1, src: 2, offset: 920 }
+    0x0583: LoadImm { reg: 3, value: 1 }
+    0x0586: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x0589: StoreIndU64 { base: 1, src: 4, offset: 928 }
+    0x058d: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x058f: StoreIndU64 { base: 1, src: 2, offset: 936 }
+    0x0593: LoadIndU64 { dst: 3, base: 1, offset: 912 }
+    0x0597: StoreIndU64 { base: 1, src: 2, offset: 760 }
+    0x059b: StoreIndU64 { base: 1, src: 3, offset: 768 }
+    0x059f: Jump { offset: -236 }
+  Successors: 0x04b3
+  Predecessors: 0x04b3
+
+Block @ 0x05a4 - 0x05a9:
+    0x05a4: Jump { offset: 5 }
+  Successors: 0x05a9
+  Predecessors: 0x052f
+
+Block @ 0x05a9 - 0x05ae:
+    0x05a9: Jump { offset: -117 }
+  Successors: 0x0534
+  Predecessors: 0x05a4
+
+Block @ 0x05ae - 0x05c1:
+    0x05ae: LoadImm64 { reg: 2, value: 4277993472 }
+    0x05b8: AddImm64 { dst: 3, src: 1, value: -40 }
+    0x05bb: BranchGeU { reg1: 2, reg2: 3, offset: 7 }
+  Successors: 0x05c2, 0x05c1
+  Predecessors: 0x000a
+
+Block @ 0x05c1 - 0x05c2:
+    0x05c1: Trap
+  Successors: (none)
+  Predecessors: 0x05ae
+
+Block @ 0x05c2 - 0x05e4:
+    0x05c2: AddImm64 { dst: 1, src: 1, value: -40 }
+    0x05c5: StoreIndU64 { base: 1, src: 0, offset: 0 }
+    0x05c7: StoreIndU64 { base: 1, src: 9, offset: 8 }
+    0x05ca: StoreIndU64 { base: 1, src: 10, offset: 16 }
+    0x05cd: StoreIndU64 { base: 1, src: 11, offset: 24 }
+    0x05d0: StoreIndU64 { base: 1, src: 12, offset: 32 }
+    0x05d3: Fallthrough
+    0x05d4: LoadImm { reg: 2, value: 1036 }
+    0x05d8: LoadImm { reg: 3, value: 196620 }
+    0x05dd: StoreIndU32 { base: 3, src: 2, offset: 0 }
+    0x05df: Jump { offset: 5 }
+  Successors: 0x05e4
+  Predecessors: 0x05ae
+
+Block @ 0x05e4 - 0x05f6:
+    0x05e4: LoadIndU64 { dst: 9, base: 1, offset: 8 }
+    0x05e7: LoadIndU64 { dst: 10, base: 1, offset: 16 }
+    0x05ea: LoadIndU64 { dst: 11, base: 1, offset: 24 }
+    0x05ed: LoadIndU64 { dst: 12, base: 1, offset: 32 }
+    0x05f0: LoadIndU64 { dst: 0, base: 1, offset: 0 }
+    0x05f2: AddImm64 { dst: 1, src: 1, value: 40 }
+    0x05f5: JumpInd { reg: 0, offset: 0 }
+  Successors: (none)
+  Predecessors: 0x05c2

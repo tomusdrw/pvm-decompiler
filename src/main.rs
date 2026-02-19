@@ -22,7 +22,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)?;
 
-    let program = decoder::decode_blob(&buffer)?;
+    // Try SPI format first, fall back to raw blob if it fails
+    let program = match decoder::decode_spi(&buffer) {
+        Ok(prog) => {
+            println!("Successfully decoded as SPI format");
+            prog
+        }
+        Err(e) => {
+            eprintln!("SPI decode failed: {}, trying raw blob format...", e);
+            decoder::decode_blob(&buffer)?
+        }
+    };
 
     println!("Jump Table: {:?}", program.jump_table);
     println!("\nInstructions:");

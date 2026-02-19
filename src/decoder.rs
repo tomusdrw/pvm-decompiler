@@ -26,38 +26,258 @@ impl fmt::Display for DecodeError {
 
 impl Error for DecodeError {}
 
+/// Try to strip metadata prefix from PVM blob.
+/// Format: <var-len-encoded-metadata-length><metadata-bytes><spi-program>
+///
+/// Returns the blob data (with metadata stripped if present).
+/// Uses a heuristic: if the first varint is small and the following bytes
+/// are mostly printable ASCII, treat it as metadata and skip it.
+fn try_strip_metadata(data: &[u8]) -> Result<&[u8], Box<dyn Error>> {
+    if data.is_empty() {
+        return Ok(data);
+    }
+
+    eprintln!(
+        "[DEBUG] try_strip_metadata: input size = {} bytes",
+        data.len()
+    );
+    eprintln!(
+        "[DEBUG] First 16 bytes (hex): {:02x?}",
+        &data[..std::cmp::min(16, data.len())]
+    );
+
+    // Try to read the first varint
+    match varint::decode_var_u32(data) {
+        Some((metadata_len, varint_len)) => {
+            let metadata_len = metadata_len as usize;
+            eprintln!(
+                "[DEBUG] Varint decoded: metadata_len = {}, varint_len = {}",
+                metadata_len, varint_len
+            );
+
+            // Check if this could be metadata:
+            // 1. metadata_len must be reasonable (> 0 and < file size)
+            // 2. The bytes after metadata should be enough for a valid blob
+            // 3. The metadata bytes should be mostly printable ASCII
+
+            if metadata_len == 0 {
+                // No metadata, return as-is
+                eprintln!("[DEBUG] metadata_len is 0, no metadata");
+                return Ok(data);
+            }
+
+            let metadata_start = varint_len;
+            let metadata_end = metadata_start + metadata_len;
+
+            // Check bounds
+            if metadata_end > data.len() {
+                // Not enough data for metadata, assume no metadata
+                eprintln!(
+                    "[DEBUG] metadata_end ({}) > data.len ({}), no metadata",
+                    metadata_end,
+                    data.len()
+                );
+                return Ok(data);
+            }
+
+            // Check if metadata bytes are mostly printable ASCII
+            let metadata_bytes = &data[metadata_start..metadata_end];
+            let printable_count = metadata_bytes
+                .iter()
+                .filter(|&&b| (32..=126).contains(&b) || b == b'\n' || b == b'\r' || b == b'\t')
+                .count();
+
+            eprintln!(
+                "[DEBUG] Metadata bytes: printable_count = {}/{}",
+                printable_count,
+                metadata_bytes.len()
+            );
+            eprintln!(
+                "[DEBUG] Metadata (as string): {:?}",
+                String::from_utf8_lossy(metadata_bytes)
+            );
+
+            // If at least 80% of bytes are printable, treat as metadata
+            if printable_count as f64 / metadata_bytes.len() as f64 >= 0.8 {
+                // This looks like metadata, skip it
+                eprintln!(
+                    "[DEBUG] Metadata detected, stripping {} bytes",
+                    metadata_len
+                );
+                eprintln!("[DEBUG] Remaining data size: {}", data.len() - metadata_end);
+                eprintln!(
+                    "[DEBUG] First 16 bytes of remaining (hex): {:02x?}",
+                    &data[metadata_end..std::cmp::min(metadata_end + 16, data.len())]
+                );
+                return Ok(&data[metadata_end..]);
+            }
+        }
+        None => {
+            // Invalid varint, assume no metadata
+            eprintln!("[DEBUG] Invalid varint, no metadata");
+        }
+    }
+
+    // No metadata detected, return original data
+    eprintln!("[DEBUG] No metadata detected, returning original data");
+    Ok(data)
+}
+
+/// Decode SPI format: metadata + SPI header + ro_data + rw_data + code_blob
+/// Format:
+/// [varint: metadata_len]
+/// [metadata_bytes]
+/// [u24: ro_data_len]
+/// [u24: rw_data_len]
+/// [u16: heap_pages]
+/// [u24: stack_size]
+/// [ro_data: ro_data_len bytes]
+/// [rw_data: rw_data_len bytes]
+/// [u32: code_blob_len]
+/// [code_blob: code_blob_len bytes] ← This is the ProgramBlob!
+pub fn decode_spi(data: &[u8]) -> Result<DecodedProgram, Box<dyn Error>> {
+    // Try to strip metadata prefix if present
+    let blob_data = try_strip_metadata(data)?;
+    eprintln!(
+        "[DEBUG] decode_spi: blob_data size = {} bytes",
+        blob_data.len()
+    );
+    eprintln!(
+        "[DEBUG] First 32 bytes of blob_data (hex): {:02x?}",
+        &blob_data[..std::cmp::min(32, blob_data.len())]
+    );
+
+    let mut cursor = Cursor::new(blob_data);
+
+    // Parse SPI header
+    // 1. ro_data_len (u24 = 3 bytes LE)
+    let ro_data_len = cursor.read_u24()?;
+    eprintln!("[DEBUG] ro_data_len = {}", ro_data_len);
+
+    // 2. rw_data_len (u24 = 3 bytes LE)
+    let rw_data_len = cursor.read_u24()?;
+    eprintln!("[DEBUG] rw_data_len = {}", rw_data_len);
+
+    // 3. heap_pages (u16 = 2 bytes LE)
+    let heap_pages = cursor.read_u16()?;
+    eprintln!("[DEBUG] heap_pages = {}", heap_pages);
+
+    // 4. stack_size (u24 = 3 bytes LE)
+    let stack_size = cursor.read_u24()?;
+    eprintln!("[DEBUG] stack_size = {}", stack_size);
+
+    // 5. Skip ro_data section
+    eprintln!("[DEBUG] Skipping ro_data: {} bytes", ro_data_len);
+    cursor.advance(ro_data_len as usize);
+
+    // 6. Skip rw_data section
+    eprintln!("[DEBUG] Skipping rw_data: {} bytes", rw_data_len);
+    cursor.advance(rw_data_len as usize);
+
+    // 7. Read code_blob_len (u32 LE)
+    let code_blob_len = cursor.read_u32()?;
+    eprintln!("[DEBUG] code_blob_len = {}", code_blob_len);
+
+    // 8. Extract code_blob bytes
+    if cursor.remaining() < code_blob_len as usize {
+        eprintln!(
+            "[DEBUG] ERROR: Not enough bytes for code_blob! remaining = {}, code_blob_len = {}",
+            cursor.remaining(),
+            code_blob_len
+        );
+        return Err(Box::new(DecodeError::UnexpectedEof));
+    }
+
+    let code_blob_start = cursor.position;
+    let code_blob_end = code_blob_start + code_blob_len as usize;
+    let code_blob = &blob_data[code_blob_start..code_blob_end];
+
+    eprintln!("[DEBUG] code_blob extracted: {} bytes", code_blob.len());
+    eprintln!(
+        "[DEBUG] First 32 bytes of code_blob (hex): {:02x?}",
+        &code_blob[..std::cmp::min(32, code_blob.len())]
+    );
+
+    // 9. Decode the code_blob as a ProgramBlob
+    decode_blob_internal(code_blob)
+}
+
 pub fn decode_blob(data: &[u8]) -> Result<DecodedProgram, Box<dyn Error>> {
-    let mut cursor = Cursor::new(data);
+    // Try to strip metadata prefix if present
+    let blob_data = try_strip_metadata(data)?;
+    eprintln!(
+        "[DEBUG] decode_blob: blob_data size = {} bytes",
+        blob_data.len()
+    );
+    eprintln!(
+        "[DEBUG] First 32 bytes of blob_data (hex): {:02x?}",
+        &blob_data[..std::cmp::min(32, blob_data.len())]
+    );
+
+    decode_blob_internal(blob_data)
+}
+
+fn decode_blob_internal(blob_data: &[u8]) -> Result<DecodedProgram, Box<dyn Error>> {
+    let mut cursor = Cursor::new(blob_data);
 
     // 1. Decode Jump Table Length (var_u32)
     let jump_table_len = cursor.read_var_u32()?;
+    eprintln!("[DEBUG] jump_table_len = {}", jump_table_len);
 
     // 2. Decode Item Length (u8)
     let item_len = cursor.read_u8()?;
+    eprintln!("[DEBUG] item_len = {}", item_len);
 
     // 3. Decode Code Length (var_u32)
     let code_len = cursor.read_var_u32()?;
+    eprintln!("[DEBUG] code_len = {}", code_len);
 
     // 4. Decode Jump Table
     let mut jump_table = Vec::with_capacity(jump_table_len as usize);
-    if jump_table_len > 0 {
+    eprintln!(
+        "[DEBUG] Reading jump table: {} entries, item_len = {}",
+        jump_table_len, item_len
+    );
+    if item_len > 0 && jump_table_len > 0 {
         if item_len != 4 {
             // In current spec, jump table entries are 4 bytes.
             // But let's follow the spec if it implies flexibility.
             // For now assume 4.
+            eprintln!(
+                "[DEBUG] WARNING: item_len is {}, expected 4 for non-empty jump table",
+                item_len
+            );
         }
-        for _ in 0..jump_table_len {
-            jump_table.push(cursor.read_u32()?);
+        for i in 0..jump_table_len {
+            let entry = cursor.read_u32()?;
+            eprintln!("[DEBUG] Jump table[{}] = 0x{:08x}", i, entry);
+            jump_table.push(entry);
         }
+    } else if jump_table_len > 0 && item_len == 0 {
+        eprintln!("[DEBUG] WARNING: jump_table_len > 0 but item_len = 0, skipping jump table");
     }
 
     // 5. Read Code Section
     let code_start = cursor.position;
+    eprintln!(
+        "[DEBUG] Code section starts at cursor position {}",
+        code_start
+    );
+    eprintln!(
+        "[DEBUG] Remaining bytes: {}, code_len: {}",
+        cursor.remaining(),
+        code_len
+    );
     if cursor.remaining() < code_len as usize {
+        eprintln!("[DEBUG] ERROR: Not enough bytes for code section!");
         return Err(Box::new(DecodeError::UnexpectedEof));
     }
     let code_end = code_start + code_len as usize;
-    let code_bytes = &data[code_start..code_end];
+    let code_bytes = &blob_data[code_start..code_end];
+    eprintln!(
+        "[DEBUG] Code bytes (first 32): {:02x?}",
+        &code_bytes[..std::cmp::min(32, code_bytes.len())]
+    );
     cursor.advance(code_len as usize);
 
     // 6. Read Mask Section
@@ -69,7 +289,7 @@ pub fn decode_blob(data: &[u8]) -> Result<DecodedProgram, Box<dyn Error>> {
     if cursor.remaining() < mask_len {
         return Err(Box::new(DecodeError::UnexpectedEof));
     }
-    let mask_bytes = &data[cursor.position..cursor.position + mask_len];
+    let mask_bytes = &blob_data[cursor.position..cursor.position + mask_len];
 
     // 7. Decode Instructions using Mask
     let mut instructions = Vec::new();
@@ -152,6 +372,27 @@ impl<'a> Cursor<'a> {
         Ok(b)
     }
 
+    fn read_u16(&mut self) -> Result<u16, DecodeError> {
+        if self.remaining() < 2 {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let bytes = &self.data[self.position..self.position + 2];
+        let val = u16::from_le_bytes(bytes.try_into().unwrap());
+        self.position += 2;
+        Ok(val)
+    }
+
+    fn read_u24(&mut self) -> Result<u32, DecodeError> {
+        if self.remaining() < 3 {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let bytes = &self.data[self.position..self.position + 3];
+        // u24 is stored as 3 bytes LE, interpret as u32
+        let val = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], 0]);
+        self.position += 3;
+        Ok(val)
+    }
+
     fn read_u32(&mut self) -> Result<u32, DecodeError> {
         if self.remaining() < 4 {
             return Err(DecodeError::UnexpectedEof);
@@ -163,12 +404,22 @@ impl<'a> Cursor<'a> {
     }
 
     fn read_var_u32(&mut self) -> Result<u32, DecodeError> {
+        let bytes_before =
+            &self.data[self.position..std::cmp::min(self.position + 8, self.data.len())];
+        eprintln!(
+            "[DEBUG] read_var_u32 at position {}: bytes = {:02x?}",
+            self.position, bytes_before
+        );
         match varint::decode_var_u32(&self.data[self.position..]) {
             Some((val, len)) => {
+                eprintln!("[DEBUG] -> decoded value = {}, length = {}", val, len);
                 self.position += len;
                 Ok(val)
             }
-            None => Err(DecodeError::InvalidVarInt),
+            None => {
+                eprintln!("[DEBUG] -> failed to decode varint");
+                Err(DecodeError::InvalidVarInt)
+            }
         }
     }
 }

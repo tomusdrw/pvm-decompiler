@@ -1,0 +1,210 @@
+Reading benchmarks/compiled/br-table.pvm...
+Successfully decoded as SPI format
+Jump Table: [10]
+
+Instructions:
+  PC 0x0000: Jump { offset: 10 }
+  PC 0x0005: Trap
+  PC 0x0006: Fallthrough
+  PC 0x0007: Fallthrough
+  PC 0x0008: Fallthrough
+  PC 0x0009: Fallthrough
+  PC 0x000a: AddImm64 { dst: 1, src: 1, value: -144 }
+  PC 0x000e: AddImm64 { dst: 7, src: 7, value: -327680 }
+  PC 0x0013: StoreIndU64 { base: 1, src: 7, offset: 40 }
+  PC 0x0016: StoreIndU64 { base: 1, src: 8, offset: 48 }
+  PC 0x0019: Fallthrough
+  PC 0x001a: LoadIndU64 { dst: 2, base: 1, offset: 40 }
+  PC 0x001d: LoadIndU32 { dst: 4, base: 2, offset: 327680 }
+  PC 0x0022: StoreIndU64 { base: 1, src: 4, offset: 56 }
+  PC 0x0025: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0027: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0029: StoreIndU64 { base: 1, src: 2, offset: 64 }
+  PC 0x002c: BranchEqImm { reg: 2, value: 0, offset: 133 }
+  PC 0x0032: BranchEqImm { reg: 2, value: 1, offset: 115 }
+  PC 0x0039: BranchEqImm { reg: 2, value: 2, offset: 96 }
+  PC 0x0040: LoadImm { reg: 2, value: 0 }
+  PC 0x0042: StoreIndU64 { base: 1, src: 2, offset: 80 }
+  PC 0x0045: Jump { offset: 29 }
+  PC 0x004a: LoadIndU64 { dst: 2, base: 1, offset: 72 }
+  PC 0x004d: LoadImm { reg: 3, value: 32 }
+  PC 0x0050: ShloR64 { dst: 3, src1: 2, src2: 3 }
+  PC 0x0053: AddImm32 { dst: 7, src: 2, value: 327680 }
+  PC 0x0058: Add64 { dst: 8, src1: 7, src2: 3 }
+  PC 0x005b: LoadImm { reg: 2, value: -65536 }
+  PC 0x0060: JumpInd { reg: 2, offset: 0 }
+  PC 0x0062: LoadIndU64 { dst: 2, base: 1, offset: 80 }
+  PC 0x0065: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0067: StoreIndU64 { base: 1, src: 2, offset: 88 }
+  PC 0x006a: LoadImm { reg: 3, value: 0 }
+  PC 0x006c: Xor { dst: 4, src1: 2, src2: 3 }
+  PC 0x006f: SetLtUImm { dst: 4, src: 4, value: 1 }
+  PC 0x0072: StoreIndU64 { base: 1, src: 4, offset: 96 }
+  PC 0x0075: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0077: StoreIndU64 { base: 1, src: 2, offset: 104 }
+  PC 0x007a: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x007c: StoreIndU64 { base: 1, src: 2, offset: 112 }
+  PC 0x007f: LoadImm { reg: 3, value: 0 }
+  PC 0x0081: Xor { dst: 4, src1: 2, src2: 3 }
+  PC 0x0084: LoadImm { reg: 8, value: 0 }
+  PC 0x0086: SetLtU { dst: 4, src1: 8, src2: 4 }
+  PC 0x0089: StoreIndU64 { base: 1, src: 4, offset: 120 }
+  PC 0x008c: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x008e: BranchNeImm { reg: 2, value: 0, offset: 46 }
+  PC 0x0094: Jump { offset: 53 }
+  PC 0x0099: LoadImm { reg: 2, value: 300 }
+  PC 0x009d: StoreIndU64 { base: 1, src: 2, offset: 80 }
+  PC 0x00a0: Jump { offset: -62 }
+  PC 0x00a5: LoadImm { reg: 2, value: 200 }
+  PC 0x00a9: StoreIndU64 { base: 1, src: 2, offset: 80 }
+  PC 0x00ac: Jump { offset: -74 }
+  PC 0x00b1: LoadImm { reg: 2, value: 100 }
+  PC 0x00b4: StoreIndU64 { base: 1, src: 2, offset: 80 }
+  PC 0x00b7: Jump { offset: -85 }
+  PC 0x00bc: LoadImm { reg: 2, value: 999 }
+  PC 0x00c0: StoreIndU64 { base: 1, src: 2, offset: 128 }
+  PC 0x00c4: Jump { offset: 17 }
+  PC 0x00c9: LoadIndU64 { dst: 2, base: 1, offset: 80 }
+  PC 0x00cc: StoreIndU64 { base: 1, src: 2, offset: 128 }
+  PC 0x00d0: Jump { offset: 5 }
+  PC 0x00d5: LoadImm { reg: 2, value: 0 }
+  PC 0x00d7: LoadIndU64 { dst: 3, base: 1, offset: 128 }
+  PC 0x00db: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+  PC 0x00e0: LoadImm64 { reg: 2, value: 17179869184 }
+  PC 0x00ea: StoreIndU64 { base: 1, src: 2, offset: 72 }
+  PC 0x00ed: Jump { offset: -163 }
+
+=== Control Flow Graph ===
+Entry PC: 0x0000
+Number of blocks: 16
+
+Block @ 0x0000 - 0x0005:
+    0x0000: Jump { offset: 10 }
+  Successors: 0x000a
+
+Block @ 0x0005 - 0x0006:
+    0x0005: Trap
+  Successors: (none)
+
+Block @ 0x0006 - 0x000a:
+    0x0006: Fallthrough
+    0x0007: Fallthrough
+    0x0008: Fallthrough
+    0x0009: Fallthrough
+  Successors: 0x000a
+
+Block @ 0x000a - 0x0032:
+    0x000a: AddImm64 { dst: 1, src: 1, value: -144 }
+    0x000e: AddImm64 { dst: 7, src: 7, value: -327680 }
+    0x0013: StoreIndU64 { base: 1, src: 7, offset: 40 }
+    0x0016: StoreIndU64 { base: 1, src: 8, offset: 48 }
+    0x0019: Fallthrough
+    0x001a: LoadIndU64 { dst: 2, base: 1, offset: 40 }
+    0x001d: LoadIndU32 { dst: 4, base: 2, offset: 327680 }
+    0x0022: StoreIndU64 { base: 1, src: 4, offset: 56 }
+    0x0025: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0027: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0029: StoreIndU64 { base: 1, src: 2, offset: 64 }
+    0x002c: BranchEqImm { reg: 2, value: 0, offset: 133 }
+  Successors: 0x00b1, 0x0032
+  Predecessors: 0x0000, 0x0006
+
+Block @ 0x0032 - 0x0039:
+    0x0032: BranchEqImm { reg: 2, value: 1, offset: 115 }
+  Successors: 0x00a5, 0x0039
+  Predecessors: 0x000a
+
+Block @ 0x0039 - 0x0040:
+    0x0039: BranchEqImm { reg: 2, value: 2, offset: 96 }
+  Successors: 0x0099, 0x0040
+  Predecessors: 0x0032
+
+Block @ 0x0040 - 0x004a:
+    0x0040: LoadImm { reg: 2, value: 0 }
+    0x0042: StoreIndU64 { base: 1, src: 2, offset: 80 }
+    0x0045: Jump { offset: 29 }
+  Successors: 0x0062
+  Predecessors: 0x0039
+
+Block @ 0x004a - 0x0062:
+    0x004a: LoadIndU64 { dst: 2, base: 1, offset: 72 }
+    0x004d: LoadImm { reg: 3, value: 32 }
+    0x0050: ShloR64 { dst: 3, src1: 2, src2: 3 }
+    0x0053: AddImm32 { dst: 7, src: 2, value: 327680 }
+    0x0058: Add64 { dst: 8, src1: 7, src2: 3 }
+    0x005b: LoadImm { reg: 2, value: -65536 }
+    0x0060: JumpInd { reg: 2, offset: 0 }
+  Successors: 0x0062
+  Predecessors: 0x00d5
+
+Block @ 0x0062 - 0x0094:
+    0x0062: LoadIndU64 { dst: 2, base: 1, offset: 80 }
+    0x0065: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0067: StoreIndU64 { base: 1, src: 2, offset: 88 }
+    0x006a: LoadImm { reg: 3, value: 0 }
+    0x006c: Xor { dst: 4, src1: 2, src2: 3 }
+    0x006f: SetLtUImm { dst: 4, src: 4, value: 1 }
+    0x0072: StoreIndU64 { base: 1, src: 4, offset: 96 }
+    0x0075: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0077: StoreIndU64 { base: 1, src: 2, offset: 104 }
+    0x007a: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x007c: StoreIndU64 { base: 1, src: 2, offset: 112 }
+    0x007f: LoadImm { reg: 3, value: 0 }
+    0x0081: Xor { dst: 4, src1: 2, src2: 3 }
+    0x0084: LoadImm { reg: 8, value: 0 }
+    0x0086: SetLtU { dst: 4, src1: 8, src2: 4 }
+    0x0089: StoreIndU64 { base: 1, src: 4, offset: 120 }
+    0x008c: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x008e: BranchNeImm { reg: 2, value: 0, offset: 46 }
+  Successors: 0x00bc, 0x0094
+  Predecessors: 0x0040, 0x004a, 0x0099, 0x00a5, 0x00b1
+
+Block @ 0x0094 - 0x0099:
+    0x0094: Jump { offset: 53 }
+  Successors: 0x00c9
+  Predecessors: 0x0062
+
+Block @ 0x0099 - 0x00a5:
+    0x0099: LoadImm { reg: 2, value: 300 }
+    0x009d: StoreIndU64 { base: 1, src: 2, offset: 80 }
+    0x00a0: Jump { offset: -62 }
+  Successors: 0x0062
+  Predecessors: 0x0039
+
+Block @ 0x00a5 - 0x00b1:
+    0x00a5: LoadImm { reg: 2, value: 200 }
+    0x00a9: StoreIndU64 { base: 1, src: 2, offset: 80 }
+    0x00ac: Jump { offset: -74 }
+  Successors: 0x0062
+  Predecessors: 0x0032
+
+Block @ 0x00b1 - 0x00bc:
+    0x00b1: LoadImm { reg: 2, value: 100 }
+    0x00b4: StoreIndU64 { base: 1, src: 2, offset: 80 }
+    0x00b7: Jump { offset: -85 }
+  Successors: 0x0062
+  Predecessors: 0x000a
+
+Block @ 0x00bc - 0x00c9:
+    0x00bc: LoadImm { reg: 2, value: 999 }
+    0x00c0: StoreIndU64 { base: 1, src: 2, offset: 128 }
+    0x00c4: Jump { offset: 17 }
+  Successors: 0x00d5
+  Predecessors: 0x0062
+
+Block @ 0x00c9 - 0x00d5:
+    0x00c9: LoadIndU64 { dst: 2, base: 1, offset: 80 }
+    0x00cc: StoreIndU64 { base: 1, src: 2, offset: 128 }
+    0x00d0: Jump { offset: 5 }
+  Successors: 0x00d5
+  Predecessors: 0x0094
+
+Block @ 0x00d5 - 0x00ee:
+    0x00d5: LoadImm { reg: 2, value: 0 }
+    0x00d7: LoadIndU64 { dst: 3, base: 1, offset: 128 }
+    0x00db: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+    0x00e0: LoadImm64 { reg: 2, value: 17179869184 }
+    0x00ea: StoreIndU64 { base: 1, src: 2, offset: 72 }
+    0x00ed: Jump { offset: -163 }
+  Successors: 0x004a
+  Predecessors: 0x00bc, 0x00c9
