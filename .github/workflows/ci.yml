@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout pvm-diss
+      uses: actions/checkout@v4
+      with:
+        path: pvm-diss
+
+    - name: Checkout wasm-pvm dependency
+      uses: actions/checkout@v4
+      with:
+        repository: tomusdrw/wasm-pvm
+        path: wasm-pvm
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy, rustfmt
+
+    - name: Check Formatting
+      working-directory: pvm-diss
+      run: cargo fmt -- --check
+
+    - name: Clippy
+      working-directory: pvm-diss
+      run: cargo clippy -- -D warnings
+
+    - name: Run Tests
+      working-directory: pvm-diss
+      run: cargo test
