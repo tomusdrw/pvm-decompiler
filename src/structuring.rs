@@ -353,8 +353,7 @@ impl StructuralAnalysis {
             let else_entry = block.successors[1];
 
             // Check for back-edges (skip if either successor is a back-edge target)
-            if dom_tree.dominates(then_entry, block_pc)
-                || dom_tree.dominates(else_entry, block_pc)
+            if dom_tree.dominates(then_entry, block_pc) || dom_tree.dominates(else_entry, block_pc)
             {
                 continue;
             }
@@ -564,11 +563,7 @@ impl StructuralAnalysis {
                     }
                     output.push('\n');
                 }
-                Structure::Switch {
-                    header,
-                    reg,
-                    cases,
-                } => {
+                Structure::Switch { header, reg, cases } => {
                     let _ = writeln!(
                         output,
                         "\n  Switch: header={:#06x}, reg=r{}, cases={}",
@@ -683,17 +678,19 @@ impl StructuralAnalysis {
                     0,
                     &mut emitted,
                 );
-            } else if let Some(Structure::Switch {
-                reg, cases, ..
-            }) = switch_map.get(&block_pc)
-            {
+            } else if let Some(Structure::Switch { reg, cases, .. }) = switch_map.get(&block_pc) {
                 // Emit preceding instructions
                 self.emit_block_body(cfg, block_pc, &mut output, 0, true);
 
                 let _ = writeln!(output, "switch (r{}) {{", reg);
                 for (values, target) in cases.iter() {
                     let vals: Vec<String> = values.iter().map(|v| format!("{}", v)).collect();
-                    let _ = writeln!(output, "    case {}: goto {:#06x};", vals.join(", "), target);
+                    let _ = writeln!(
+                        output,
+                        "    case {}: goto {:#06x};",
+                        vals.join(", "),
+                        target
+                    );
                 }
                 output.push_str("}\n");
                 emitted.insert(block_pc);
@@ -765,7 +762,13 @@ impl StructuralAnalysis {
                 len
             };
             for (pc, instr) in &block.instructions[..end] {
-                let _ = writeln!(output, "{}{:#06x}: {}", prefix, pc, format_instruction(instr));
+                let _ = writeln!(
+                    output,
+                    "{}{:#06x}: {}",
+                    prefix,
+                    pc,
+                    format_instruction(instr)
+                );
             }
         }
     }
@@ -977,18 +980,10 @@ fn format_instruction(instr: &Instruction) -> String {
         Instruction::BranchGeSImm { reg, value, offset } => {
             format!("if (r{} >=s {}) jump {}", reg, value, offset)
         }
-        Instruction::BranchGeU {
-            reg1,
-            reg2,
-            offset,
-        } => {
+        Instruction::BranchGeU { reg1, reg2, offset } => {
             format!("if (r{} >=u r{}) jump {}", reg1, reg2, offset)
         }
-        Instruction::BranchLtU {
-            reg1,
-            reg2,
-            offset,
-        } => {
+        Instruction::BranchLtU { reg1, reg2, offset } => {
             format!("if (r{} <u r{}) jump {}", reg1, reg2, offset)
         }
 
@@ -1059,8 +1054,16 @@ mod tests {
         let cfg = build_test_cfg(
             0,
             vec![
-                (0, vec![(0, Instruction::LoadImm { reg: 0, value: 1 })], vec![10]),
-                (10, vec![(10, Instruction::LoadImm { reg: 1, value: 2 })], vec![20]),
+                (
+                    0,
+                    vec![(0, Instruction::LoadImm { reg: 0, value: 1 })],
+                    vec![10],
+                ),
+                (
+                    10,
+                    vec![(10, Instruction::LoadImm { reg: 1, value: 2 })],
+                    vec![20],
+                ),
                 (20, vec![(20, Instruction::Trap)], vec![]),
             ],
         );
@@ -1087,11 +1090,26 @@ mod tests {
             vec![
                 (
                     0,
-                    vec![(0, Instruction::BranchNeImm { reg: 0, value: 0, offset: 10 })],
+                    vec![(
+                        0,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
                     vec![10, 20],
                 ),
-                (10, vec![(10, Instruction::LoadImm { reg: 1, value: 1 })], vec![30]),
-                (20, vec![(20, Instruction::LoadImm { reg: 1, value: 2 })], vec![30]),
+                (
+                    10,
+                    vec![(10, Instruction::LoadImm { reg: 1, value: 1 })],
+                    vec![30],
+                ),
+                (
+                    20,
+                    vec![(20, Instruction::LoadImm { reg: 1, value: 2 })],
+                    vec![30],
+                ),
                 (30, vec![(30, Instruction::Trap)], vec![]),
             ],
         );
@@ -1115,10 +1133,21 @@ mod tests {
         let cfg = build_test_cfg(
             0,
             vec![
-                (0, vec![(0, Instruction::LoadImm { reg: 0, value: 1 })], vec![10]),
+                (
+                    0,
+                    vec![(0, Instruction::LoadImm { reg: 0, value: 1 })],
+                    vec![10],
+                ),
                 (
                     10,
-                    vec![(10, Instruction::BranchNeImm { reg: 0, value: 0, offset: 10 })],
+                    vec![(
+                        10,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
                     vec![20, 30],
                 ),
                 (20, vec![(20, Instruction::Jump { offset: -10 })], vec![10]),
@@ -1146,10 +1175,21 @@ mod tests {
         let cfg = build_test_cfg(
             0,
             vec![
-                (0, vec![(0, Instruction::LoadImm { reg: 0, value: 1 })], vec![10]),
+                (
+                    0,
+                    vec![(0, Instruction::LoadImm { reg: 0, value: 1 })],
+                    vec![10],
+                ),
                 (
                     10,
-                    vec![(10, Instruction::BranchNeImm { reg: 0, value: 0, offset: 10 })],
+                    vec![(
+                        10,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
                     vec![20, 30],
                 ),
                 (20, vec![(20, Instruction::Jump { offset: -10 })], vec![10]),
@@ -1197,15 +1237,33 @@ mod tests {
         let cfg = build_test_cfg(
             0,
             vec![
-                (0, vec![(0, Instruction::LoadImm { reg: 0, value: 1 })], vec![10]),
+                (
+                    0,
+                    vec![(0, Instruction::LoadImm { reg: 0, value: 1 })],
+                    vec![10],
+                ),
                 (
                     10,
-                    vec![(10, Instruction::BranchNeImm { reg: 0, value: 0, offset: 10 })],
+                    vec![(
+                        10,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
                     vec![20, 50],
                 ),
                 (
                     20,
-                    vec![(20, Instruction::BranchNeImm { reg: 1, value: 0, offset: 10 })],
+                    vec![(
+                        20,
+                        Instruction::BranchNeImm {
+                            reg: 1,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
                     vec![30, 40],
                 ),
                 (30, vec![(30, Instruction::Jump { offset: -10 })], vec![20]),
@@ -1224,11 +1282,15 @@ mod tests {
         assert_eq!(loops.len(), 2);
 
         // Inner loop: header=20, latch=30
-        let inner = loops.iter().find(|l| matches!(l, Structure::Loop { header: 20, .. }));
+        let inner = loops
+            .iter()
+            .find(|l| matches!(l, Structure::Loop { header: 20, .. }));
         assert!(inner.is_some(), "Inner loop at header=20 not found");
 
         // Outer loop: header=10, latch=40
-        let outer = loops.iter().find(|l| matches!(l, Structure::Loop { header: 10, .. }));
+        let outer = loops
+            .iter()
+            .find(|l| matches!(l, Structure::Loop { header: 10, .. }));
         assert!(outer.is_some(), "Outer loop at header=10 not found");
     }
 
@@ -1246,11 +1308,26 @@ mod tests {
             vec![
                 (
                     0,
-                    vec![(0, Instruction::BranchNeImm { reg: 0, value: 0, offset: 10 })],
+                    vec![(
+                        0,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
                     vec![10, 20],
                 ),
-                (10, vec![(10, Instruction::LoadImm { reg: 1, value: 1 })], vec![30]),
-                (20, vec![(20, Instruction::LoadImm { reg: 1, value: 2 })], vec![30]),
+                (
+                    10,
+                    vec![(10, Instruction::LoadImm { reg: 1, value: 1 })],
+                    vec![30],
+                ),
+                (
+                    20,
+                    vec![(20, Instruction::LoadImm { reg: 1, value: 2 })],
+                    vec![30],
+                ),
                 (30, vec![(30, Instruction::Trap)], vec![]),
             ],
         );
@@ -1294,10 +1371,21 @@ mod tests {
             vec![
                 (
                     0,
-                    vec![(0, Instruction::BranchNeImm { reg: 0, value: 0, offset: 10 })],
+                    vec![(
+                        0,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
                     vec![10, 20],
                 ),
-                (10, vec![(10, Instruction::LoadImm { reg: 1, value: 1 })], vec![20]),
+                (
+                    10,
+                    vec![(10, Instruction::LoadImm { reg: 1, value: 1 })],
+                    vec![20],
+                ),
                 (20, vec![(20, Instruction::Trap)], vec![]),
             ],
         );
@@ -1319,7 +1407,10 @@ mod tests {
         } = ifs[0]
         {
             assert_eq!(then_blocks, &[10]);
-            assert!(else_blocks.is_empty(), "Triangle should have no else blocks");
+            assert!(
+                else_blocks.is_empty(),
+                "Triangle should have no else blocks"
+            );
             assert_eq!(*join, Some(20));
         } else {
             panic!("Expected IfThenElse");
@@ -1332,13 +1423,11 @@ mod tests {
     fn test_switch_detection() {
         let cfg = build_test_cfg(
             0,
-            vec![
-                (
-                    0,
-                    vec![(0, Instruction::JumpInd { reg: 3, offset: 0 })],
-                    vec![],
-                ),
-            ],
+            vec![(
+                0,
+                vec![(0, Instruction::JumpInd { reg: 3, offset: 0 })],
+                vec![],
+            )],
         );
 
         let program = DecodedProgram {
@@ -1374,8 +1463,16 @@ mod tests {
         let cfg = build_test_cfg(
             0,
             vec![
-                (0, vec![(0, Instruction::LoadImm { reg: 0, value: 42 })], vec![10]),
-                (10, vec![(10, Instruction::LoadImm { reg: 1, value: 7 })], vec![20]),
+                (
+                    0,
+                    vec![(0, Instruction::LoadImm { reg: 0, value: 42 })],
+                    vec![10],
+                ),
+                (
+                    10,
+                    vec![(10, Instruction::LoadImm { reg: 1, value: 7 })],
+                    vec![20],
+                ),
                 (20, vec![(20, Instruction::Trap)], vec![]),
             ],
         );
@@ -1392,16 +1489,34 @@ mod tests {
         let cfg = build_test_cfg(
             0,
             vec![
-                (0, vec![(0, Instruction::LoadImm { reg: 0, value: 42 })], vec![10]),
+                (
+                    0,
+                    vec![(0, Instruction::LoadImm { reg: 0, value: 42 })],
+                    vec![10],
+                ),
                 (
                     10,
-                    vec![(10, Instruction::BranchNeImm { reg: 3, value: 0, offset: 10 })],
+                    vec![(
+                        10,
+                        Instruction::BranchNeImm {
+                            reg: 3,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
                     vec![20, 30],
                 ),
                 (
                     20,
                     vec![
-                        (20, Instruction::Add32 { dst: 2, src1: 0, src2: 1 }),
+                        (
+                            20,
+                            Instruction::Add32 {
+                                dst: 2,
+                                src1: 0,
+                                src2: 1,
+                            },
+                        ),
                         (24, Instruction::Jump { offset: -14 }),
                     ],
                     vec![10],
@@ -1413,9 +1528,21 @@ mod tests {
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
         let pseudo = result.pseudo_code(&cfg);
 
-        assert!(pseudo.contains("while"), "Should contain 'while': {}", pseudo);
-        assert!(pseudo.contains("r3 != 0"), "Should contain condition: {}", pseudo);
-        assert!(pseudo.contains("r0 = 42"), "Should contain init: {}", pseudo);
+        assert!(
+            pseudo.contains("while"),
+            "Should contain 'while': {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("r3 != 0"),
+            "Should contain condition: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("r0 = 42"),
+            "Should contain init: {}",
+            pseudo
+        );
     }
 
     #[test]
@@ -1427,12 +1554,27 @@ mod tests {
                     0,
                     vec![
                         (0, Instruction::LoadImm { reg: 0, value: 42 }),
-                        (4, Instruction::BranchNeImm { reg: 1, value: 5, offset: 10 }),
+                        (
+                            4,
+                            Instruction::BranchNeImm {
+                                reg: 1,
+                                value: 5,
+                                offset: 10,
+                            },
+                        ),
                     ],
                     vec![10, 20],
                 ),
-                (10, vec![(10, Instruction::LoadImm { reg: 4, value: 99 })], vec![30]),
-                (20, vec![(20, Instruction::LoadImm { reg: 4, value: 0 })], vec![30]),
+                (
+                    10,
+                    vec![(10, Instruction::LoadImm { reg: 4, value: 99 })],
+                    vec![30],
+                ),
+                (
+                    20,
+                    vec![(20, Instruction::LoadImm { reg: 4, value: 0 })],
+                    vec![30],
+                ),
                 (30, vec![(30, Instruction::Trap)], vec![]),
             ],
         );
@@ -1441,7 +1583,11 @@ mod tests {
         let pseudo = result.pseudo_code(&cfg);
 
         assert!(pseudo.contains("if"), "Should contain 'if': {}", pseudo);
-        assert!(pseudo.contains("r1 != 5"), "Should contain condition: {}", pseudo);
+        assert!(
+            pseudo.contains("r1 != 5"),
+            "Should contain condition: {}",
+            pseudo
+        );
     }
 
     #[test]
