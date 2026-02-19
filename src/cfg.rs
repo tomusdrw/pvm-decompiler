@@ -277,7 +277,7 @@ impl ControlFlowGraph {
 
     /// Compute the target PC of a jump/branch instruction.
     /// Offset is relative to the start of the instruction.
-    fn compute_jump_target(current_pc: usize, offset: i32) -> usize {
+    pub fn compute_jump_target(current_pc: usize, offset: i32) -> usize {
         if offset >= 0 {
             current_pc + offset as usize
         } else {

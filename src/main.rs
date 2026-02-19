@@ -5,10 +5,12 @@ use std::io::Read;
 mod cfg;
 mod dataflow;
 mod decoder;
+mod structuring;
 mod varint;
 
 use cfg::ControlFlowGraph;
 use dataflow::DataFlowAnalysis;
+use structuring::StructuralAnalysis;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
@@ -49,6 +51,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Perform data flow analysis
     println!("\n{}", DataFlowAnalysis::analyze(&cfg).summarize());
+
+    // Perform structural analysis
+    let structural = StructuralAnalysis::analyze(&cfg, &program);
+    println!("{}", structural.summarize());
+    println!("{}", structural.pseudo_code(&cfg));
 
     Ok(())
 }
