@@ -619,7 +619,7 @@ impl StructuralAnalysis {
                 // Emit loop
                 let cond_str = condition
                     .as_ref()
-                    .map(format_condition)
+                    .map(|c| format_condition_maybe_lifted(c, cfg, block_pc, lifted))
                     .unwrap_or_else(|| "...".to_string());
                 let _ = writeln!(output, "while ({}) {{", cond_str);
 
@@ -727,7 +727,7 @@ impl StructuralAnalysis {
         self.emit_block_body(cfg, header, output, indent, true, lifted);
 
         let cond_str = condition
-            .map(format_condition)
+            .map(|c| format_condition_maybe_lifted(c, cfg, header, lifted))
             .unwrap_or_else(|| "...".to_string());
         let _ = writeln!(output, "{}if ({}) {{", prefix, cond_str);
 
@@ -774,8 +774,12 @@ impl StructuralAnalysis {
                     if lifted.eliminated_pcs.contains(pc) {
                         continue;
                     }
+                    // Skip noise instructions in lifted mode.
+                    if matches!(instr, Instruction::Fallthrough | Instruction::Jump { .. }) {
+                        continue;
+                    }
                     if let Some(line) = lifted.format_pc(*pc, instr) {
-                        let _ = writeln!(output, "{}{:#06x}: {}", prefix, pc, line);
+                        let _ = writeln!(output, "{}{}", prefix, line);
                     }
                 } else {
                     let _ = writeln!(
@@ -789,6 +793,29 @@ impl StructuralAnalysis {
             }
         }
     }
+}
+
+/// Get the PC of the last instruction in a block (the branch/terminator).
+fn last_instruction_pc(cfg: &ControlFlowGraph, block_pc: usize) -> Option<usize> {
+    cfg.blocks
+        .get(&block_pc)
+        .and_then(|b| b.instructions.last())
+        .map(|(pc, _)| *pc)
+}
+
+/// Format a condition, using lifted variable names when a lifted program is provided.
+fn format_condition_maybe_lifted(
+    cond: &Condition,
+    cfg: &ControlFlowGraph,
+    header_pc: usize,
+    lifted: Option<&LiftedProgram>,
+) -> String {
+    if let Some(lifted) = lifted
+        && let Some(branch_pc) = last_instruction_pc(cfg, header_pc)
+    {
+        return format_condition_lifted(cond, branch_pc, lifted);
+    }
+    format_condition(cond)
 }
 
 /// Extract a branch condition from a terminator instruction.
@@ -837,9 +864,34 @@ fn format_condition(cond: &Condition) -> String {
     format!("{} {} {}", lhs, op, rhs)
 }
 
+/// Format a condition using lifted variable names when available.
+fn format_condition_lifted(cond: &Condition, branch_pc: usize, lifted: &LiftedProgram) -> String {
+    let lhs = format_operand_lifted(&cond.lhs, branch_pc, lifted);
+    let rhs = format_operand_lifted(&cond.rhs, branch_pc, lifted);
+    let op = match cond.op {
+        CondOp::Eq => "==",
+        CondOp::Ne => "!=",
+        CondOp::GeS => ">=s",
+        CondOp::GeU => ">=u",
+        CondOp::LtU => "<u",
+    };
+    format!("{} {} {}", lhs, op, rhs)
+}
+
 fn format_operand(op: &Operand) -> String {
     match op {
         Operand::Reg(r) => format!("r{}", r),
+        Operand::Imm(v) => format!("{}", v),
+    }
+}
+
+fn format_operand_lifted(op: &Operand, branch_pc: usize, lifted: &LiftedProgram) -> String {
+    match op {
+        Operand::Reg(r) => lifted
+            .var_at_use
+            .get(&(branch_pc, *r))
+            .cloned()
+            .unwrap_or_else(|| format!("r{}", r)),
         Operand::Imm(v) => format!("{}", v),
     }
 }

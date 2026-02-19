@@ -85,7 +85,9 @@ impl LiftedProgram {
         lifted.assign_variables(cfg, dataflow);
         lifted.build_expressions(cfg);
         lifted.propagate_constants();
+        lifted.simplify_all_expressions();
         lifted.fold_expressions(cfg);
+        lifted.simplify_all_expressions();
 
         lifted
     }
@@ -553,6 +555,16 @@ impl LiftedProgram {
         }
     }
 
+    /// Simplify all expressions in the program by folding identity operations.
+    fn simplify_all_expressions(&mut self) {
+        let pcs: Vec<usize> = self.expressions.keys().copied().collect();
+        for pc in pcs {
+            if let Some(expr) = self.expressions.remove(&pc) {
+                self.expressions.insert(pc, simplify_expression(expr));
+            }
+        }
+    }
+
     /// Produce a summary of the lifting results.
     pub fn summarize(&self) -> String {
         use std::fmt::Write;
@@ -683,6 +695,74 @@ impl LiftedProgram {
         };
 
         reg.and_then(|r| self.variables.get(&(pc, r)).map(|v| v.name.clone()))
+    }
+}
+
+/// Recursively simplify an expression by folding identity operations.
+/// - `x + 0`, `x - 0`, `x | 0`, `x ^ 0`, `x << 0`, `x >>u 0`, `x >>s 0` → `x`
+/// - `x * 1`, `x /u 1`, `x /s 1` → `x`
+/// - `x * 0`, `x & 0` → `0`
+/// - `bool <u 1` → `!bool` (common negation pattern)
+fn simplify_expression(expr: Expression) -> Expression {
+    match expr {
+        Expression::BinOp { op, lhs, rhs } => {
+            let lhs = simplify_expression(*lhs);
+            let rhs = simplify_expression(*rhs);
+
+            match (&op[..], &lhs, &rhs) {
+                // x + 0, x - 0, x | 0, x ^ 0, x << 0, x >>u 0, x >>s 0 → x
+                ("+" | "-" | "|" | "^" | "<<" | ">>u" | ">>s", _, Expression::Const(0)) => lhs,
+                // 0 + x, 0 | x, 0 ^ x → x (commutative identities)
+                ("+" | "|" | "^", Expression::Const(0), _) => rhs,
+                // x * 1, x /u 1, x /s 1 → x
+                ("*" | "/u" | "/s", _, Expression::Const(1)) => lhs,
+                // 1 * x → x
+                ("*", Expression::Const(1), _) => rhs,
+                // x * 0 → 0, x & 0 → 0
+                ("*" | "&", _, Expression::Const(0)) => Expression::Const(0),
+                // 0 * x → 0, 0 & x → 0
+                ("*" | "&", Expression::Const(0), _) => Expression::Const(0),
+                // bool <u 1 → !bool (negation pattern from SetLtUImm { value: 1 })
+                ("<u", _, Expression::Const(1)) => Expression::UnaryOp {
+                    op: "!".to_string(),
+                    operand: Box::new(lhs),
+                },
+                _ => Expression::BinOp {
+                    op,
+                    lhs: Box::new(lhs),
+                    rhs: Box::new(rhs),
+                },
+            }
+        }
+        Expression::UnaryOp { op, operand } => Expression::UnaryOp {
+            op,
+            operand: Box::new(simplify_expression(*operand)),
+        },
+        Expression::Load {
+            width,
+            base,
+            offset,
+        } => Expression::Load {
+            width,
+            base: Box::new(simplify_expression(*base)),
+            offset,
+        },
+        Expression::Store {
+            width,
+            base,
+            offset,
+            value,
+        } => Expression::Store {
+            width,
+            base: Box::new(simplify_expression(*base)),
+            offset,
+            value: Box::new(simplify_expression(*value)),
+        },
+        Expression::Call { name, args } => Expression::Call {
+            name,
+            args: args.into_iter().map(simplify_expression).collect(),
+        },
+        other => other,
     }
 }
 
@@ -1063,6 +1143,110 @@ mod tests {
         let var = lifted.variables.get(&(0, 2)).unwrap();
         assert_eq!(var.var_type, VarType::Boolean);
         assert!(var.name.starts_with("cond_"));
+    }
+
+    #[test]
+    fn test_simplify_add_zero() {
+        let expr = Expression::BinOp {
+            op: "+".to_string(),
+            lhs: Box::new(Expression::Var("x".to_string())),
+            rhs: Box::new(Expression::Const(0)),
+        };
+        let simplified = simplify_expression(expr);
+        assert_eq!(format_expression(&simplified), "x");
+    }
+
+    #[test]
+    fn test_simplify_xor_zero() {
+        let expr = Expression::BinOp {
+            op: "^".to_string(),
+            lhs: Box::new(Expression::Var("x".to_string())),
+            rhs: Box::new(Expression::Const(0)),
+        };
+        let simplified = simplify_expression(expr);
+        assert_eq!(format_expression(&simplified), "x");
+    }
+
+    #[test]
+    fn test_simplify_mul_one() {
+        let expr = Expression::BinOp {
+            op: "*".to_string(),
+            lhs: Box::new(Expression::Var("x".to_string())),
+            rhs: Box::new(Expression::Const(1)),
+        };
+        let simplified = simplify_expression(expr);
+        assert_eq!(format_expression(&simplified), "x");
+    }
+
+    #[test]
+    fn test_simplify_mul_zero() {
+        let expr = Expression::BinOp {
+            op: "*".to_string(),
+            lhs: Box::new(Expression::Var("x".to_string())),
+            rhs: Box::new(Expression::Const(0)),
+        };
+        let simplified = simplify_expression(expr);
+        assert_eq!(format_expression(&simplified), "0");
+    }
+
+    #[test]
+    fn test_simplify_and_zero() {
+        let expr = Expression::BinOp {
+            op: "&".to_string(),
+            lhs: Box::new(Expression::Var("x".to_string())),
+            rhs: Box::new(Expression::Const(0)),
+        };
+        let simplified = simplify_expression(expr);
+        assert_eq!(format_expression(&simplified), "0");
+    }
+
+    #[test]
+    fn test_simplify_ltu_1_negation() {
+        let expr = Expression::BinOp {
+            op: "<u".to_string(),
+            lhs: Box::new(Expression::Var("cond_0".to_string())),
+            rhs: Box::new(Expression::Const(1)),
+        };
+        let simplified = simplify_expression(expr);
+        assert_eq!(format_expression(&simplified), "!(cond_0)");
+    }
+
+    #[test]
+    fn test_simplify_shift_zero() {
+        let expr = Expression::BinOp {
+            op: "<<".to_string(),
+            lhs: Box::new(Expression::Var("x".to_string())),
+            rhs: Box::new(Expression::Const(0)),
+        };
+        let simplified = simplify_expression(expr);
+        assert_eq!(format_expression(&simplified), "x");
+    }
+
+    #[test]
+    fn test_simplify_nested() {
+        // (x + 0) * 1 → x
+        let expr = Expression::BinOp {
+            op: "*".to_string(),
+            lhs: Box::new(Expression::BinOp {
+                op: "+".to_string(),
+                lhs: Box::new(Expression::Var("x".to_string())),
+                rhs: Box::new(Expression::Const(0)),
+            }),
+            rhs: Box::new(Expression::Const(1)),
+        };
+        let simplified = simplify_expression(expr);
+        assert_eq!(format_expression(&simplified), "x");
+    }
+
+    #[test]
+    fn test_simplify_no_change() {
+        let expr = Expression::BinOp {
+            op: "+".to_string(),
+            lhs: Box::new(Expression::Var("x".to_string())),
+            rhs: Box::new(Expression::Const(5)),
+        };
+        let simplified = simplify_expression(expr);
+        assert_eq!(format_expression(&simplified), "x + 5");
     }
 
     #[test]
