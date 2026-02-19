@@ -3,10 +3,12 @@ use std::fs;
 use std::io::Read;
 
 mod cfg;
+mod dataflow;
 mod decoder;
 mod varint;
 
 use cfg::ControlFlowGraph;
+use dataflow::DataFlowAnalysis;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
@@ -44,6 +46,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n=== Control Flow Graph ===");
     let cfg = ControlFlowGraph::build(&program);
     print_cfg(&cfg);
+
+    // Perform data flow analysis
+    println!("\n{}", DataFlowAnalysis::analyze(&cfg).summarize());
 
     Ok(())
 }
