@@ -5,6 +5,7 @@
 
 use crate::cfg::ControlFlowGraph;
 use crate::decoder::DecodedProgram;
+use crate::lifting::LiftedProgram;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::Write;
 use wasm_pvm::pvm::Instruction;
@@ -579,7 +580,8 @@ impl StructuralAnalysis {
     }
 
     /// Generate pseudo-code representation of the program.
-    pub fn pseudo_code(&self, cfg: &ControlFlowGraph) -> String {
+    /// When `lifted` is provided, uses variable names and folded expressions.
+    pub fn pseudo_code(&self, cfg: &ControlFlowGraph, lifted: Option<&LiftedProgram>) -> String {
         let mut output = String::new();
         output.push_str("=== Pseudo-Code ===\n\n");
 
@@ -622,7 +624,7 @@ impl StructuralAnalysis {
                 let _ = writeln!(output, "while ({}) {{", cond_str);
 
                 // Emit body blocks (excluding header's own instructions which form the condition)
-                self.emit_block_body(cfg, block_pc, &mut output, 1, true);
+                self.emit_block_body(cfg, block_pc, &mut output, 1, true, lifted);
 
                 let mut body_sorted: Vec<usize> = body.iter().copied().collect();
                 body_sorted.sort();
@@ -651,11 +653,12 @@ impl StructuralAnalysis {
                             &mut output,
                             1,
                             &mut emitted,
+                            lifted,
                         );
                         continue;
                     }
 
-                    self.emit_block_body(cfg, body_pc, &mut output, 1, false);
+                    self.emit_block_body(cfg, body_pc, &mut output, 1, false, lifted);
                     emitted.insert(body_pc);
                 }
 
@@ -677,10 +680,11 @@ impl StructuralAnalysis {
                     &mut output,
                     0,
                     &mut emitted,
+                    lifted,
                 );
             } else if let Some(Structure::Switch { reg, cases, .. }) = switch_map.get(&block_pc) {
                 // Emit preceding instructions
-                self.emit_block_body(cfg, block_pc, &mut output, 0, true);
+                self.emit_block_body(cfg, block_pc, &mut output, 0, true, lifted);
 
                 let _ = writeln!(output, "switch (r{}) {{", reg);
                 for (values, target) in cases.iter() {
@@ -696,7 +700,7 @@ impl StructuralAnalysis {
                 emitted.insert(block_pc);
             } else {
                 // Plain block
-                self.emit_block_body(cfg, block_pc, &mut output, 0, false);
+                self.emit_block_body(cfg, block_pc, &mut output, 0, false, lifted);
                 emitted.insert(block_pc);
             }
         }
@@ -715,11 +719,12 @@ impl StructuralAnalysis {
         output: &mut String,
         indent: usize,
         emitted: &mut HashSet<usize>,
+        lifted: Option<&LiftedProgram>,
     ) {
         let prefix = "    ".repeat(indent);
 
         // Emit header block instructions (before the branch)
-        self.emit_block_body(cfg, header, output, indent, true);
+        self.emit_block_body(cfg, header, output, indent, true, lifted);
 
         let cond_str = condition
             .map(format_condition)
@@ -727,14 +732,14 @@ impl StructuralAnalysis {
         let _ = writeln!(output, "{}if ({}) {{", prefix, cond_str);
 
         for &tb in then_blocks {
-            self.emit_block_body(cfg, tb, output, indent + 1, false);
+            self.emit_block_body(cfg, tb, output, indent + 1, false, lifted);
             emitted.insert(tb);
         }
 
         if !else_blocks.is_empty() {
             let _ = writeln!(output, "{}}} else {{", prefix);
             for &eb in else_blocks {
-                self.emit_block_body(cfg, eb, output, indent + 1, false);
+                self.emit_block_body(cfg, eb, output, indent + 1, false, lifted);
                 emitted.insert(eb);
             }
         }
@@ -745,6 +750,7 @@ impl StructuralAnalysis {
 
     /// Emit the instructions in a block as pseudo-code lines.
     /// If `skip_terminator` is true, the last instruction (branch/jump) is not emitted.
+    /// When `lifted` is provided, uses variable names and skips eliminated PCs.
     fn emit_block_body(
         &self,
         cfg: &ControlFlowGraph,
@@ -752,6 +758,7 @@ impl StructuralAnalysis {
         output: &mut String,
         indent: usize,
         skip_terminator: bool,
+        lifted: Option<&LiftedProgram>,
     ) {
         let prefix = "    ".repeat(indent);
         if let Some(block) = cfg.blocks.get(&block_pc) {
@@ -762,13 +769,23 @@ impl StructuralAnalysis {
                 len
             };
             for (pc, instr) in &block.instructions[..end] {
-                let _ = writeln!(
-                    output,
-                    "{}{:#06x}: {}",
-                    prefix,
-                    pc,
-                    format_instruction(instr)
-                );
+                if let Some(lifted) = lifted {
+                    // Skip eliminated PCs (folded/propagated).
+                    if lifted.eliminated_pcs.contains(pc) {
+                        continue;
+                    }
+                    if let Some(line) = lifted.format_pc(*pc, instr) {
+                        let _ = writeln!(output, "{}{:#06x}: {}", prefix, pc, line);
+                    }
+                } else {
+                    let _ = writeln!(
+                        output,
+                        "{}{:#06x}: {}",
+                        prefix,
+                        pc,
+                        format_instruction(instr)
+                    );
+                }
             }
         }
     }
@@ -1526,7 +1543,7 @@ mod tests {
         );
 
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg);
+        let pseudo = result.pseudo_code(&cfg, None);
 
         assert!(
             pseudo.contains("while"),
@@ -1580,7 +1597,7 @@ mod tests {
         );
 
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg);
+        let pseudo = result.pseudo_code(&cfg, None);
 
         assert!(pseudo.contains("if"), "Should contain 'if': {}", pseudo);
         assert!(
