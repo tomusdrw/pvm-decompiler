@@ -9,6 +9,7 @@
 use crate::cfg::ControlFlowGraph;
 use crate::dataflow::DataFlowAnalysis;
 use crate::instruction::{BinOp, InstructionShape, MemWidth, UnaryOp};
+use crate::structuring::DominatorTree;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use wasm_pvm::pvm::Instruction;
@@ -134,6 +135,9 @@ impl LiftedProgram {
         // Second folding pass: earlier passes may have eliminated intermediate
         // instructions, creating new opportunities for folding across gaps.
         lifted.fold_expressions(cfg);
+        lifted.simplify_all_expressions();
+        // Cross-block expression folding: inline SDSU values across block boundaries.
+        lifted.fold_expressions_cross_block(cfg);
         lifted.simplify_all_expressions();
         // Name stack memory slots as local variables, replacing Load/Store patterns.
         lifted.recover_stack_variables();
@@ -558,6 +562,143 @@ impl LiftedProgram {
                 }
             }
         }
+    }
+
+    /// Cross-block expression folding: inline SDSU (single-def, single-use) values
+    /// across basic block boundaries when safe.
+    ///
+    /// Safety conditions:
+    /// 1. The definition's block must dominate the use's block.
+    /// 2. The definition must not be in a loop body if the use is in the loop header
+    ///    (prevents circular expressions from loop-carried dependencies).
+    /// 3. The expression must not have side effects (no Load/Store — these can't be
+    ///    safely moved across blocks).
+    fn fold_expressions_cross_block(&mut self, cfg: &ControlFlowGraph) {
+        if cfg.blocks.len() <= 1 {
+            return;
+        }
+
+        let dom_tree = DominatorTree::compute(cfg);
+
+        // Build a map of PC -> block_start_pc for each instruction.
+        let mut pc_to_block: HashMap<usize, usize> = HashMap::new();
+        for block in cfg.blocks.values() {
+            for (pc, _) in &block.instructions {
+                pc_to_block.insert(*pc, block.start_pc);
+            }
+        }
+
+        // Detect loop headers: blocks that are targets of back-edges.
+        let loop_headers = detect_loop_headers(cfg, &dom_tree);
+
+        // Collect loop body blocks for each loop header.
+        let loop_bodies = collect_loop_bodies(cfg, &dom_tree, &loop_headers);
+
+        let mut changed = true;
+        while changed {
+            changed = false;
+
+            let mut candidates: Vec<(usize, String, usize)> = Vec::new();
+
+            for (&(def_pc, _reg), var) in &self.variables {
+                if self.eliminated_pcs.contains(&def_pc) {
+                    continue;
+                }
+
+                let def_expr = match self.expressions.get(&def_pc) {
+                    Some(e) => e,
+                    None => continue,
+                };
+
+                // Skip side-effect expressions (Load, Store, Call, Raw).
+                if has_side_effects(def_expr) {
+                    continue;
+                }
+
+                // Depth limit for cross-block folding (more conservative).
+                if expression_depth(def_expr) >= 2 {
+                    continue;
+                }
+
+                // Must have exactly one use site.
+                let use_count = self.count_var_use_sites(&var.name, def_pc);
+                if use_count != 1 {
+                    continue;
+                }
+
+                // Find the use site PC.
+                let use_pc = self.find_single_use_pc(&var.name, def_pc);
+                let use_pc = match use_pc {
+                    Some(pc) => pc,
+                    None => continue,
+                };
+
+                // Must be in different blocks.
+                let def_block = match pc_to_block.get(&def_pc) {
+                    Some(&b) => b,
+                    None => continue,
+                };
+                let use_block = match pc_to_block.get(&use_pc) {
+                    Some(&b) => b,
+                    None => continue,
+                };
+                if def_block == use_block {
+                    continue; // Intra-block folding is handled by fold_expressions.
+                }
+
+                // Dominance check: def's block must dominate use's block.
+                if !dom_tree.dominates(def_block, use_block) {
+                    continue;
+                }
+
+                // Loop-carried dependency check: don't inline from a loop body
+                // into the loop header (would create circular expressions).
+                let is_loop_carried = loop_bodies
+                    .iter()
+                    .any(|(header, body)| body.contains(&def_block) && *header == use_block);
+                if is_loop_carried {
+                    continue;
+                }
+
+                candidates.push((def_pc, var.name.clone(), use_pc));
+            }
+
+            candidates.sort_by_key(|(def_pc, _, _)| *def_pc);
+
+            for (def_pc, var_name, use_pc) in candidates {
+                let def_expr = match self.expressions.get(&def_pc) {
+                    Some(e) => e.clone(),
+                    None => continue,
+                };
+
+                if let Some(use_expr) = self.expressions.remove(&use_pc) {
+                    let folded = substitute_var(&use_expr, &var_name, &def_expr);
+                    self.expressions.insert(use_pc, folded);
+                    self.eliminated_pcs.insert(def_pc);
+                    changed = true;
+                }
+            }
+        }
+    }
+
+    /// Find the single non-eliminated PC that references a variable.
+    fn find_single_use_pc(&self, var_name: &str, exclude_pc: usize) -> Option<usize> {
+        for (&pc, expr) in &self.expressions {
+            if pc == exclude_pc || self.eliminated_pcs.contains(&pc) {
+                continue;
+            }
+            let has_ref = match expr {
+                Expression::Raw(_) => self
+                    .var_at_use
+                    .iter()
+                    .any(|(&(upc, _), name)| upc == pc && name.as_str() == var_name),
+                _ => count_var_refs(expr, var_name) > 0,
+            };
+            if has_ref {
+                return Some(pc);
+            }
+        }
+        None
     }
 
     /// Count distinct instruction sites that reference a variable, across all remaining
@@ -1306,6 +1447,76 @@ fn replace_stack_loads(
     }
 }
 
+/// Check if an expression has side effects (Load, Store, Call) that prevent
+/// safe movement across basic block boundaries.
+fn has_side_effects(expr: &Expression) -> bool {
+    match expr {
+        Expression::Load { .. } | Expression::Store { .. } | Expression::Call { .. } => true,
+        Expression::Raw(_) => true,
+        Expression::Const(_) | Expression::Var(_) => false,
+        Expression::BinOp { lhs, rhs, .. } => has_side_effects(lhs) || has_side_effects(rhs),
+        Expression::UnaryOp { operand, .. } => has_side_effects(operand),
+    }
+}
+
+/// Detect loop headers: blocks that are targets of back-edges (successor dominates predecessor).
+fn detect_loop_headers(cfg: &ControlFlowGraph, dom_tree: &DominatorTree) -> HashSet<usize> {
+    let mut headers = HashSet::new();
+    for block in cfg.blocks.values() {
+        for &succ in &block.successors {
+            if dom_tree.dominates(succ, block.start_pc) {
+                headers.insert(succ);
+            }
+        }
+    }
+    headers
+}
+
+/// Collect loop body blocks for each loop header by reverse-walking predecessors.
+fn collect_loop_bodies(
+    cfg: &ControlFlowGraph,
+    dom_tree: &DominatorTree,
+    headers: &HashSet<usize>,
+) -> Vec<(usize, HashSet<usize>)> {
+    let mut result = Vec::new();
+
+    for &header in headers {
+        let mut body = HashSet::new();
+        body.insert(header);
+
+        // Find latch blocks (predecessors of header that header dominates).
+        let latches: Vec<usize> = cfg
+            .blocks
+            .get(&header)
+            .map(|b| {
+                b.predecessors
+                    .iter()
+                    .copied()
+                    .filter(|&p| dom_tree.dominates(header, p))
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        // Walk backwards from each latch to collect body.
+        let mut stack: Vec<usize> = latches;
+        while let Some(node) = stack.pop() {
+            if body.insert(node)
+                && let Some(block) = cfg.blocks.get(&node)
+            {
+                for &pred in &block.predecessors {
+                    if !body.contains(&pred) {
+                        stack.push(pred);
+                    }
+                }
+            }
+        }
+
+        result.push((header, body));
+    }
+
+    result
+}
+
 /// Format an Expression tree as a human-readable string with minimal parentheses.
 pub fn format_expression(expr: &Expression) -> String {
     match expr {
@@ -1780,6 +1991,127 @@ mod tests {
 
         // PC 10 should NOT be eliminated.
         assert!(!lifted.eliminated_pcs.contains(&10));
+    }
+
+    #[test]
+    fn test_cross_block_expression_folding() {
+        // Block 0: r0 = 100 (ptr); r1 = r0 + 8
+        // Block 10: r2 = r1 + 16; trap
+        // r1 has single use across blocks; block 0 dominates block 10 -> should be folded.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 0, value: 100 }),
+                        (
+                            4,
+                            Instruction::AddImm32 {
+                                dst: 1,
+                                src: 0,
+                                value: 8,
+                            },
+                        ),
+                    ],
+                    vec![10],
+                ),
+                (
+                    10,
+                    vec![
+                        (
+                            10,
+                            Instruction::AddImm32 {
+                                dst: 2,
+                                src: 1,
+                                value: 16,
+                            },
+                        ),
+                        (14, Instruction::Trap),
+                    ],
+                    vec![],
+                ),
+            ],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        // r1's definition at PC 4 should be folded into PC 10 (cross-block).
+        assert!(
+            lifted.eliminated_pcs.contains(&4),
+            "PC 4 (r1 = r0 + 8) should be eliminated by cross-block folding"
+        );
+
+        // The expression at PC 10 should contain the folded result.
+        // With constant propagation (r0=100) and simplification, it becomes 100 + 8 + 16 = 124.
+        let expr = lifted.expressions.get(&10).unwrap();
+        let formatted = format_expression(expr);
+        assert!(
+            formatted.contains("124"),
+            "Expression should be folded to 124 (100 + 8 + 16), got: {}",
+            formatted
+        );
+    }
+
+    #[test]
+    fn test_cross_block_no_fold_in_loop() {
+        // Block 0: r0 = 1 (init)
+        // Block 10 (loop header): r1 = r0 + 1; branch back to 10 or exit to 20
+        // Block 20: trap
+        // r0 is defined in block 0, used in loop header block 10.
+        // Block 0 dominates block 10, but r0 is not defined in a loop body,
+        // so this would normally be safe. However, if r0 has other definitions
+        // in the loop body, it shouldn't be folded. This tests the basic case.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(0, Instruction::LoadImm { reg: 0, value: 1 })],
+                    vec![10],
+                ),
+                (
+                    10,
+                    vec![
+                        (
+                            10,
+                            Instruction::AddImm32 {
+                                dst: 1,
+                                src: 0,
+                                value: 1,
+                            },
+                        ),
+                        (
+                            14,
+                            Instruction::AddImm32 {
+                                dst: 0,
+                                src: 1,
+                                value: 0,
+                            },
+                        ),
+                        (
+                            18,
+                            Instruction::BranchNeImm {
+                                reg: 0,
+                                value: 10,
+                                offset: -8,
+                            },
+                        ),
+                    ],
+                    vec![10, 22],
+                ),
+                (22, vec![(22, Instruction::Trap)], vec![]),
+            ],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        // r0 defined at PC 0 is used in the loop header. Since r0 is redefined
+        // at PC 14 inside the loop, the def at PC 0 has multiple uses (PC 10
+        // on each iteration via the redefinition). The analysis should handle
+        // this correctly without creating circular expressions.
+        // Just verify it doesn't panic and produces output.
+        assert!(!lifted.expressions.is_empty());
     }
 
     #[test]
