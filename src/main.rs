@@ -7,6 +7,7 @@ use wasm_pvm::pvm::Instruction;
 mod cfg;
 mod dataflow;
 mod decoder;
+mod functions;
 mod instruction;
 mod lifting;
 mod structuring;
@@ -14,6 +15,7 @@ mod varint;
 
 use cfg::ControlFlowGraph;
 use dataflow::DataFlowAnalysis;
+use functions::{build_function_cfg, detect_functions};
 use lifting::LiftedProgram;
 use structuring::StructuralAnalysis;
 
@@ -69,23 +71,49 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  PC {:#06x}: {:?}", pc, instr);
     }
 
-    // Build and print CFG
+    // Build global CFG
     println!("\n=== Control Flow Graph ===");
     let cfg = ControlFlowGraph::build(&program);
     print_cfg(&cfg);
 
-    // Perform data flow analysis
-    let dataflow = DataFlowAnalysis::analyze(&cfg);
-    println!("\n{}", dataflow.summarize());
+    // Detect function boundaries
+    let detected_functions = detect_functions(&cfg);
+    println!(
+        "\n=== Function Detection ===\nDetected {} function(s):",
+        detected_functions.len()
+    );
+    for func in &detected_functions {
+        let mut sorted_blocks: Vec<usize> = func.block_pcs.iter().copied().collect();
+        sorted_blocks.sort();
+        println!(
+            "  {} @ {:#06x} ({} blocks: {:?})",
+            func.name,
+            func.entry_pc,
+            func.block_pcs.len(),
+            sorted_blocks
+        );
+    }
 
-    // Perform register lifting (variable recovery & expression simplification)
-    let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
-    println!("{}", lifted.summarize());
+    // Process each function independently
+    for func in &detected_functions {
+        println!("\n{}", "=".repeat(60));
+        println!(
+            "=== Function: {} (entry @ {:#06x}) ===",
+            func.name, func.entry_pc
+        );
 
-    // Perform structural analysis
-    let structural = StructuralAnalysis::analyze(&cfg, &program);
-    println!("{}", structural.summarize());
-    println!("{}", structural.pseudo_code(&cfg, Some(&mut lifted)));
+        let func_cfg = build_function_cfg(&cfg, func);
+
+        let dataflow = DataFlowAnalysis::analyze(&func_cfg);
+        println!("\n{}", dataflow.summarize());
+
+        let mut lifted = LiftedProgram::analyze(&func_cfg, &dataflow);
+        println!("{}", lifted.summarize());
+
+        let structural = StructuralAnalysis::analyze(&func_cfg, &program);
+        println!("{}", structural.summarize());
+        println!("{}", structural.pseudo_code(&func_cfg, Some(&mut lifted)));
+    }
 
     Ok(())
 }
