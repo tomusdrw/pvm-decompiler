@@ -621,6 +621,33 @@ impl InstructionShape {
         }
     }
 
+    /// Whether this instruction is a block terminator (ends a basic block).
+    pub fn is_terminator(&self) -> bool {
+        matches!(
+            self,
+            Self::Jump { .. }
+                | Self::JumpInd { .. }
+                | Self::BranchImm { .. }
+                | Self::BranchReg { .. }
+                | Self::NoOp { name: "trap" }
+        )
+    }
+
+    /// Get the jump/branch offset, if this is a control-flow instruction with a static target.
+    pub fn branch_offset(&self) -> Option<i32> {
+        match self {
+            Self::Jump { offset } => Some(*offset),
+            Self::BranchImm { offset, .. } => Some(*offset),
+            Self::BranchReg { offset, .. } => Some(*offset),
+            _ => None,
+        }
+    }
+
+    /// Whether this instruction is a conditional branch (has both target and fallthrough).
+    pub fn is_conditional_branch(&self) -> bool {
+        matches!(self, Self::BranchImm { .. } | Self::BranchReg { .. })
+    }
+
     /// Format as raw pseudo-code using register names (rN).
     pub fn format_raw(&self) -> String {
         match self {
@@ -744,5 +771,109 @@ mod tests {
         };
         let shape = InstructionShape::classify(&instr);
         assert_eq!(shape.format_raw(), "r0 = r1 +64 r2");
+    }
+
+    #[test]
+    fn test_is_terminator() {
+        assert!(InstructionShape::Jump { offset: 10 }.is_terminator());
+        assert!(InstructionShape::JumpInd { reg: 0 }.is_terminator());
+        assert!(InstructionShape::NoOp { name: "trap" }.is_terminator());
+        assert!(
+            InstructionShape::BranchImm {
+                cond: "==",
+                reg: 0,
+                value: 0,
+                offset: 5,
+            }
+            .is_terminator()
+        );
+        assert!(
+            InstructionShape::BranchReg {
+                cond: "<u",
+                reg1: 0,
+                reg2: 1,
+                offset: 5,
+            }
+            .is_terminator()
+        );
+
+        // Non-terminators
+        assert!(
+            !InstructionShape::NoOp {
+                name: "fallthrough"
+            }
+            .is_terminator()
+        );
+        assert!(!InstructionShape::LoadImm { dst: 0, value: 42 }.is_terminator());
+        assert!(!InstructionShape::Unknown { opcode: 0xFF }.is_terminator());
+    }
+
+    #[test]
+    fn test_branch_offset() {
+        assert_eq!(
+            InstructionShape::Jump { offset: 10 }.branch_offset(),
+            Some(10)
+        );
+        assert_eq!(
+            InstructionShape::BranchImm {
+                cond: "==",
+                reg: 0,
+                value: 0,
+                offset: -5,
+            }
+            .branch_offset(),
+            Some(-5)
+        );
+        assert_eq!(InstructionShape::JumpInd { reg: 0 }.branch_offset(), None);
+        assert_eq!(
+            InstructionShape::NoOp { name: "trap" }.branch_offset(),
+            None
+        );
+    }
+
+    #[test]
+    fn test_is_conditional_branch() {
+        assert!(
+            InstructionShape::BranchImm {
+                cond: "==",
+                reg: 0,
+                value: 0,
+                offset: 5,
+            }
+            .is_conditional_branch()
+        );
+        assert!(!InstructionShape::Jump { offset: 5 }.is_conditional_branch());
+        assert!(!InstructionShape::JumpInd { reg: 0 }.is_conditional_branch());
+    }
+
+    #[test]
+    fn test_classify_load_store() {
+        let load = Instruction::LoadIndU32 {
+            dst: 1,
+            base: 2,
+            offset: 8,
+        };
+        let shape = InstructionShape::classify(&load);
+        assert_eq!(shape.format_raw(), "r1 = u32[r2 + 8]");
+        assert_eq!(shape.def_reg(), Some(1));
+
+        let store = Instruction::StoreIndU64 {
+            base: 3,
+            src: 4,
+            offset: 0,
+        };
+        let shape = InstructionShape::classify(&store);
+        assert_eq!(shape.format_raw(), "u64[r3 + 0] = r4");
+        assert_eq!(shape.def_reg(), None);
+    }
+
+    #[test]
+    fn test_classify_unary() {
+        let instr = Instruction::SignExtend8 { dst: 5, src: 6 };
+        let shape = InstructionShape::classify(&instr);
+        assert_eq!(shape.format_raw(), "r5 = sext8(r6)");
+        let (defs, uses) = shape.def_use();
+        assert_eq!(defs, vec![5]);
+        assert_eq!(uses, vec![6]);
     }
 }

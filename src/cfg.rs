@@ -1,4 +1,5 @@
 use crate::decoder::DecodedProgram;
+use crate::instruction::InstructionShape;
 use std::collections::{HashMap, HashSet};
 use wasm_pvm::pvm::Instruction;
 
@@ -68,60 +69,20 @@ impl ControlFlowGraph {
 
         // Scan instructions to find jump/branch targets and fallthrough points
         for (pc, instr) in &program.instructions {
-            match instr {
-                Instruction::Jump { offset } => {
-                    // Target is a leader
-                    let target_pc = Self::compute_jump_target(*pc, *offset);
-                    leaders.insert(target_pc);
-                    // Next instruction (if exists) is a leader (unreachable, but mark it)
-                    // Actually, Jump is unconditional, so next is unreachable
-                    // But we still mark it for completeness
-                }
-                Instruction::JumpInd { .. } => {
-                    // Indirect jump: target is unknown, treat as potential return
-                    // Don't add any specific leader
-                }
-                Instruction::BranchEqImm { offset, .. }
-                | Instruction::BranchNeImm { offset, .. }
-                | Instruction::BranchGeSImm { offset, .. }
-                | Instruction::BranchGeU { offset, .. }
-                | Instruction::BranchLtU { offset, .. } => {
-                    // Branch target is a leader
-                    let target_pc = Self::compute_jump_target(*pc, *offset);
-                    leaders.insert(target_pc);
-                    // Fallthrough (next instruction) is also a leader
-                    // We'll compute this in the next pass
-                }
-                Instruction::Trap => {
-                    // Trap terminates, no fallthrough
-                }
-                Instruction::Fallthrough => {
-                    // Fallthrough continues to next
-                }
-                _ => {
-                    // Regular instruction, continues to next
-                }
+            let shape = InstructionShape::classify(instr);
+            if let Some(offset) = shape.branch_offset() {
+                let target_pc = Self::compute_jump_target(*pc, offset);
+                leaders.insert(target_pc);
             }
         }
 
         // Add fallthrough points: the instruction after each terminator
         for i in 0..program.instructions.len() {
             let (_pc, instr) = &program.instructions[i];
-            let is_terminator = matches!(
-                instr,
-                Instruction::Jump { .. }
-                    | Instruction::BranchEqImm { .. }
-                    | Instruction::BranchNeImm { .. }
-                    | Instruction::BranchGeSImm { .. }
-                    | Instruction::BranchGeU { .. }
-                    | Instruction::BranchLtU { .. }
-                    | Instruction::Trap
-            );
+            let shape = InstructionShape::classify(instr);
 
-            if is_terminator && i + 1 < program.instructions.len() {
+            if shape.is_terminator() && i + 1 < program.instructions.len() {
                 let (next_pc, _) = program.instructions[i + 1];
-                // Always add next instruction as leader if current is terminator
-                // This ensures separate blocks even for unreachable code
                 leaders.insert(next_pc);
             }
         }
@@ -179,69 +140,49 @@ impl ControlFlowGraph {
             pc_to_block_idx.insert(block.start_pc, idx);
         }
 
+        // Pre-compute fallthrough targets for each block index
+        let fallthrough_pcs: Vec<Option<usize>> = (0..blocks.len())
+            .map(|idx| {
+                if idx + 1 < blocks.len() {
+                    Some(blocks[idx + 1].start_pc)
+                } else {
+                    None
+                }
+            })
+            .collect();
+
         // For each block, determine successors based on terminator
         for block_idx in 0..blocks.len() {
             let block = &blocks[block_idx];
             let successors = if let Some((term_pc, terminator)) = block.instructions.last() {
-                match terminator {
-                    Instruction::Jump { offset } => {
-                        // Unconditional jump: single successor
-                        let target_pc = Self::compute_jump_target(*term_pc, *offset);
-                        if let Some(&succ_idx) = pc_to_block_idx.get(&target_pc) {
-                            vec![blocks[succ_idx].start_pc]
-                        } else {
-                            vec![]
-                        }
-                    }
-                    Instruction::BranchEqImm { offset, .. }
-                    | Instruction::BranchNeImm { offset, .. }
-                    | Instruction::BranchGeSImm { offset, .. }
-                    | Instruction::BranchGeU { offset, .. }
-                    | Instruction::BranchLtU { offset, .. } => {
-                        // Conditional branch: two successors (target and fallthrough)
-                        let target_pc = Self::compute_jump_target(*term_pc, *offset);
-                        let mut succs = Vec::new();
+                let shape = InstructionShape::classify(terminator);
 
-                        // Add target
-                        if let Some(&succ_idx) = pc_to_block_idx.get(&target_pc) {
-                            succs.push(blocks[succ_idx].start_pc);
-                        }
+                if let Some(offset) = shape.branch_offset() {
+                    let target_pc = Self::compute_jump_target(*term_pc, offset);
+                    let mut succs = Vec::new();
 
-                        // Add fallthrough (next block)
-                        if block_idx + 1 < blocks.len() {
-                            succs.push(blocks[block_idx + 1].start_pc);
-                        }
+                    // Add branch/jump target
+                    if let Some(&succ_idx) = pc_to_block_idx.get(&target_pc) {
+                        succs.push(blocks[succ_idx].start_pc);
+                    }
 
-                        succs
+                    // Conditional branches also fall through
+                    if shape.is_conditional_branch() {
+                        succs.extend(fallthrough_pcs[block_idx]);
                     }
-                    Instruction::Trap => {
-                        // No successors
-                        vec![]
-                    }
-                    Instruction::Fallthrough => {
-                        // Explicit fallthrough to next block
-                        if block_idx + 1 < blocks.len() {
-                            vec![blocks[block_idx + 1].start_pc]
-                        } else {
-                            vec![]
-                        }
-                    }
-                    _ => {
-                        // Regular instruction: fallthrough to next block
-                        if block_idx + 1 < blocks.len() {
-                            vec![blocks[block_idx + 1].start_pc]
-                        } else {
-                            vec![]
-                        }
-                    }
+
+                    succs
+                } else if matches!(shape, InstructionShape::NoOp { name: "trap" })
+                    || matches!(shape, InstructionShape::JumpInd { .. })
+                {
+                    // Trap and indirect jumps have no static successors
+                    vec![]
+                } else {
+                    // All other instructions (including fallthrough, regular ops): fall through
+                    fallthrough_pcs[block_idx].into_iter().collect()
                 }
             } else {
-                // Empty block? Fallthrough
-                if block_idx + 1 < blocks.len() {
-                    vec![blocks[block_idx + 1].start_pc]
-                } else {
-                    vec![]
-                }
+                fallthrough_pcs[block_idx].into_iter().collect()
             };
 
             blocks[block_idx].successors = successors;
