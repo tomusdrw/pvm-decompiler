@@ -9,6 +9,7 @@
 use crate::cfg::ControlFlowGraph;
 use crate::dataflow::DataFlowAnalysis;
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use wasm_pvm::pvm::Instruction;
 
 /// Inferred variable type based on usage context.
@@ -17,6 +18,16 @@ pub enum VarType {
     Integer,
     Pointer,
     Boolean,
+}
+
+impl fmt::Display for VarType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            VarType::Integer => write!(f, "u64"),
+            VarType::Pointer => write!(f, "ptr"),
+            VarType::Boolean => write!(f, "bool"),
+        }
+    }
 }
 
 /// A recovered high-level variable corresponding to a single register definition.
@@ -70,6 +81,26 @@ pub struct LiftedProgram {
     pub eliminated_pcs: HashSet<usize>,
     /// Variable name to use for each (pc, reg) use-site, accounting for reaching definitions.
     pub var_at_use: HashMap<(usize, u8), String>,
+    /// Tracks which variable names have already been declared with `let`.
+    pub declared_vars: HashSet<String>,
+    /// Named stack variables: maps (base_ptr_name, offset) to a stack variable name.
+    pub stack_vars: HashMap<(String, i32), String>,
+}
+
+/// A set of variable declarations collected for a block, to be emitted at its top.
+pub struct BlockDeclarations(Vec<(String, VarType)>);
+
+impl BlockDeclarations {
+    /// Format the declarations as `let name: type;` lines with the given indentation prefix.
+    /// Returns an empty string if there are no declarations.
+    pub fn format(&self, prefix: &str) -> String {
+        use std::fmt::Write;
+        let mut result = String::new();
+        for (name, var_type) in &self.0 {
+            let _ = writeln!(result, "{}let {}: {};", prefix, name, var_type);
+        }
+        result
+    }
 }
 
 impl LiftedProgram {
@@ -80,18 +111,39 @@ impl LiftedProgram {
             expressions: HashMap::new(),
             eliminated_pcs: HashSet::new(),
             var_at_use: HashMap::new(),
+            declared_vars: HashSet::new(),
+            stack_vars: HashMap::new(),
         };
 
         lifted.assign_variables(cfg, dataflow);
         lifted.build_expressions(cfg);
         lifted.propagate_constants();
         lifted.simplify_all_expressions();
-        lifted.fold_expressions(cfg);
-        lifted.simplify_all_expressions();
+        // Copy propagation and store-load forwarding BEFORE folding, so that
+        // loads are replaced with stored values before they get inlined.
         lifted.propagate_copies();
         lifted.forward_store_loads(cfg);
         lifted.propagate_copies();
+        // Eliminate dead stores while bases are still Var("ptr_*") — folding
+        // can inline constants into bases, losing the ptr_ prefix.
         lifted.eliminate_dead_stores();
+        lifted.simplify_all_expressions();
+        lifted.fold_expressions(cfg);
+        lifted.simplify_all_expressions();
+        // Second folding pass: earlier passes may have eliminated intermediate
+        // instructions, creating new opportunities for folding across gaps.
+        lifted.fold_expressions(cfg);
+        lifted.simplify_all_expressions();
+        // Name stack memory slots as local variables, replacing Load/Store patterns.
+        lifted.recover_stack_variables();
+        // Stack recovery turns loads into Var references, creating new copy chains
+        // (e.g., var_13 = ptr_0_80) that can be propagated away.
+        // NOTE: Do NOT run eliminate_dead_stores here — stack stores are now
+        // assignments to named variables, not dead stores.
+        lifted.propagate_copies();
+        lifted.fold_expressions(cfg);
+        lifted.simplify_all_expressions();
+        lifted.propagate_copies();
         lifted.simplify_all_expressions();
 
         lifted
@@ -347,7 +399,12 @@ impl LiftedProgram {
             Instruction::Fallthrough => Expression::Raw("fallthrough".to_string()),
             Instruction::Jump { offset } => Expression::Raw(format!("jump {}", offset)),
             Instruction::JumpInd { reg, .. } => {
-                Expression::Raw(format!("jump_ind {}", self.reg_name(pc, *reg)))
+                // Detect halt pattern: jump_ind to a known halt address constant.
+                if self.is_halt_target(pc, *reg) {
+                    Expression::Raw("halt()".to_string())
+                } else {
+                    Expression::Raw(format!("jump_ind {}", self.reg_name(pc, *reg)))
+                }
             }
             Instruction::BranchEqImm { reg, value, offset } => Expression::Raw(format!(
                 "if ({} == {}) jump {}",
@@ -392,6 +449,23 @@ impl LiftedProgram {
             .get(&(use_pc, reg))
             .cloned()
             .unwrap_or_else(|| format!("r{}", reg))
+    }
+
+    /// Check if a JumpInd target register holds a known halt address constant.
+    /// The PVM halt address is typically -65536 (0xFFFF_FFFF_FFFF_0000).
+    fn is_halt_target(&self, use_pc: usize, reg: u8) -> bool {
+        // Look up the variable name for this register at this PC.
+        if let Some(var_name) = self.var_at_use.get(&(use_pc, reg)) {
+            // Find the definition of this variable and check if it's a halt constant.
+            for (&(def_pc, _), var) in &self.variables {
+                if var.name == *var_name
+                    && let Some(Expression::Const(val)) = self.expressions.get(&def_pc)
+                {
+                    return *val == -65536;
+                }
+            }
+        }
+        false
     }
 
     fn make_binop(&self, pc: usize, op: &str, src1: u8, src2: u8) -> Expression {
@@ -474,16 +548,19 @@ impl LiftedProgram {
         }
     }
 
-    /// Fold expressions: when a definition has exactly one use in the immediately
-    /// following instruction within the same block, inline the expression.
+    /// Fold expressions: when a definition has exactly one use in a later
+    /// instruction within the same block (skipping eliminated PCs), inline the expression.
     fn fold_expressions(&mut self, cfg: &ControlFlowGraph) {
-        // Build a map of (pc -> next_pc) within each block.
-        let mut next_in_block: HashMap<usize, usize> = HashMap::new();
+        // Build a map of (pc -> [subsequent PCs in same block]) for each block.
+        let mut same_block_pcs: HashMap<usize, Vec<usize>> = HashMap::new();
         for block in cfg.blocks.values() {
-            for i in 0..block.instructions.len().saturating_sub(1) {
+            for i in 0..block.instructions.len() {
                 let cur_pc = block.instructions[i].0;
-                let next_pc = block.instructions[i + 1].0;
-                next_in_block.insert(cur_pc, next_pc);
+                let later: Vec<usize> = block.instructions[i + 1..]
+                    .iter()
+                    .map(|(pc, _)| *pc)
+                    .collect();
+                same_block_pcs.insert(cur_pc, later);
             }
         }
 
@@ -492,8 +569,8 @@ impl LiftedProgram {
         while changed {
             changed = false;
 
-            // Collect candidates: (def_pc, var_name, next_pc) where the def has
-            // exactly one use at next_pc.
+            // Collect candidates: (def_pc, var_name, use_pc) where the def has
+            // exactly one use at a later non-eliminated PC in the same block.
             let mut candidates: Vec<(usize, String, usize)> = Vec::new();
 
             for (&(def_pc, _reg), var) in &self.variables {
@@ -502,9 +579,9 @@ impl LiftedProgram {
                     continue;
                 }
 
-                // Must have a next instruction in the same block.
-                let next_pc = match next_in_block.get(&def_pc) {
-                    Some(&n) => n,
+                // Must have later instructions in the same block.
+                let later_pcs = match same_block_pcs.get(&def_pc) {
+                    Some(pcs) => pcs,
                     None => continue,
                 };
 
@@ -517,47 +594,77 @@ impl LiftedProgram {
                     continue;
                 }
 
-                // Count uses of this variable name.
-                let use_count = self
-                    .var_at_use
-                    .values()
-                    .filter(|name| **name == var.name)
-                    .count();
+                // Count actual uses by scanning expression trees (not var_at_use,
+                // which becomes stale after folding inlines expressions).
+                let use_count = self.count_var_use_sites(&var.name, def_pc);
                 if use_count != 1 {
                     continue;
                 }
 
-                // The single use must be at next_pc.
-                let is_at_next = self
-                    .var_at_use
-                    .iter()
-                    .any(|(&(upc, _), name)| *name == var.name && upc == next_pc);
-                if !is_at_next {
-                    continue;
-                }
+                // Find the use: first later non-eliminated PC in the same block
+                // whose expression references this variable.
+                let use_pc = later_pcs.iter().copied().find(|&pc| {
+                    !self.eliminated_pcs.contains(&pc)
+                        && self
+                            .expressions
+                            .get(&pc)
+                            .is_some_and(|e| count_var_refs(e, &var.name) > 0)
+                });
+                let use_pc = match use_pc {
+                    Some(pc) => pc,
+                    None => continue,
+                };
 
                 // Check depth limit.
                 if expression_depth(def_expr) >= 3 {
                     continue;
                 }
 
-                candidates.push((def_pc, var.name.clone(), next_pc));
+                candidates.push((def_pc, var.name.clone(), use_pc));
             }
 
-            for (def_pc, var_name, next_pc) in candidates {
+            // Sort by def_pc so that earlier (leaf) definitions are folded
+            // before later (compound) definitions that reference them.
+            candidates.sort_by_key(|(def_pc, _, _)| *def_pc);
+
+            for (def_pc, var_name, use_pc) in candidates {
                 let def_expr = match self.expressions.get(&def_pc) {
                     Some(e) => e.clone(),
                     None => continue,
                 };
 
-                if let Some(use_expr) = self.expressions.remove(&next_pc) {
+                if let Some(use_expr) = self.expressions.remove(&use_pc) {
                     let folded = substitute_var(&use_expr, &var_name, &def_expr);
-                    self.expressions.insert(next_pc, folded);
+                    self.expressions.insert(use_pc, folded);
                     self.eliminated_pcs.insert(def_pc);
                     changed = true;
                 }
             }
         }
+    }
+
+    /// Count distinct instruction sites that reference a variable, across all remaining
+    /// (non-eliminated) expressions and branch conditions.
+    /// Uses expression tree scanning (not var_at_use) for structured expressions,
+    /// and var_at_use for Raw expressions (branches) where names are embedded as strings.
+    fn count_var_use_sites(&self, var_name: &str, exclude_pc: usize) -> usize {
+        let mut count = 0;
+        for (&pc, expr) in &self.expressions {
+            if pc == exclude_pc || self.eliminated_pcs.contains(&pc) {
+                continue;
+            }
+            let has_ref = match expr {
+                Expression::Raw(_) => self
+                    .var_at_use
+                    .iter()
+                    .any(|(&(upc, _), name)| upc == pc && name.as_str() == var_name),
+                _ => count_var_refs(expr, var_name) > 0,
+            };
+            if has_ref {
+                count += 1;
+            }
+        }
+        count
     }
 
     /// Simplify all expressions in the program by folding identity operations.
@@ -573,22 +680,30 @@ impl LiftedProgram {
     /// Copy propagation: when a variable is defined as just another variable
     /// (`dst = src`), replace all uses of `dst` with `src` and eliminate the copy.
     fn propagate_copies(&mut self) {
+        // Track which copy definitions we've already processed to avoid infinite loops.
+        let mut processed: HashSet<usize> = HashSet::new();
         let mut changed = true;
         while changed {
             changed = false;
 
             // Find definitions that are just Var(other_name).
-            let mut copy_defs: Vec<(usize, String, String)> = Vec::new(); // (def_pc, dst_name, src_name)
+            // Include eliminated PCs: their variable names may still be referenced
+            // in live expressions (e.g., folded into branch conditions).
+            let mut copy_defs: Vec<(usize, String, String)> = Vec::new();
             for (&(def_pc, _reg), var) in &self.variables {
-                if self.eliminated_pcs.contains(&def_pc) {
+                if processed.contains(&def_pc) {
                     continue;
                 }
-                if let Some(Expression::Var(source_name)) = self.expressions.get(&def_pc) {
+                if let Some(Expression::Var(source_name)) = self.expressions.get(&def_pc)
+                    && var.name != *source_name
+                {
                     copy_defs.push((def_pc, var.name.clone(), source_name.clone()));
                 }
             }
 
             for (def_pc, dst_name, src_name) in copy_defs {
+                processed.insert(def_pc);
+
                 // Replace dst_name with src_name in all var_at_use entries.
                 for value in self.var_at_use.values_mut() {
                     if *value == dst_name {
@@ -690,6 +805,43 @@ impl LiftedProgram {
         }
     }
 
+    /// Recover stack variables: name stack memory slots (ptr_N + offset) as local
+    /// variables, replacing Load expressions with Var references. Stores are kept
+    /// but formatted as assignments by `format_pc`.
+    fn recover_stack_variables(&mut self) {
+        // 1. Scan ALL expressions (including eliminated) for Load/Store with ptr_* base.
+        // Eliminated expressions may still be referenced by other expressions
+        // (e.g., folded into branch conditions).
+        let mut slots: HashSet<(String, i32)> = HashSet::new();
+        for expr in self.expressions.values() {
+            collect_stack_slots(expr, &mut slots);
+        }
+
+        // 2. Create names for each unique (base, offset) pair, sorted by offset.
+        let mut sorted_slots: Vec<(String, i32)> = slots.into_iter().collect();
+        sorted_slots.sort_by_key(|(base, offset)| (base.clone(), *offset));
+
+        for (base, offset) in &sorted_slots {
+            let name = format!("{}_{}", base, offset);
+            self.stack_vars
+                .insert((base.clone(), *offset), name.clone());
+        }
+
+        if self.stack_vars.is_empty() {
+            return;
+        }
+
+        // 3. Replace Load nodes with Var references in ALL expressions
+        // (including eliminated ones that may be embedded in live expressions).
+        let pcs: Vec<usize> = self.expressions.keys().copied().collect();
+        for pc in pcs {
+            if let Some(expr) = self.expressions.remove(&pc) {
+                let new_expr = replace_stack_loads(&expr, &self.stack_vars);
+                self.expressions.insert(pc, new_expr);
+            }
+        }
+    }
+
     /// Produce a summary of the lifting results.
     pub fn summarize(&self) -> String {
         use std::fmt::Write;
@@ -723,8 +875,82 @@ impl LiftedProgram {
         output
     }
 
+    /// Pre-scan a block's instructions and collect all variable declarations needed.
+    /// Marks variables as declared in `declared_vars`. Returns a `BlockDeclarations`
+    /// that can be formatted at the top of the block.
+    pub fn collect_block_declarations(
+        &mut self,
+        instructions: &[(usize, Instruction)],
+    ) -> BlockDeclarations {
+        let mut decls: Vec<(String, VarType)> = Vec::new();
+
+        for (pc, instr) in instructions {
+            if self.eliminated_pcs.contains(pc) {
+                continue;
+            }
+            if matches!(instr, Instruction::Fallthrough | Instruction::Jump { .. }) {
+                continue;
+            }
+
+            // Collect the variable defined by this instruction.
+            if let Some((name, var_type)) = self.def_var_name_with_type(*pc, instr)
+                && self.declared_vars.insert(name.clone())
+            {
+                decls.push((name, var_type));
+            }
+
+            // Collect the stack variable assigned by a Store expression.
+            if let Some(Expression::Store { base, offset, .. }) = self.expressions.get(pc)
+                && let Expression::Var(base_name) = base.as_ref()
+                && let Some(slot_name) = self.stack_vars.get(&(base_name.clone(), *offset))
+                && self.declared_vars.insert(slot_name.clone())
+            {
+                decls.push((slot_name.clone(), VarType::Integer));
+            }
+
+            // Collect variables referenced in the expression.
+            if let Some(expr) = self.expressions.get(pc) {
+                let mut names = Vec::new();
+                collect_var_names(expr, &mut names);
+                // For Raw expressions, also check var_at_use (variable names are
+                // embedded as strings, not Var nodes).
+                if matches!(expr, Expression::Raw(_)) {
+                    for ((upc, _), name) in &self.var_at_use {
+                        if *upc == *pc && !names.contains(name) {
+                            names.push(name.clone());
+                        }
+                    }
+                }
+                for name in names {
+                    if self.declared_vars.insert(name.clone()) {
+                        // Look up type: first check register variables, then stack variables.
+                        let vt = self
+                            .variables
+                            .values()
+                            .find(|v| v.name == name)
+                            .map(|v| v.var_type.clone())
+                            .or_else(|| {
+                                if self.stack_vars.values().any(|n| *n == name) {
+                                    Some(VarType::Integer)
+                                } else {
+                                    None
+                                }
+                            });
+                        if let Some(vt) = vt {
+                            decls.push((name, vt));
+                        }
+                    }
+                }
+            }
+        }
+
+        BlockDeclarations(decls)
+    }
+
     /// Format an instruction at a given PC as a lifted pseudo-code line.
     /// Returns None if the PC has been eliminated.
+    /// Declarations are handled separately via `collect_block_declarations`,
+    /// so this always emits plain assignments.
     pub fn format_pc(&self, pc: usize, instr: &Instruction) -> Option<String> {
         if self.eliminated_pcs.contains(&pc) {
             return None;
@@ -733,7 +959,7 @@ impl LiftedProgram {
         let expr = self.expressions.get(&pc)?;
 
         // Determine if this instruction defines a register.
-        let dst_name = self.def_var_name(pc, instr);
+        let dst_name = self.def_var_name_with_type(pc, instr).map(|(name, _)| name);
 
         match expr {
             Expression::Raw(s) => Some(s.clone()),
@@ -742,13 +968,20 @@ impl LiftedProgram {
                 base,
                 offset,
                 value,
-            } => Some(format!(
-                "{}[{} + {}] = {}",
-                width,
-                format_expression(base),
-                offset,
-                format_expression(value)
-            )),
+            } => {
+                // Check if this store targets a named stack variable.
+                if let Expression::Var(base_name) = base.as_ref()
+                    && let Some(slot_name) = self.stack_vars.get(&(base_name.clone(), *offset))
+                {
+                    return Some(format!("{} = {}", slot_name, format_expression(value)));
+                }
+                Some(format!(
+                    "{}[{}] = {}",
+                    width,
+                    format_mem_address(base, *offset),
+                    format_expression(value)
+                ))
+            }
             Expression::Call { name, args } => {
                 let arg_strs: Vec<String> = args.iter().map(format_expression).collect();
                 if let Some(dst) = dst_name {
@@ -767,9 +1000,17 @@ impl LiftedProgram {
         }
     }
 
-    /// Get the variable name for the destination register defined at a PC.
-    fn def_var_name(&self, pc: usize, instr: &Instruction) -> Option<String> {
-        let reg = match instr {
+    /// Get the variable name and type for the destination register defined at a PC.
+    fn def_var_name_with_type(&self, pc: usize, instr: &Instruction) -> Option<(String, VarType)> {
+        let reg = Self::def_reg(instr)?;
+        self.variables
+            .get(&(pc, reg))
+            .map(|v| (v.name.clone(), v.var_type.clone()))
+    }
+
+    /// Get the destination register defined by an instruction, if any.
+    fn def_reg(instr: &Instruction) -> Option<u8> {
+        match instr {
             Instruction::LoadImm { reg, .. } | Instruction::LoadImm64 { reg, .. } => Some(*reg),
             Instruction::Add32 { dst, .. }
             | Instruction::Sub32 { dst, .. }
@@ -817,9 +1058,7 @@ impl LiftedProgram {
             | Instruction::LoadIndU32 { dst, .. }
             | Instruction::LoadIndU64 { dst, .. } => Some(*dst),
             _ => None,
-        };
-
-        reg.and_then(|r| self.variables.get(&(pc, r)).map(|v| v.name.clone()))
+        }
     }
 }
 
@@ -835,10 +1074,45 @@ fn simplify_expression(expr: Expression) -> Expression {
             let rhs = simplify_expression(*rhs);
 
             match (&op[..], &lhs, &rhs) {
+                // Constant folding: C1 + C2, C1 - C2, etc.
+                ("+", Expression::Const(a), Expression::Const(b)) => {
+                    Expression::Const(a.wrapping_add(*b))
+                }
+                ("-", Expression::Const(a), Expression::Const(b)) => {
+                    Expression::Const(a.wrapping_sub(*b))
+                }
+                ("*", Expression::Const(a), Expression::Const(b)) => {
+                    Expression::Const(a.wrapping_mul(*b))
+                }
                 // x + 0, x - 0, x | 0, x ^ 0, x << 0, x >>u 0, x >>s 0 → x
                 ("+" | "-" | "|" | "^" | "<<" | ">>u" | ">>s", _, Expression::Const(0)) => lhs,
                 // 0 + x, 0 | x, 0 ^ x → x (commutative identities)
                 ("+" | "|" | "^", Expression::Const(0), _) => rhs,
+                // (x + C1) + C2 → x + (C1 + C2) — reassociate to fold constants
+                (
+                    "+",
+                    Expression::BinOp {
+                        op: inner_op,
+                        lhs: x,
+                        rhs: inner_rhs,
+                    },
+                    Expression::Const(c2),
+                ) if inner_op == "+" && matches!(inner_rhs.as_ref(), Expression::Const(_)) => {
+                    let c1 = match inner_rhs.as_ref() {
+                        Expression::Const(v) => *v,
+                        _ => unreachable!(),
+                    };
+                    let sum = c1.wrapping_add(*c2);
+                    if sum == 0 {
+                        *x.clone()
+                    } else {
+                        Expression::BinOp {
+                            op: "+".to_string(),
+                            lhs: x.clone(),
+                            rhs: Box::new(Expression::Const(sum)),
+                        }
+                    }
+                }
                 // x * 1, x /u 1, x /s 1 → x
                 ("*" | "/u" | "/s", _, Expression::Const(1)) => lhs,
                 // 1 * x → x
@@ -867,22 +1141,62 @@ fn simplify_expression(expr: Expression) -> Expression {
             width,
             base,
             offset,
-        } => Expression::Load {
-            width,
-            base: Box::new(simplify_expression(*base)),
-            offset,
-        },
+        } => {
+            let base = simplify_expression(*base);
+            // Absorb base constant into offset: Load[x + C, off] → Load[x, off + C]
+            if let Expression::BinOp {
+                op: ref bop,
+                ref lhs,
+                ref rhs,
+            } = base
+                && bop == "+"
+                && let Expression::Const(c) = rhs.as_ref()
+                && let Ok(c32) = i32::try_from(*c)
+            {
+                return Expression::Load {
+                    width,
+                    base: lhs.clone(),
+                    offset: offset.wrapping_add(c32),
+                };
+            }
+            Expression::Load {
+                width,
+                base: Box::new(base),
+                offset,
+            }
+        }
         Expression::Store {
             width,
             base,
             offset,
             value,
-        } => Expression::Store {
-            width,
-            base: Box::new(simplify_expression(*base)),
-            offset,
-            value: Box::new(simplify_expression(*value)),
-        },
+        } => {
+            let base = simplify_expression(*base);
+            let value = simplify_expression(*value);
+            // Absorb base constant into offset: Store[x + C, off] → Store[x, off + C]
+            if let Expression::BinOp {
+                op: ref bop,
+                ref lhs,
+                ref rhs,
+            } = base
+                && bop == "+"
+                && let Expression::Const(c) = rhs.as_ref()
+                && let Ok(c32) = i32::try_from(*c)
+            {
+                return Expression::Store {
+                    width,
+                    base: lhs.clone(),
+                    offset: offset.wrapping_add(c32),
+                    value: Box::new(value),
+                };
+            }
+            Expression::Store {
+                width,
+                base: Box::new(base),
+                offset,
+                value: Box::new(value),
+            }
+        }
         Expression::Call { name, args } => Expression::Call {
             name,
             args: args.into_iter().map(simplify_expression).collect(),
@@ -938,6 +1252,48 @@ fn substitute_var(expr: &Expression, name: &str, replacement: &Expression) -> Ex
     }
 }
 
+/// Collect all distinct variable names referenced in an expression tree.
+fn collect_var_names(expr: &Expression, names: &mut Vec<String>) {
+    match expr {
+        Expression::Var(n) => {
+            if !names.contains(n) {
+                names.push(n.clone());
+            }
+        }
+        Expression::Const(_) | Expression::Raw(_) => {}
+        Expression::BinOp { lhs, rhs, .. } => {
+            collect_var_names(lhs, names);
+            collect_var_names(rhs, names);
+        }
+        Expression::UnaryOp { operand, .. } => collect_var_names(operand, names),
+        Expression::Load { base, .. } => collect_var_names(base, names),
+        Expression::Store { base, value, .. } => {
+            collect_var_names(base, names);
+            collect_var_names(value, names);
+        }
+        Expression::Call { args, .. } => {
+            for arg in args {
+                collect_var_names(arg, names);
+            }
+        }
+    }
+}
+
+/// Count occurrences of `Var(name)` in an expression tree.
+fn count_var_refs(expr: &Expression, name: &str) -> usize {
+    match expr {
+        Expression::Var(n) if n == name => 1,
+        Expression::Var(_) | Expression::Const(_) | Expression::Raw(_) => 0,
+        Expression::BinOp { lhs, rhs, .. } => count_var_refs(lhs, name) + count_var_refs(rhs, name),
+        Expression::UnaryOp { operand, .. } => count_var_refs(operand, name),
+        Expression::Load { base, .. } => count_var_refs(base, name),
+        Expression::Store { base, value, .. } => {
+            count_var_refs(base, name) + count_var_refs(value, name)
+        }
+        Expression::Call { args, .. } => args.iter().map(|a| count_var_refs(a, name)).sum(),
+    }
+}
+
 /// Compute the depth of an expression tree.
 fn expression_depth(expr: &Expression) -> usize {
     match expr {
@@ -979,6 +1335,100 @@ fn collect_live_loads(expr: &Expression, live: &mut HashSet<(String, i32)>) {
     }
 }
 
+/// Collect all stack slot references (base_ptr_name, offset) from Load and Store
+/// expressions where the base is a pointer variable (`ptr_*`).
+fn collect_stack_slots(expr: &Expression, slots: &mut HashSet<(String, i32)>) {
+    match expr {
+        Expression::Load { base, offset, .. } => {
+            if let Expression::Var(name) = base.as_ref()
+                && name.starts_with("ptr_")
+            {
+                slots.insert((name.clone(), *offset));
+            }
+            collect_stack_slots(base, slots);
+        }
+        Expression::Store {
+            base,
+            offset,
+            value,
+            ..
+        } => {
+            if let Expression::Var(name) = base.as_ref()
+                && name.starts_with("ptr_")
+            {
+                slots.insert((name.clone(), *offset));
+            }
+            collect_stack_slots(base, slots);
+            collect_stack_slots(value, slots);
+        }
+        Expression::BinOp { lhs, rhs, .. } => {
+            collect_stack_slots(lhs, slots);
+            collect_stack_slots(rhs, slots);
+        }
+        Expression::UnaryOp { operand, .. } => collect_stack_slots(operand, slots),
+        Expression::Call { args, .. } => {
+            for arg in args {
+                collect_stack_slots(arg, slots);
+            }
+        }
+        Expression::Const(_) | Expression::Var(_) | Expression::Raw(_) => {}
+    }
+}
+
+/// Replace Load expressions that access named stack slots with Var references.
+/// Store expressions are NOT replaced here (handled by `format_pc` instead).
+fn replace_stack_loads(
+    expr: &Expression,
+    stack_vars: &HashMap<(String, i32), String>,
+) -> Expression {
+    match expr {
+        Expression::Load {
+            width,
+            base,
+            offset,
+        } => {
+            if let Expression::Var(name) = base.as_ref()
+                && let Some(slot_name) = stack_vars.get(&(name.clone(), *offset))
+            {
+                return Expression::Var(slot_name.clone());
+            }
+            Expression::Load {
+                width: width.clone(),
+                base: Box::new(replace_stack_loads(base, stack_vars)),
+                offset: *offset,
+            }
+        }
+        Expression::Store {
+            width,
+            base,
+            offset,
+            value,
+        } => Expression::Store {
+            width: width.clone(),
+            base: Box::new(replace_stack_loads(base, stack_vars)),
+            offset: *offset,
+            value: Box::new(replace_stack_loads(value, stack_vars)),
+        },
+        Expression::BinOp { op, lhs, rhs } => Expression::BinOp {
+            op: op.clone(),
+            lhs: Box::new(replace_stack_loads(lhs, stack_vars)),
+            rhs: Box::new(replace_stack_loads(rhs, stack_vars)),
+        },
+        Expression::UnaryOp { op, operand } => Expression::UnaryOp {
+            op: op.clone(),
+            operand: Box::new(replace_stack_loads(operand, stack_vars)),
+        },
+        Expression::Call { name, args } => Expression::Call {
+            name: name.clone(),
+            args: args
+                .iter()
+                .map(|a| replace_stack_loads(a, stack_vars))
+                .collect(),
+        },
+        Expression::Const(_) | Expression::Var(_) | Expression::Raw(_) => expr.clone(),
+    }
+}
+
 /// Format an Expression tree as a human-readable string with minimal parentheses.
 pub fn format_expression(expr: &Expression) -> String {
     match expr {
@@ -986,6 +1436,14 @@ pub fn format_expression(expr: &Expression) -> String {
         Expression::Var(name) => name.clone(),
         Expression::Raw(s) => s.clone(),
         Expression::BinOp { op, lhs, rhs } => {
+            // Convert `x + -N` to `x - N`.
+            if op == "+"
+                && let Expression::Const(v) = rhs.as_ref()
+                && *v < 0
+            {
+                let lhs_str = format_expression_maybe_parens(lhs, "-", true);
+                return format!("{} - {}", lhs_str, -v);
+            }
             let lhs_str = format_expression_maybe_parens(lhs, op, true);
             let rhs_str = format_expression_maybe_parens(rhs, op, false);
             format!("{} {} {}", lhs_str, op, rhs_str)
@@ -998,7 +1456,7 @@ pub fn format_expression(expr: &Expression) -> String {
             base,
             offset,
         } => {
-            format!("{}[{} + {}]", width, format_expression(base), offset)
+            format!("{}[{}]", width, format_mem_address(base, *offset))
         }
         Expression::Store {
             width,
@@ -1007,10 +1465,9 @@ pub fn format_expression(expr: &Expression) -> String {
             value,
         } => {
             format!(
-                "{}[{} + {}] = {}",
+                "{}[{}] = {}",
                 width,
-                format_expression(base),
-                offset,
+                format_mem_address(base, *offset),
                 format_expression(value)
             )
         }
@@ -1018,6 +1475,22 @@ pub fn format_expression(expr: &Expression) -> String {
             let arg_strs: Vec<String> = args.iter().map(format_expression).collect();
             format!("{}({})", name, arg_strs.join(", "))
         }
+    }
+}
+
+/// Format a memory address `base + offset` with clean output.
+fn format_mem_address(base: &Expression, offset: i32) -> String {
+    match (base, offset) {
+        // Pure constant address: base is 0 → just show offset
+        (Expression::Const(0), off) => format!("{}", off),
+        // Constant base + offset → fold them
+        (Expression::Const(b), off) => format!("{}", (*b).wrapping_add(off as i64)),
+        // Zero offset → just base
+        (_, 0) => format_expression(base),
+        // Negative offset
+        (_, off) if off < 0 => format!("{} - {}", format_expression(base), -off),
+        // Positive offset
+        (_, off) => format!("{} + {}", format_expression(base), off),
     }
 }
 
@@ -1053,48 +1526,8 @@ fn op_precedence(op: &str) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cfg::{BasicBlock, ControlFlowGraph};
+    use crate::cfg::build_test_cfg;
     use crate::dataflow::DataFlowAnalysis;
-
-    /// Helper to build a CFG from a list of (start_pc, instructions, successors).
-    fn build_test_cfg(
-        entry: usize,
-        blocks: Vec<(usize, Vec<(usize, Instruction)>, Vec<usize>)>,
-    ) -> ControlFlowGraph {
-        let mut cfg = ControlFlowGraph::new(entry);
-        let mut all_blocks: Vec<BasicBlock> = Vec::new();
-
-        for (start_pc, instructions, successors) in &blocks {
-            let end_pc = instructions
-                .last()
-                .map(|(pc, _)| pc + 1)
-                .unwrap_or(*start_pc);
-            all_blocks.push(BasicBlock {
-                start_pc: *start_pc,
-                end_pc,
-                instructions: instructions.clone(),
-                successors: successors.clone(),
-                predecessors: Vec::new(),
-            });
-        }
-
-        let successor_map: Vec<(usize, Vec<usize>)> = all_blocks
-            .iter()
-            .map(|b| (b.start_pc, b.successors.clone()))
-            .collect();
-        for (src_pc, succs) in &successor_map {
-            for &succ_pc in succs {
-                if let Some(b) = all_blocks.iter_mut().find(|b| b.start_pc == succ_pc) {
-                    b.predecessors.push(*src_pc);
-                }
-            }
-        }
-
-        for b in all_blocks {
-            cfg.add_block(b);
-        }
-        cfg
-    }
 
     #[test]
     fn test_variable_naming_simple() {
@@ -1162,12 +1595,12 @@ mod tests {
             "PC 0 should be eliminated after constant propagation"
         );
 
-        // PC 4's expression should contain the constant 42 instead of var reference.
+        // PC 4's expression should be the folded result: 42 + 1 = 43.
         let expr = lifted.expressions.get(&4).unwrap();
         let formatted = format_expression(expr);
         assert!(
-            formatted.contains("42"),
-            "Expression should contain inlined constant 42, got: {}",
+            formatted.contains("43"),
+            "Expression should contain folded constant 43 (42 + 1), got: {}",
             formatted
         );
     }
@@ -1221,10 +1654,10 @@ mod tests {
                 },
             )
             .unwrap();
-        // Should contain the folded computation with constants.
+        // With constant folding, 42+1=43, then 43*43=1849.
         assert!(
-            line.contains("*"),
-            "Should contain multiplication, got: {}",
+            line.contains("1849"),
+            "Should contain fully folded constant 1849 (43*43), got: {}",
             line
         );
     }

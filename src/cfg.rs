@@ -285,3 +285,173 @@ impl ControlFlowGraph {
         }
     }
 }
+
+/// Test helper: build a CFG from a list of (start_pc, instructions, successors).
+/// Predecessors are computed automatically from the successor lists.
+#[cfg(test)]
+pub fn build_test_cfg(
+    entry: usize,
+    blocks: Vec<(usize, Vec<(usize, Instruction)>, Vec<usize>)>,
+) -> ControlFlowGraph {
+    let mut cfg = ControlFlowGraph::new(entry);
+    let mut all_blocks: Vec<BasicBlock> = Vec::new();
+
+    for (start_pc, instructions, successors) in &blocks {
+        let end_pc = instructions
+            .last()
+            .map(|(pc, _)| pc + 1)
+            .unwrap_or(*start_pc);
+        all_blocks.push(BasicBlock {
+            start_pc: *start_pc,
+            end_pc,
+            instructions: instructions.clone(),
+            successors: successors.clone(),
+            predecessors: Vec::new(),
+        });
+    }
+
+    // Compute predecessors from successors.
+    let successor_map: Vec<(usize, Vec<usize>)> = all_blocks
+        .iter()
+        .map(|b| (b.start_pc, b.successors.clone()))
+        .collect();
+    for (src_pc, succs) in &successor_map {
+        for &succ_pc in succs {
+            if let Some(b) = all_blocks.iter_mut().find(|b| b.start_pc == succ_pc) {
+                b.predecessors.push(*src_pc);
+            }
+        }
+    }
+
+    for b in all_blocks {
+        cfg.add_block(b);
+    }
+    cfg
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::decoder::DecodedProgram;
+
+    #[test]
+    fn test_build_linear_cfg() {
+        // A -> B -> C (via Jump)
+        let program = DecodedProgram {
+            jump_table: vec![],
+            instructions: vec![
+                (0, Instruction::LoadImm { reg: 0, value: 1 }),
+                (4, Instruction::Jump { offset: 4 }),
+                (9, Instruction::LoadImm { reg: 1, value: 2 }),
+                (13, Instruction::Trap),
+            ],
+        };
+        let cfg = ControlFlowGraph::build(&program);
+
+        // Should have blocks starting at: 0 (entry), 9 (after jump)
+        assert!(cfg.blocks.contains_key(&0));
+        assert!(cfg.blocks.contains_key(&9));
+    }
+
+    #[test]
+    fn test_build_branch_cfg() {
+        // Block 0: branch -> targets at 7 and fallthrough at 7 too (or wherever)
+        let program = DecodedProgram {
+            jump_table: vec![],
+            instructions: vec![
+                (0, Instruction::LoadImm { reg: 0, value: 42 }),
+                (
+                    4,
+                    Instruction::BranchNeImm {
+                        reg: 0,
+                        value: 0,
+                        offset: 10,
+                    },
+                ),
+                (10, Instruction::LoadImm { reg: 1, value: 1 }),
+                (14, Instruction::Trap),
+            ],
+        };
+        let cfg = ControlFlowGraph::build(&program);
+
+        // Entry block at 0, branch target at 14 (4+10), fallthrough at 10
+        assert!(cfg.blocks.contains_key(&0));
+        assert!(cfg.blocks.contains_key(&10));
+
+        // The block at 0 should have 2 successors (branch target and fallthrough)
+        let entry = cfg.blocks.get(&0).unwrap();
+        assert_eq!(
+            entry.successors.len(),
+            2,
+            "Branch should produce 2 successors, got: {:?}",
+            entry.successors
+        );
+    }
+
+    #[test]
+    fn test_predecessors_computed() {
+        let program = DecodedProgram {
+            jump_table: vec![],
+            instructions: vec![
+                (0, Instruction::LoadImm { reg: 0, value: 1 }),
+                (
+                    4,
+                    Instruction::BranchNeImm {
+                        reg: 0,
+                        value: 0,
+                        offset: 10,
+                    },
+                ),
+                (10, Instruction::LoadImm { reg: 1, value: 2 }),
+                (14, Instruction::Trap),
+            ],
+        };
+        let cfg = ControlFlowGraph::build(&program);
+
+        // Block at 10 should have block 0 as predecessor
+        let block_10 = cfg.blocks.get(&10).unwrap();
+        assert!(
+            block_10.predecessors.contains(&0),
+            "Block 10 should have 0 as predecessor"
+        );
+    }
+
+    #[test]
+    fn test_empty_program() {
+        let program = DecodedProgram {
+            jump_table: vec![],
+            instructions: vec![],
+        };
+        let cfg = ControlFlowGraph::build(&program);
+        assert!(cfg.blocks.is_empty());
+    }
+
+    #[test]
+    fn test_compute_jump_target() {
+        assert_eq!(ControlFlowGraph::compute_jump_target(10, 5), 15);
+        assert_eq!(ControlFlowGraph::compute_jump_target(10, -3), 7);
+        assert_eq!(ControlFlowGraph::compute_jump_target(10, 0), 10);
+        // Saturating: doesn't underflow
+        assert_eq!(ControlFlowGraph::compute_jump_target(2, -100), 0);
+    }
+
+    #[test]
+    fn test_trap_terminates_block() {
+        let program = DecodedProgram {
+            jump_table: vec![],
+            instructions: vec![
+                (0, Instruction::LoadImm { reg: 0, value: 1 }),
+                (4, Instruction::Trap),
+                (5, Instruction::LoadImm { reg: 1, value: 2 }),
+            ],
+        };
+        let cfg = ControlFlowGraph::build(&program);
+
+        // Block containing trap should have no successors
+        let entry = cfg.blocks.get(&0).unwrap();
+        assert!(
+            entry.successors.is_empty(),
+            "Trap block should have no successors"
+        );
+    }
+}

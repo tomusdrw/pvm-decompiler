@@ -56,13 +56,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n{}", dataflow.summarize());
 
     // Perform register lifting (variable recovery & expression simplification)
-    let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+    let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
     println!("{}", lifted.summarize());
 
     // Perform structural analysis
     let structural = StructuralAnalysis::analyze(&cfg, &program);
     println!("{}", structural.summarize());
-    println!("{}", structural.pseudo_code(&cfg, Some(&lifted)));
+    println!("{}", structural.pseudo_code(&cfg, Some(&mut lifted)));
 
     Ok(())
 }

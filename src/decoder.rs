@@ -997,3 +997,201 @@ fn decode_instruction(data: &[u8], length: usize) -> Result<(Instruction, usize)
         _ => Err(DecodeError::InvalidOpcode(opcode_u8)),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // --- decode_imm_bytes ---
+
+    #[test]
+    fn test_decode_imm_empty() {
+        assert_eq!(decode_imm_bytes(&[]), 0);
+    }
+
+    #[test]
+    fn test_decode_imm_1byte_positive() {
+        assert_eq!(decode_imm_bytes(&[42]), 42);
+    }
+
+    #[test]
+    fn test_decode_imm_1byte_negative() {
+        // 0xFF as i8 = -1
+        assert_eq!(decode_imm_bytes(&[0xFF]), -1);
+        // 0x80 as i8 = -128
+        assert_eq!(decode_imm_bytes(&[0x80]), -128);
+    }
+
+    #[test]
+    fn test_decode_imm_2bytes() {
+        // 0x0100 LE = [0x00, 0x01] = 256
+        assert_eq!(decode_imm_bytes(&[0x00, 0x01]), 256);
+        // 0xFFFF LE = -1 as i16
+        assert_eq!(decode_imm_bytes(&[0xFF, 0xFF]), -1);
+    }
+
+    #[test]
+    fn test_decode_imm_4bytes() {
+        assert_eq!(decode_imm_bytes(&[0x01, 0x00, 0x00, 0x00]), 1);
+        assert_eq!(decode_imm_bytes(&[0xFF, 0xFF, 0xFF, 0xFF]), -1);
+    }
+
+    #[test]
+    fn test_decode_uimm_bytes() {
+        assert_eq!(decode_uimm_bytes(&[]), 0);
+        assert_eq!(decode_uimm_bytes(&[42]), 42);
+        assert_eq!(decode_uimm_bytes(&[0xFF]), 255);
+        assert_eq!(decode_uimm_bytes(&[0x00, 0x01]), 256);
+    }
+
+    // --- decode_instruction ---
+
+    #[test]
+    fn test_decode_trap() {
+        let (instr, len) = decode_instruction(&[0], 1).unwrap();
+        assert!(matches!(instr, Instruction::Trap));
+        assert_eq!(len, 1);
+    }
+
+    #[test]
+    fn test_decode_fallthrough() {
+        let (instr, len) = decode_instruction(&[1], 1).unwrap();
+        assert!(matches!(instr, Instruction::Fallthrough));
+        assert_eq!(len, 1);
+    }
+
+    #[test]
+    fn test_decode_load_imm() {
+        // Opcode 51, reg=3, value=42 (1 byte imm)
+        let (instr, _) = decode_instruction(&[51, 0x03, 42], 3).unwrap();
+        assert!(matches!(instr, Instruction::LoadImm { reg: 3, value: 42 }));
+    }
+
+    #[test]
+    fn test_decode_load_imm_negative() {
+        // Opcode 51, reg=0, value=-1 (0xFF as 1 byte)
+        let (instr, _) = decode_instruction(&[51, 0x00, 0xFF], 3).unwrap();
+        assert!(matches!(instr, Instruction::LoadImm { reg: 0, value: -1 }));
+    }
+
+    #[test]
+    fn test_decode_add32() {
+        // Opcode 190, src1=2 (low nibble), src2=3 (high nibble) -> byte1=0x32, dst=5
+        let (instr, _) = decode_instruction(&[190, 0x32, 0x05], 3).unwrap();
+        assert!(matches!(
+            instr,
+            Instruction::Add32 {
+                dst: 5,
+                src1: 2,
+                src2: 3
+            }
+        ));
+    }
+
+    #[test]
+    fn test_decode_jump() {
+        // Opcode 40, offset=10 (LE i32)
+        let (instr, _) = decode_instruction(&[40, 0x0A, 0x00, 0x00, 0x00], 5).unwrap();
+        assert!(matches!(instr, Instruction::Jump { offset: 10 }));
+    }
+
+    #[test]
+    fn test_decode_jump_negative_offset() {
+        // Opcode 40, offset=-5 (LE i32 = FB FF FF FF)
+        let bytes: [u8; 5] = [40, 0xFB, 0xFF, 0xFF, 0xFF];
+        let (instr, _) = decode_instruction(&bytes, 5).unwrap();
+        assert!(matches!(instr, Instruction::Jump { offset: -5 }));
+    }
+
+    #[test]
+    fn test_decode_ecalli() {
+        // Opcode 10, index=7 (1 byte unsigned)
+        let (instr, _) = decode_instruction(&[10, 7], 2).unwrap();
+        assert!(matches!(instr, Instruction::Ecalli { index: 7 }));
+    }
+
+    #[test]
+    fn test_decode_invalid_opcode() {
+        let result = decode_instruction(&[255], 1);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_decode_branch_ne_imm() {
+        // Opcode 82, reg=3, imm_len=1 -> byte1 = (1 << 4) | 3 = 0x13
+        // imm = 0 (1 byte), offset = 10 (LE i32)
+        let data = [82, 0x13, 0x00, 0x0A, 0x00, 0x00, 0x00];
+        let (instr, _) = decode_instruction(&data, 7).unwrap();
+        assert!(matches!(
+            instr,
+            Instruction::BranchNeImm {
+                reg: 3,
+                value: 0,
+                offset: 10
+            }
+        ));
+    }
+
+    #[test]
+    fn test_decode_store_load_u64() {
+        // StoreIndU64: opcode 123, base=2 (high), src=1 (low) -> byte1=0x21, offset=8
+        let (instr, _) = decode_instruction(&[123, 0x21, 8], 3).unwrap();
+        assert!(matches!(
+            instr,
+            Instruction::StoreIndU64 {
+                base: 2,
+                src: 1,
+                offset: 8
+            }
+        ));
+
+        // LoadIndU64: opcode 130, base=2 (high), dst=3 (low) -> byte1=0x23, offset=8
+        let (instr, _) = decode_instruction(&[130, 0x23, 8], 3).unwrap();
+        assert!(matches!(
+            instr,
+            Instruction::LoadIndU64 {
+                dst: 3,
+                base: 2,
+                offset: 8
+            }
+        ));
+    }
+
+    // --- decode_blob_internal ---
+
+    #[test]
+    fn test_decode_minimal_blob() {
+        // Minimal blob: jump_table_len=0, item_len=0, code_len=1, code=[trap], mask=[0x01]
+        let blob = [
+            0x00, // jump_table_len = 0 (varint)
+            0x00, // item_len = 0
+            0x01, // code_len = 1 (varint)
+            0x00, // code: opcode 0 = Trap
+            0x01, // mask: bit 0 set (instruction starts at PC 0)
+        ];
+        let result = decode_blob_internal(&blob).unwrap();
+        assert!(result.jump_table.is_empty());
+        assert_eq!(result.instructions.len(), 1);
+        assert!(matches!(result.instructions[0], (0, Instruction::Trap)));
+    }
+
+    #[test]
+    fn test_decode_blob_two_instructions() {
+        // Two instructions: Trap + Fallthrough
+        let blob = [
+            0x00, // jump_table_len = 0
+            0x00, // item_len = 0
+            0x02, // code_len = 2
+            0x00, // code[0]: Trap
+            0x01, // code[1]: Fallthrough
+            0x03, // mask: bits 0 and 1 set (both PCs are instruction starts)
+        ];
+        let result = decode_blob_internal(&blob).unwrap();
+        assert_eq!(result.instructions.len(), 2);
+        assert!(matches!(result.instructions[0], (0, Instruction::Trap)));
+        assert!(matches!(
+            result.instructions[1],
+            (1, Instruction::Fallthrough)
+        ));
+    }
+}
