@@ -8,6 +8,7 @@
 
 use crate::cfg::ControlFlowGraph;
 use crate::dataflow::DataFlowAnalysis;
+use crate::instruction::{BinOp, InstructionShape, MemWidth, UnaryOp};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use wasm_pvm::pvm::Instruction;
@@ -35,109 +36,6 @@ impl fmt::Display for VarType {
 pub struct Variable {
     pub name: String,
     pub var_type: VarType,
-}
-
-/// Binary operator for expression nodes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BinOp {
-    Add,
-    Sub,
-    Mul,
-    DivU,
-    DivS,
-    RemU,
-    RemS,
-    Shl,
-    ShrU,
-    ShrS,
-    And,
-    Or,
-    Xor,
-    LtU,
-    LtS,
-}
-
-impl fmt::Display for BinOp {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            BinOp::Add => "+",
-            BinOp::Sub => "-",
-            BinOp::Mul => "*",
-            BinOp::DivU => "/u",
-            BinOp::DivS => "/s",
-            BinOp::RemU => "%u",
-            BinOp::RemS => "%s",
-            BinOp::Shl => "<<",
-            BinOp::ShrU => ">>u",
-            BinOp::ShrS => ">>s",
-            BinOp::And => "&",
-            BinOp::Or => "|",
-            BinOp::Xor => "^",
-            BinOp::LtU => "<u",
-            BinOp::LtS => "<s",
-        };
-        write!(f, "{}", s)
-    }
-}
-
-/// Unary operator for expression nodes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum UnaryOp {
-    Not,
-    Sext8,
-    Sext16,
-    Zext16,
-    Popcnt32,
-    Popcnt64,
-    Clz32,
-    Clz64,
-    Ctz32,
-    Ctz64,
-    Sbrk,
-}
-
-impl fmt::Display for UnaryOp {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            UnaryOp::Not => "!",
-            UnaryOp::Sext8 => "sext8",
-            UnaryOp::Sext16 => "sext16",
-            UnaryOp::Zext16 => "zext16",
-            UnaryOp::Popcnt32 => "popcnt32",
-            UnaryOp::Popcnt64 => "popcnt64",
-            UnaryOp::Clz32 => "clz32",
-            UnaryOp::Clz64 => "clz64",
-            UnaryOp::Ctz32 => "ctz32",
-            UnaryOp::Ctz64 => "ctz64",
-            UnaryOp::Sbrk => "sbrk",
-        };
-        write!(f, "{}", s)
-    }
-}
-
-/// Memory access width for Load/Store expressions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MemWidth {
-    U8,
-    I8,
-    U16,
-    I16,
-    U32,
-    U64,
-}
-
-impl fmt::Display for MemWidth {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            MemWidth::U8 => "u8",
-            MemWidth::I8 => "i8",
-            MemWidth::U16 => "u16",
-            MemWidth::I16 => "i16",
-            MemWidth::U32 => "u32",
-            MemWidth::U64 => "u64",
-        };
-        write!(f, "{}", s)
-    }
 }
 
 /// An expression tree representing a computation.
@@ -337,12 +235,19 @@ impl LiftedProgram {
     ) -> VarType {
         // Check the defining instruction itself.
         if let Some(instr) = instruction_at_pc.get(&def_pc) {
-            match instr {
-                Instruction::SetLtU { .. }
-                | Instruction::SetLtS { .. }
-                | Instruction::SetLtUImm { .. }
-                | Instruction::SetLtSImm { .. } => return VarType::Boolean,
-                Instruction::Sbrk { .. } => return VarType::Pointer,
+            let shape = InstructionShape::classify(instr);
+            match shape {
+                InstructionShape::BinReg {
+                    op: BinOp::LtU | BinOp::LtS,
+                    ..
+                }
+                | InstructionShape::BinImm {
+                    op: BinOp::LtU | BinOp::LtS,
+                    ..
+                } => return VarType::Boolean,
+                InstructionShape::Unary {
+                    op: UnaryOp::Sbrk, ..
+                } => return VarType::Pointer,
                 _ => {}
             }
         }
@@ -367,17 +272,10 @@ impl LiftedProgram {
 
     /// Check if a register is used as the base address in a load/store instruction.
     fn is_used_as_base(instr: &Instruction, reg: u8) -> bool {
-        match instr {
-            Instruction::LoadIndU8 { base, .. }
-            | Instruction::LoadIndI8 { base, .. }
-            | Instruction::LoadIndU16 { base, .. }
-            | Instruction::LoadIndI16 { base, .. }
-            | Instruction::LoadIndU32 { base, .. }
-            | Instruction::LoadIndU64 { base, .. } => *base == reg,
-            Instruction::StoreIndU8 { base, .. }
-            | Instruction::StoreIndU16 { base, .. }
-            | Instruction::StoreIndU32 { base, .. }
-            | Instruction::StoreIndU64 { base, .. } => *base == reg,
+        match InstructionShape::classify(instr) {
+            InstructionShape::Load { base, .. } | InstructionShape::Store { base, .. } => {
+                base == reg
+            }
             _ => false,
         }
     }
@@ -399,179 +297,61 @@ impl LiftedProgram {
 
     /// Convert a single instruction into an Expression, using variable names.
     fn instruction_to_expression(&self, pc: usize, instr: &Instruction) -> Expression {
-        match instr {
-            Instruction::LoadImm { value, .. } => Expression::Const(*value as i64),
-            Instruction::LoadImm64 { value, .. } => Expression::Const(*value as i64),
-
-            // Three-register binary ops
-            Instruction::Add32 { src1, src2, .. } => self.make_binop(pc, BinOp::Add, *src1, *src2),
-            Instruction::Sub32 { src1, src2, .. } => self.make_binop(pc, BinOp::Sub, *src1, *src2),
-            Instruction::Mul32 { src1, src2, .. } => self.make_binop(pc, BinOp::Mul, *src1, *src2),
-            Instruction::DivU32 { src1, src2, .. } => {
-                self.make_binop(pc, BinOp::DivU, *src1, *src2)
+        let shape = InstructionShape::classify(instr);
+        match shape {
+            InstructionShape::LoadImm { value, .. } => Expression::Const(value),
+            InstructionShape::BinReg { op, src1, src2, .. } => self.make_binop(pc, op, src1, src2),
+            InstructionShape::BinImm { op, src, value, .. } => {
+                self.make_binop_imm(pc, op, src, value as i64)
             }
-            Instruction::DivS32 { src1, src2, .. } => {
-                self.make_binop(pc, BinOp::DivS, *src1, *src2)
-            }
-            Instruction::RemU32 { src1, src2, .. } => {
-                self.make_binop(pc, BinOp::RemU, *src1, *src2)
-            }
-            Instruction::RemS32 { src1, src2, .. } => {
-                self.make_binop(pc, BinOp::RemS, *src1, *src2)
-            }
-            Instruction::ShloL32 { src1, src2, .. } => {
-                self.make_binop(pc, BinOp::Shl, *src1, *src2)
-            }
-            Instruction::ShloR32 { src1, src2, .. } => {
-                self.make_binop(pc, BinOp::ShrU, *src1, *src2)
-            }
-            Instruction::SharR32 { src1, src2, .. } => {
-                self.make_binop(pc, BinOp::ShrS, *src1, *src2)
-            }
-            Instruction::Add64 { src1, src2, .. } => self.make_binop(pc, BinOp::Add, *src1, *src2),
-            Instruction::Sub64 { src1, src2, .. } => self.make_binop(pc, BinOp::Sub, *src1, *src2),
-            Instruction::Mul64 { src1, src2, .. } => self.make_binop(pc, BinOp::Mul, *src1, *src2),
-            Instruction::DivU64 { src1, src2, .. } => {
-                self.make_binop(pc, BinOp::DivU, *src1, *src2)
-            }
-            Instruction::DivS64 { src1, src2, .. } => {
-                self.make_binop(pc, BinOp::DivS, *src1, *src2)
-            }
-            Instruction::RemU64 { src1, src2, .. } => {
-                self.make_binop(pc, BinOp::RemU, *src1, *src2)
-            }
-            Instruction::RemS64 { src1, src2, .. } => {
-                self.make_binop(pc, BinOp::RemS, *src1, *src2)
-            }
-            Instruction::ShloL64 { src1, src2, .. } => {
-                self.make_binop(pc, BinOp::Shl, *src1, *src2)
-            }
-            Instruction::ShloR64 { src1, src2, .. } => {
-                self.make_binop(pc, BinOp::ShrU, *src1, *src2)
-            }
-            Instruction::SharR64 { src1, src2, .. } => {
-                self.make_binop(pc, BinOp::ShrS, *src1, *src2)
-            }
-            Instruction::And { src1, src2, .. } => self.make_binop(pc, BinOp::And, *src1, *src2),
-            Instruction::Or { src1, src2, .. } => self.make_binop(pc, BinOp::Or, *src1, *src2),
-            Instruction::Xor { src1, src2, .. } => self.make_binop(pc, BinOp::Xor, *src1, *src2),
-            Instruction::SetLtU { src1, src2, .. } => self.make_binop(pc, BinOp::LtU, *src1, *src2),
-            Instruction::SetLtS { src1, src2, .. } => self.make_binop(pc, BinOp::LtS, *src1, *src2),
-
-            // Register + immediate ops
-            Instruction::AddImm32 { src, value, .. } => {
-                self.make_binop_imm(pc, BinOp::Add, *src, *value as i64)
-            }
-            Instruction::AddImm64 { src, value, .. } => {
-                self.make_binop_imm(pc, BinOp::Add, *src, *value as i64)
-            }
-            Instruction::SetLtUImm { src, value, .. } => {
-                self.make_binop_imm(pc, BinOp::LtU, *src, *value as i64)
-            }
-            Instruction::SetLtSImm { src, value, .. } => {
-                self.make_binop_imm(pc, BinOp::LtS, *src, *value as i64)
-            }
-
-            // Unary ops
-            Instruction::CountSetBits64 { src, .. } => self.make_unary(pc, UnaryOp::Popcnt64, *src),
-            Instruction::CountSetBits32 { src, .. } => self.make_unary(pc, UnaryOp::Popcnt32, *src),
-            Instruction::LeadingZeroBits64 { src, .. } => self.make_unary(pc, UnaryOp::Clz64, *src),
-            Instruction::LeadingZeroBits32 { src, .. } => self.make_unary(pc, UnaryOp::Clz32, *src),
-            Instruction::TrailingZeroBits64 { src, .. } => {
-                self.make_unary(pc, UnaryOp::Ctz64, *src)
-            }
-            Instruction::TrailingZeroBits32 { src, .. } => {
-                self.make_unary(pc, UnaryOp::Ctz32, *src)
-            }
-            Instruction::SignExtend8 { src, .. } => self.make_unary(pc, UnaryOp::Sext8, *src),
-            Instruction::SignExtend16 { src, .. } => self.make_unary(pc, UnaryOp::Sext16, *src),
-            Instruction::ZeroExtend16 { src, .. } => self.make_unary(pc, UnaryOp::Zext16, *src),
-            Instruction::Sbrk { src, .. } => self.make_unary(pc, UnaryOp::Sbrk, *src),
-
-            // Load instructions
-            Instruction::LoadIndU8 { base, offset, .. } => {
-                self.make_load(pc, MemWidth::U8, *base, *offset)
-            }
-            Instruction::LoadIndI8 { base, offset, .. } => {
-                self.make_load(pc, MemWidth::I8, *base, *offset)
-            }
-            Instruction::LoadIndU16 { base, offset, .. } => {
-                self.make_load(pc, MemWidth::U16, *base, *offset)
-            }
-            Instruction::LoadIndI16 { base, offset, .. } => {
-                self.make_load(pc, MemWidth::I16, *base, *offset)
-            }
-            Instruction::LoadIndU32 { base, offset, .. } => {
-                self.make_load(pc, MemWidth::U32, *base, *offset)
-            }
-            Instruction::LoadIndU64 { base, offset, .. } => {
-                self.make_load(pc, MemWidth::U64, *base, *offset)
-            }
-
-            // Store instructions
-            Instruction::StoreIndU8 {
-                base, src, offset, ..
-            } => self.make_store(pc, MemWidth::U8, *base, *offset, *src),
-            Instruction::StoreIndU16 {
-                base, src, offset, ..
-            } => self.make_store(pc, MemWidth::U16, *base, *offset, *src),
-            Instruction::StoreIndU32 {
-                base, src, offset, ..
-            } => self.make_store(pc, MemWidth::U32, *base, *offset, *src),
-            Instruction::StoreIndU64 {
-                base, src, offset, ..
-            } => self.make_store(pc, MemWidth::U64, *base, *offset, *src),
-
-            // Ecalli
-            Instruction::Ecalli { index } => Expression::Call {
+            InstructionShape::Unary { op, src, .. } => self.make_unary(pc, op, src),
+            InstructionShape::Load {
+                width,
+                base,
+                offset,
+                ..
+            } => self.make_load(pc, width, base, offset),
+            InstructionShape::Store {
+                width,
+                base,
+                src,
+                offset,
+            } => self.make_store(pc, width, base, offset, src),
+            InstructionShape::Ecalli { index } => Expression::Call {
                 name: "ecalli".to_string(),
-                args: vec![Expression::Const(*index as i64)],
+                args: vec![Expression::Const(index as i64)],
             },
-
-            // Control flow - kept as raw text
-            Instruction::Trap => Expression::Raw("trap".to_string()),
-            Instruction::Fallthrough => Expression::Raw("fallthrough".to_string()),
-            Instruction::Jump { offset } => Expression::Raw(format!("jump {}", offset)),
-            Instruction::JumpInd { reg, .. } => {
-                // Detect halt pattern: jump_ind to a known halt address constant.
-                if self.is_halt_target(pc, *reg) {
+            InstructionShape::NoOp { name } => Expression::Raw(name.to_string()),
+            InstructionShape::Jump { offset } => Expression::Raw(format!("jump {}", offset)),
+            InstructionShape::JumpInd { reg, .. } => {
+                if self.is_halt_target(pc, reg) {
                     Expression::Raw("halt()".to_string())
                 } else {
-                    Expression::Raw(format!("jump_ind {}", self.reg_name(pc, *reg)))
+                    Expression::Raw(format!("jump_ind {}", self.reg_name(pc, reg)))
                 }
             }
-            Instruction::BranchEqImm { reg, value, offset } => Expression::Raw(format!(
-                "if ({} == {}) jump {}",
-                self.reg_name(pc, *reg),
+            InstructionShape::BranchImm {
+                cond,
+                reg,
                 value,
-                offset
-            )),
-            Instruction::BranchNeImm { reg, value, offset } => Expression::Raw(format!(
-                "if ({} != {}) jump {}",
-                self.reg_name(pc, *reg),
-                value,
-                offset
-            )),
-            Instruction::BranchGeSImm { reg, value, offset } => Expression::Raw(format!(
-                "if ({} >=s {}) jump {}",
-                self.reg_name(pc, *reg),
-                value,
-                offset
-            )),
-            Instruction::BranchGeU {
-                reg1, reg2, offset, ..
+                offset,
             } => Expression::Raw(format!(
-                "if ({} >=u {}) jump {}",
-                self.reg_name(pc, *reg1),
-                self.reg_name(pc, *reg2),
+                "if ({} {} {}) jump {}",
+                self.reg_name(pc, reg),
+                cond,
+                value,
                 offset
             )),
-            Instruction::BranchLtU {
-                reg1, reg2, offset, ..
+            InstructionShape::BranchReg {
+                cond,
+                reg1,
+                reg2,
+                offset,
             } => Expression::Raw(format!(
-                "if ({} <u {}) jump {}",
-                self.reg_name(pc, *reg1),
-                self.reg_name(pc, *reg2),
+                "if ({} {} {}) jump {}",
+                self.reg_name(pc, reg1),
+                cond,
+                self.reg_name(pc, reg2),
                 offset
             )),
         }
@@ -1144,55 +924,7 @@ impl LiftedProgram {
 
     /// Get the destination register defined by an instruction, if any.
     fn def_reg(instr: &Instruction) -> Option<u8> {
-        match instr {
-            Instruction::LoadImm { reg, .. } | Instruction::LoadImm64 { reg, .. } => Some(*reg),
-            Instruction::Add32 { dst, .. }
-            | Instruction::Sub32 { dst, .. }
-            | Instruction::Mul32 { dst, .. }
-            | Instruction::DivU32 { dst, .. }
-            | Instruction::DivS32 { dst, .. }
-            | Instruction::RemU32 { dst, .. }
-            | Instruction::RemS32 { dst, .. }
-            | Instruction::ShloL32 { dst, .. }
-            | Instruction::ShloR32 { dst, .. }
-            | Instruction::SharR32 { dst, .. }
-            | Instruction::Add64 { dst, .. }
-            | Instruction::Sub64 { dst, .. }
-            | Instruction::Mul64 { dst, .. }
-            | Instruction::DivU64 { dst, .. }
-            | Instruction::DivS64 { dst, .. }
-            | Instruction::RemU64 { dst, .. }
-            | Instruction::RemS64 { dst, .. }
-            | Instruction::ShloL64 { dst, .. }
-            | Instruction::ShloR64 { dst, .. }
-            | Instruction::SharR64 { dst, .. }
-            | Instruction::And { dst, .. }
-            | Instruction::Or { dst, .. }
-            | Instruction::Xor { dst, .. }
-            | Instruction::SetLtU { dst, .. }
-            | Instruction::SetLtS { dst, .. }
-            | Instruction::AddImm32 { dst, .. }
-            | Instruction::AddImm64 { dst, .. }
-            | Instruction::SetLtUImm { dst, .. }
-            | Instruction::SetLtSImm { dst, .. }
-            | Instruction::Sbrk { dst, .. }
-            | Instruction::CountSetBits64 { dst, .. }
-            | Instruction::CountSetBits32 { dst, .. }
-            | Instruction::LeadingZeroBits64 { dst, .. }
-            | Instruction::LeadingZeroBits32 { dst, .. }
-            | Instruction::TrailingZeroBits64 { dst, .. }
-            | Instruction::TrailingZeroBits32 { dst, .. }
-            | Instruction::SignExtend8 { dst, .. }
-            | Instruction::SignExtend16 { dst, .. }
-            | Instruction::ZeroExtend16 { dst, .. }
-            | Instruction::LoadIndU8 { dst, .. }
-            | Instruction::LoadIndI8 { dst, .. }
-            | Instruction::LoadIndU16 { dst, .. }
-            | Instruction::LoadIndI16 { dst, .. }
-            | Instruction::LoadIndU32 { dst, .. }
-            | Instruction::LoadIndU64 { dst, .. } => Some(*dst),
-            _ => None,
-        }
+        InstructionShape::classify(instr).def_reg()
     }
 }
 

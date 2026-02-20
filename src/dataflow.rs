@@ -8,6 +8,7 @@
 //! - Understanding data dependencies
 
 use crate::cfg::{BasicBlock, ControlFlowGraph};
+use crate::instruction::InstructionShape;
 use std::collections::{HashMap, HashSet};
 use wasm_pvm::pvm::Instruction;
 
@@ -306,96 +307,7 @@ fn compute_block_use_def(
 /// Extract which registers are defined and used by an instruction.
 /// Returns (defined_registers, used_registers).
 fn extract_def_use(instr: &Instruction) -> (Vec<u8>, Vec<u8>) {
-    match instr {
-        // No defs, no uses
-        Instruction::Trap | Instruction::Fallthrough => (vec![], vec![]),
-
-        // Immediate loads: define dst, no uses
-        Instruction::LoadImm64 { reg, .. } | Instruction::LoadImm { reg, .. } => {
-            (vec![*reg], vec![])
-        }
-
-        // Three-register ops: dst = src1 op src2
-        Instruction::Add32 { dst, src1, src2 }
-        | Instruction::Sub32 { dst, src1, src2 }
-        | Instruction::Mul32 { dst, src1, src2 }
-        | Instruction::DivU32 { dst, src1, src2 }
-        | Instruction::DivS32 { dst, src1, src2 }
-        | Instruction::RemU32 { dst, src1, src2 }
-        | Instruction::RemS32 { dst, src1, src2 }
-        | Instruction::ShloL32 { dst, src1, src2 }
-        | Instruction::ShloR32 { dst, src1, src2 }
-        | Instruction::SharR32 { dst, src1, src2 }
-        | Instruction::Add64 { dst, src1, src2 }
-        | Instruction::Sub64 { dst, src1, src2 }
-        | Instruction::Mul64 { dst, src1, src2 }
-        | Instruction::DivU64 { dst, src1, src2 }
-        | Instruction::DivS64 { dst, src1, src2 }
-        | Instruction::RemU64 { dst, src1, src2 }
-        | Instruction::RemS64 { dst, src1, src2 }
-        | Instruction::ShloL64 { dst, src1, src2 }
-        | Instruction::ShloR64 { dst, src1, src2 }
-        | Instruction::SharR64 { dst, src1, src2 }
-        | Instruction::And { dst, src1, src2 }
-        | Instruction::Xor { dst, src1, src2 }
-        | Instruction::Or { dst, src1, src2 }
-        | Instruction::SetLtU { dst, src1, src2 }
-        | Instruction::SetLtS { dst, src1, src2 } => (vec![*dst], vec![*src1, *src2]),
-
-        // Two-register ops: dst = op(src)
-        Instruction::Sbrk { dst, src }
-        | Instruction::CountSetBits64 { dst, src }
-        | Instruction::CountSetBits32 { dst, src }
-        | Instruction::LeadingZeroBits64 { dst, src }
-        | Instruction::LeadingZeroBits32 { dst, src }
-        | Instruction::TrailingZeroBits64 { dst, src }
-        | Instruction::TrailingZeroBits32 { dst, src }
-        | Instruction::SignExtend8 { dst, src }
-        | Instruction::SignExtend16 { dst, src }
-        | Instruction::ZeroExtend16 { dst, src } => (vec![*dst], vec![*src]),
-
-        // Register + immediate ops: dst = src op imm
-        Instruction::AddImm32 { dst, src, .. }
-        | Instruction::AddImm64 { dst, src, .. }
-        | Instruction::SetLtUImm { dst, src, .. }
-        | Instruction::SetLtSImm { dst, src, .. } => (vec![*dst], vec![*src]),
-
-        // Jumps: no defs (except pc), uses depend on instruction
-        Instruction::Jump { .. } => (vec![], vec![]),
-        Instruction::JumpInd { reg, .. } => (vec![], vec![*reg]),
-
-        // Load instructions: dst = mem[base + offset]
-        Instruction::LoadIndU8 { dst, base, .. }
-        | Instruction::LoadIndI8 { dst, base, .. }
-        | Instruction::LoadIndU16 { dst, base, .. }
-        | Instruction::LoadIndI16 { dst, base, .. }
-        | Instruction::LoadIndU32 { dst, base, .. }
-        | Instruction::LoadIndU64 { dst, base, .. } => (vec![*dst], vec![*base]),
-
-        // Store instructions: mem[base + offset] = src
-        Instruction::StoreIndU8 { base, src, .. }
-        | Instruction::StoreIndU16 { base, src, .. }
-        | Instruction::StoreIndU32 { base, src, .. }
-        | Instruction::StoreIndU64 { base, src, .. } => (vec![], vec![*base, *src]),
-
-        // Branch instructions: use reg (and comparison target), no defs
-        Instruction::BranchEqImm { reg, .. }
-        | Instruction::BranchNeImm { reg, .. }
-        | Instruction::BranchGeSImm { reg, .. } => (vec![], vec![*reg]),
-
-        Instruction::BranchGeU { reg1, reg2, .. } | Instruction::BranchLtU { reg1, reg2, .. } => {
-            (vec![], vec![*reg1, *reg2])
-        }
-
-        // System call: conservatively assume all registers are both read and written.
-        // The PVM calling convention passes args and returns values in registers,
-        // and we don't know which registers a given ecalli uses, so we must assume
-        // all 13 registers (r0-r12) are both used and defined.
-        Instruction::Ecalli { .. } => {
-            let all_regs: Vec<u8> = (0..=12).collect();
-            (all_regs.clone(), all_regs)
-        }
-    }
+    InstructionShape::classify(instr).def_use()
 }
 
 #[cfg(test)]

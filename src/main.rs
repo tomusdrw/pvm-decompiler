@@ -5,6 +5,7 @@ use std::io::Read;
 mod cfg;
 mod dataflow;
 mod decoder;
+mod instruction;
 mod lifting;
 mod structuring;
 mod varint;
