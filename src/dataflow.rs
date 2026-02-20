@@ -387,9 +387,14 @@ fn extract_def_use(instr: &Instruction) -> (Vec<u8>, Vec<u8>) {
             (vec![], vec![*reg1, *reg2])
         }
 
-        // System call: uses/defs depend on calling convention
-        // For now, assume no register side effects (conservative)
-        Instruction::Ecalli { .. } => (vec![], vec![]),
+        // System call: conservatively assume all registers are both read and written.
+        // The PVM calling convention passes args and returns values in registers,
+        // and we don't know which registers a given ecalli uses, so we must assume
+        // all 13 registers (r0-r12) are both used and defined.
+        Instruction::Ecalli { .. } => {
+            let all_regs: Vec<u8> = (0..=12).collect();
+            (all_regs.clone(), all_regs)
+        }
     }
 }
 
@@ -439,5 +444,14 @@ mod tests {
         let (defs, uses) = extract_def_use(&instr);
         assert!(defs.is_empty());
         assert_eq!(uses, vec![2]);
+    }
+
+    #[test]
+    fn test_extract_def_use_ecalli() {
+        let instr = Instruction::Ecalli { index: 7 };
+        let (defs, uses) = extract_def_use(&instr);
+        let all_regs: Vec<u8> = (0..=12).collect();
+        assert_eq!(defs, all_regs);
+        assert_eq!(uses, all_regs);
     }
 }
