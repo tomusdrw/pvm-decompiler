@@ -522,4 +522,65 @@ mod tests {
         assert_eq!(functions[1].entry_pc, 50);
         assert_eq!(functions[2].entry_pc, 100);
     }
+
+    /// Integration test: verify that per-function sub-CFGs can be analyzed
+    /// through the full pipeline (dataflow + lifting + structuring).
+    #[test]
+    fn test_per_function_pipeline() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::decoder::DecodedProgram;
+        use crate::lifting::LiftedProgram;
+        use crate::structuring::StructuralAnalysis;
+
+        // Two disconnected functions: {0,10} and {100,110}.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 0, value: 42 }),
+                        (
+                            4,
+                            Instruction::AddImm32 {
+                                dst: 1,
+                                src: 0,
+                                value: 1,
+                            },
+                        ),
+                    ],
+                    vec![10],
+                ),
+                (10, vec![(10, Instruction::Trap)], vec![]),
+                (
+                    100,
+                    vec![(100, Instruction::LoadImm { reg: 3, value: 7 })],
+                    vec![110],
+                ),
+                (110, vec![(110, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let functions = detect_functions(&cfg);
+        assert_eq!(functions.len(), 2);
+
+        let program = DecodedProgram {
+            jump_table: vec![],
+            instructions: vec![],
+            code_len: 0,
+        };
+
+        // Each function should analyze without panic.
+        for func in &functions {
+            let func_cfg = build_function_cfg(&cfg, func);
+            assert_eq!(func_cfg.entry_pc, func.entry_pc);
+            assert_eq!(func_cfg.blocks.len(), func.block_pcs.len());
+
+            let dataflow = DataFlowAnalysis::analyze(&func_cfg);
+            let mut lifted = LiftedProgram::analyze(&func_cfg, &dataflow);
+            let structural = StructuralAnalysis::analyze(&func_cfg, &program);
+            let pseudo = structural.pseudo_code(&func_cfg, Some(&mut lifted));
+            assert!(!pseudo.is_empty(), "Pseudo-code should not be empty");
+        }
+    }
 }
