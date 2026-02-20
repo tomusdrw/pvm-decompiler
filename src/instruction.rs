@@ -187,6 +187,8 @@ pub enum InstructionShape {
     },
     /// External call.
     Ecalli { index: u32 },
+    /// Unknown/unrecognized instruction.
+    Unknown { opcode: u8 },
 }
 
 impl InstructionShape {
@@ -577,6 +579,9 @@ impl InstructionShape {
 
             // External call
             Instruction::Ecalli { index } => Self::Ecalli { index: *index },
+
+            // Unknown instruction
+            Instruction::Unknown { opcode, .. } => Self::Unknown { opcode: *opcode },
         }
     }
 
@@ -608,7 +613,8 @@ impl InstructionShape {
             Self::JumpInd { reg, .. } => (vec![], vec![*reg]),
             Self::BranchImm { reg, .. } => (vec![], vec![*reg]),
             Self::BranchReg { reg1, reg2, .. } => (vec![], vec![*reg1, *reg2]),
-            Self::Ecalli { .. } => {
+            Self::Ecalli { .. } | Self::Unknown { .. } => {
+                // Conservatively assume all registers are both read and written.
                 let all_regs: Vec<u8> = (0..=12).collect();
                 (all_regs.clone(), all_regs)
             }
@@ -668,6 +674,75 @@ impl InstructionShape {
                 offset,
             } => format!("if (r{} {} r{}) jump {}", reg1, cond, reg2, offset),
             Self::Ecalli { index } => format!("ecalli {}", index),
+            Self::Unknown { opcode } => format!("/* unknown opcode {:#04x} */", opcode),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_classify_unknown() {
+        let instr = Instruction::Unknown {
+            opcode: 0xAB,
+            raw_bytes: vec![0xAB, 0x01],
+        };
+        let shape = InstructionShape::classify(&instr);
+        assert!(matches!(shape, InstructionShape::Unknown { opcode: 0xAB }));
+    }
+
+    #[test]
+    fn test_unknown_format_raw() {
+        let shape = InstructionShape::Unknown { opcode: 0xFF };
+        assert_eq!(shape.format_raw(), "/* unknown opcode 0xff */");
+    }
+
+    #[test]
+    fn test_unknown_def_use_conservative() {
+        let shape = InstructionShape::Unknown { opcode: 0xFF };
+        let (defs, uses) = shape.def_use();
+        let all_regs: Vec<u8> = (0..=12).collect();
+        assert_eq!(defs, all_regs);
+        assert_eq!(uses, all_regs);
+    }
+
+    #[test]
+    fn test_unknown_no_def_reg() {
+        let shape = InstructionShape::Unknown { opcode: 0xFF };
+        assert_eq!(shape.def_reg(), None);
+    }
+
+    #[test]
+    fn test_classify_add32() {
+        let instr = Instruction::Add32 {
+            dst: 3,
+            src1: 1,
+            src2: 2,
+        };
+        let shape = InstructionShape::classify(&instr);
+        assert!(matches!(
+            shape,
+            InstructionShape::BinReg {
+                op: BinOp::Add,
+                width: BitWidth::W32,
+                dst: 3,
+                src1: 1,
+                src2: 2,
+            }
+        ));
+        assert_eq!(shape.format_raw(), "r3 = r1 + r2");
+    }
+
+    #[test]
+    fn test_classify_add64_format() {
+        let instr = Instruction::Add64 {
+            dst: 0,
+            src1: 1,
+            src2: 2,
+        };
+        let shape = InstructionShape::classify(&instr);
+        assert_eq!(shape.format_raw(), "r0 = r1 +64 r2");
     }
 }

@@ -571,7 +571,13 @@ fn decode_instruction(data: &[u8], length: usize) -> Result<(Instruction, usize)
             Ok((Instruction::Ecalli { index }, length))
         }
 
-        _ => Err(DecodeError::InvalidOpcode(opcode_u8)),
+        _ => Ok((
+            Instruction::Unknown {
+                opcode: opcode_u8,
+                raw_bytes: data[..length].to_vec(),
+            },
+            length,
+        )),
     }
 }
 
@@ -688,9 +694,10 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_invalid_opcode() {
-        let result = decode_instruction(&[255], 1);
-        assert!(result.is_err());
+    fn test_decode_unknown_opcode() {
+        let (instr, len) = decode_instruction(&[255], 1).unwrap();
+        assert_eq!(len, 1);
+        assert!(matches!(instr, Instruction::Unknown { opcode: 255, .. }));
     }
 
     #[test]
@@ -819,6 +826,31 @@ mod tests {
         assert!(matches!(
             result.instructions[1],
             (1, Instruction::Fallthrough)
+        ));
+    }
+
+    #[test]
+    fn test_decode_blob_with_unknown_instruction() {
+        // Blob with: Trap, unknown opcode 0xFF, Fallthrough
+        let blob = [
+            0x00, // jump_table_len = 0
+            0x00, // item_len = 0
+            0x03, // code_len = 3
+            0x00, // code[0]: Trap
+            0xFF, // code[1]: unknown opcode
+            0x01, // code[2]: Fallthrough
+            0x07, // mask: bits 0, 1, 2 set
+        ];
+        let result = decode_blob_internal(&blob).unwrap();
+        assert_eq!(result.instructions.len(), 3);
+        assert!(matches!(result.instructions[0], (0, Instruction::Trap)));
+        assert!(matches!(
+            result.instructions[1],
+            (1, Instruction::Unknown { opcode: 0xFF, .. })
+        ));
+        assert!(matches!(
+            result.instructions[2],
+            (2, Instruction::Fallthrough)
         ));
     }
 }

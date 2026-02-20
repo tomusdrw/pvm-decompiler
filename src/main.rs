@@ -1,6 +1,8 @@
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::io::Read;
+use wasm_pvm::pvm::Instruction;
 
 mod cfg;
 mod dataflow;
@@ -40,6 +42,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             decoder::decode_blob(&buffer)?
         }
     };
+
+    // Report unknown instructions
+    let mut unknown_opcodes: HashMap<u8, usize> = HashMap::new();
+    for (_, instr) in &program.instructions {
+        if let Instruction::Unknown { opcode, .. } = instr {
+            *unknown_opcodes.entry(*opcode).or_default() += 1;
+        }
+    }
+    if !unknown_opcodes.is_empty() {
+        let mut sorted: Vec<_> = unknown_opcodes.iter().collect();
+        sorted.sort_by_key(|(op, _)| **op);
+        eprintln!(
+            "Warning: {} unknown opcode(s) encountered:",
+            sorted.iter().map(|(_, c)| *c).sum::<usize>()
+        );
+        for (opcode, count) in sorted {
+            eprintln!("  opcode {:#04x}: {} occurrence(s)", opcode, count);
+        }
+        eprintln!();
+    }
 
     println!("Jump Table: {:?}", program.jump_table);
     println!("\nInstructions:");

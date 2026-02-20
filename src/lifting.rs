@@ -354,6 +354,9 @@ impl LiftedProgram {
                 self.reg_name(pc, reg2),
                 offset
             )),
+            InstructionShape::Unknown { opcode } => {
+                Expression::Raw(format!("/* unknown opcode {:#04x} */", opcode))
+            }
         }
     }
 
