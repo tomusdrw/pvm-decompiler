@@ -901,6 +901,21 @@ mod tests {
     }
 
     #[test]
+    fn test_decode_blob_with_unsupported_entry_size() {
+        // item_len=5 is not supported and should produce an error
+        let blob = [
+            0x01, // jump_table_len = 1
+            0x05, // item_len = 5 (unsupported)
+            0x01, // code_len = 1
+            0x00, 0x00, 0x00, 0x00, 0x00, // 5 bytes of data
+            0x00, // code: Trap
+            0x01, // mask
+        ];
+        let result = decode_blob_internal(&blob);
+        assert!(result.is_err(), "item_len=5 should be rejected");
+    }
+
+    #[test]
     fn test_decode_blob_with_unknown_instruction() {
         // Blob with: Trap, unknown opcode 0xFF, Fallthrough
         let blob = [
