@@ -17,6 +17,7 @@ pub enum DecodeError {
     InvalidOpcode(u8),
     InvalidVarInt,
     InvalidMask,
+    UnsupportedJumpTableEntrySize(u8),
 }
 
 impl fmt::Display for DecodeError {
@@ -159,16 +160,10 @@ fn decode_blob_internal(blob_data: &[u8]) -> Result<DecodedProgram, Box<dyn Erro
     // 4. Decode Jump Table
     let mut jump_table = Vec::with_capacity(jump_table_len as usize);
     if item_len > 0 && jump_table_len > 0 {
-        if item_len != 4 {
-            // In current spec, jump table entries are 4 bytes.
-            // But let's follow the spec if it implies flexibility.
-            // For now assume 4.
-        }
         for _i in 0..jump_table_len {
-            let entry = cursor.read_u32()?;
+            let entry = cursor.read_n_byte_le(item_len)?;
             jump_table.push(entry);
         }
-    } else if jump_table_len > 0 && item_len == 0 {
     }
 
     // 5. Read Code Section
@@ -302,6 +297,22 @@ impl<'a> Cursor<'a> {
         let val = u32::from_le_bytes(bytes.try_into().unwrap());
         self.position += 4;
         Ok(val)
+    }
+
+    /// Read an N-byte little-endian unsigned integer (1, 2, 3, or 4 bytes).
+    fn read_n_byte_le(&mut self, n: u8) -> Result<u32, DecodeError> {
+        let n = n as usize;
+        if n == 0 || n > 4 {
+            return Err(DecodeError::UnsupportedJumpTableEntrySize(n as u8));
+        }
+        if self.remaining() < n {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let bytes = &self.data[self.position..self.position + n];
+        let mut buf = [0u8; 4];
+        buf[..n].copy_from_slice(bytes);
+        self.position += n;
+        Ok(u32::from_le_bytes(buf))
     }
 
     fn read_var_u32(&mut self) -> Result<u32, DecodeError> {
@@ -827,6 +838,66 @@ mod tests {
             result.instructions[1],
             (1, Instruction::Fallthrough)
         ));
+    }
+
+    #[test]
+    fn test_decode_blob_with_1byte_jump_table() {
+        // jump_table_len=2, item_len=1, code_len=1, jump_table=[10, 20], code=[trap], mask
+        let blob = [
+            0x02, // jump_table_len = 2
+            0x01, // item_len = 1
+            0x01, // code_len = 1
+            10,   // jump_table[0] = 10
+            20,   // jump_table[1] = 20
+            0x00, // code: Trap
+            0x01, // mask
+        ];
+        let result = decode_blob_internal(&blob).unwrap();
+        assert_eq!(result.jump_table, vec![10, 20]);
+        assert_eq!(result.instructions.len(), 1);
+    }
+
+    #[test]
+    fn test_decode_blob_with_2byte_jump_table() {
+        // jump_table_len=1, item_len=2, code_len=1, jump_table=[0x0102], code=[trap], mask
+        let blob = [
+            0x01, // jump_table_len = 1
+            0x02, // item_len = 2
+            0x01, // code_len = 1
+            0x02, 0x01, // jump_table[0] = 258 (LE)
+            0x00, // code: Trap
+            0x01, // mask
+        ];
+        let result = decode_blob_internal(&blob).unwrap();
+        assert_eq!(result.jump_table, vec![258]);
+    }
+
+    #[test]
+    fn test_decode_blob_with_3byte_jump_table() {
+        let blob = [
+            0x01, // jump_table_len = 1
+            0x03, // item_len = 3
+            0x01, // code_len = 1
+            0x01, 0x02, 0x03, // jump_table[0] = 0x030201 (LE)
+            0x00, // code: Trap
+            0x01, // mask
+        ];
+        let result = decode_blob_internal(&blob).unwrap();
+        assert_eq!(result.jump_table, vec![0x030201]);
+    }
+
+    #[test]
+    fn test_decode_blob_with_4byte_jump_table() {
+        let blob = [
+            0x01, // jump_table_len = 1
+            0x04, // item_len = 4
+            0x01, // code_len = 1
+            0x64, 0x00, 0x00, 0x00, // jump_table[0] = 100 (LE)
+            0x00, // code: Trap
+            0x01, // mask
+        ];
+        let result = decode_blob_internal(&blob).unwrap();
+        assert_eq!(result.jump_table, vec![100]);
     }
 
     #[test]
