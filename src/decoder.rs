@@ -350,6 +350,101 @@ fn decode_uimm_bytes(data: &[u8]) -> u32 {
     }
 }
 
+/// Three-register: opcode + (src2_hi | src1_lo) + dst
+macro_rules! decode_three_reg {
+    ($data:expr, $length:expr, $variant:ident) => {{
+        if $length < 3 {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let src1 = $data[1] & 0x0F;
+        let src2 = ($data[1] >> 4) & 0x0F;
+        let dst = $data[2] & 0x0F;
+        Ok((Instruction::$variant { dst, src1, src2 }, $length))
+    }};
+}
+
+/// Two-register: opcode + (src_hi | dst_lo)
+macro_rules! decode_two_reg {
+    ($data:expr, $length:expr, $variant:ident) => {{
+        if $length < 2 {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let dst = $data[1] & 0x0F;
+        let src = ($data[1] >> 4) & 0x0F;
+        Ok((Instruction::$variant { dst, src }, $length))
+    }};
+}
+
+/// Two-register + variable-length signed immediate: opcode + (src_hi | dst_lo) + imm
+macro_rules! decode_two_reg_imm {
+    ($data:expr, $length:expr, $variant:ident) => {{
+        if $length < 2 {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let dst = $data[1] & 0x0F;
+        let src = ($data[1] >> 4) & 0x0F;
+        let value = decode_imm_bytes(&$data[2..$length]);
+        Ok((Instruction::$variant { dst, src, value }, $length))
+    }};
+}
+
+/// Load indirect: opcode + (base_hi | dst_lo) + variable-length offset
+macro_rules! decode_load_ind {
+    ($data:expr, $length:expr, $variant:ident) => {{
+        if $length < 2 {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let dst = $data[1] & 0x0F;
+        let base = ($data[1] >> 4) & 0x0F;
+        let offset = decode_imm_bytes(&$data[2..$length]);
+        Ok((Instruction::$variant { dst, base, offset }, $length))
+    }};
+}
+
+/// Store indirect: opcode + (base_hi | src_lo) + variable-length offset
+macro_rules! decode_store_ind {
+    ($data:expr, $length:expr, $variant:ident) => {{
+        if $length < 2 {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let src = $data[1] & 0x0F;
+        let base = ($data[1] >> 4) & 0x0F;
+        let offset = decode_imm_bytes(&$data[2..$length]);
+        Ok((Instruction::$variant { base, src, offset }, $length))
+    }};
+}
+
+/// Branch with immediate: opcode + (imm_len_hi | reg_lo) + variable-length imm + 4-byte offset
+macro_rules! decode_branch_imm {
+    ($data:expr, $length:expr, $variant:ident) => {{
+        if $length < 2 {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let reg = $data[1] & 0x0F;
+        let imm_len = (($data[1] >> 4) & 0x0F) as usize;
+        if $length < 2 + imm_len + 4 {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let value = decode_imm_bytes(&$data[2..2 + imm_len]);
+        let os = 2 + imm_len;
+        let offset = i32::from_le_bytes([$data[os], $data[os + 1], $data[os + 2], $data[os + 3]]);
+        Ok((Instruction::$variant { reg, value, offset }, $length))
+    }};
+}
+
+/// Branch with two registers: opcode + (reg1_hi | reg2_lo) + 4-byte offset
+macro_rules! decode_branch_reg {
+    ($data:expr, $length:expr, $variant:ident) => {{
+        if $length < 6 {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let reg2 = $data[1] & 0x0F;
+        let reg1 = ($data[1] >> 4) & 0x0F;
+        let offset = i32::from_le_bytes([$data[2], $data[3], $data[4], $data[5]]);
+        Ok((Instruction::$variant { reg1, reg2, offset }, $length))
+    }};
+}
+
 fn decode_instruction(data: &[u8], length: usize) -> Result<(Instruction, usize), DecodeError> {
     if data.is_empty() {
         return Err(DecodeError::UnexpectedEof);
@@ -377,9 +472,7 @@ fn decode_instruction(data: &[u8], length: usize) -> Result<(Instruction, usize)
                 return Err(DecodeError::UnexpectedEof);
             }
             let reg = data[1] & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let value = decode_imm_bytes(imm_bytes);
+            let value = decode_imm_bytes(&data[2..length]);
             Ok((Instruction::LoadImm { reg, value }, length))
         }
 
@@ -398,599 +491,81 @@ fn decode_instruction(data: &[u8], length: usize) -> Result<(Instruction, usize)
                 return Err(DecodeError::UnexpectedEof);
             }
             let reg = data[1] & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let offset = decode_imm_bytes(imm_bytes);
+            let offset = decode_imm_bytes(&data[2..length]);
             Ok((Instruction::JumpInd { reg, offset }, length))
         }
 
-        // Three-register instructions: opcode + (src2_hi | src1_lo) + dst
-        190 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::Add32 { dst, src1, src2 }, length))
-        }
-        191 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::Sub32 { dst, src1, src2 }, length))
-        }
-        192 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::Mul32 { dst, src1, src2 }, length))
-        }
-        193 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::DivU32 { dst, src1, src2 }, length))
-        }
-        194 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::DivS32 { dst, src1, src2 }, length))
-        }
-        195 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::RemU32 { dst, src1, src2 }, length))
-        }
-        196 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::RemS32 { dst, src1, src2 }, length))
-        }
-        197 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::ShloL32 { dst, src1, src2 }, length))
-        }
-        198 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::ShloR32 { dst, src1, src2 }, length))
-        }
-        199 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::SharR32 { dst, src1, src2 }, length))
-        }
-        200 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::Add64 { dst, src1, src2 }, length))
-        }
-        201 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::Sub64 { dst, src1, src2 }, length))
-        }
-        202 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::Mul64 { dst, src1, src2 }, length))
-        }
-        203 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::DivU64 { dst, src1, src2 }, length))
-        }
-        204 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::DivS64 { dst, src1, src2 }, length))
-        }
-        205 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::RemU64 { dst, src1, src2 }, length))
-        }
-        206 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::RemS64 { dst, src1, src2 }, length))
-        }
-        207 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::ShloL64 { dst, src1, src2 }, length))
-        }
-        208 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::ShloR64 { dst, src1, src2 }, length))
-        }
-        209 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::SharR64 { dst, src1, src2 }, length))
-        }
-        210 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::And { dst, src1, src2 }, length))
-        }
-        211 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::Xor { dst, src1, src2 }, length))
-        }
-        212 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::Or { dst, src1, src2 }, length))
-        }
-        216 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::SetLtU { dst, src1, src2 }, length))
-        }
-        217 => {
-            if length < 3 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src1 = data[1] & 0x0F;
-            let src2 = (data[1] >> 4) & 0x0F;
-            let dst = data[2] & 0x0F;
-            Ok((Instruction::SetLtS { dst, src1, src2 }, length))
-        }
+        // Three-register instructions
+        190 => decode_three_reg!(data, length, Add32),
+        191 => decode_three_reg!(data, length, Sub32),
+        192 => decode_three_reg!(data, length, Mul32),
+        193 => decode_three_reg!(data, length, DivU32),
+        194 => decode_three_reg!(data, length, DivS32),
+        195 => decode_three_reg!(data, length, RemU32),
+        196 => decode_three_reg!(data, length, RemS32),
+        197 => decode_three_reg!(data, length, ShloL32),
+        198 => decode_three_reg!(data, length, ShloR32),
+        199 => decode_three_reg!(data, length, SharR32),
+        200 => decode_three_reg!(data, length, Add64),
+        201 => decode_three_reg!(data, length, Sub64),
+        202 => decode_three_reg!(data, length, Mul64),
+        203 => decode_three_reg!(data, length, DivU64),
+        204 => decode_three_reg!(data, length, DivS64),
+        205 => decode_three_reg!(data, length, RemU64),
+        206 => decode_three_reg!(data, length, RemS64),
+        207 => decode_three_reg!(data, length, ShloL64),
+        208 => decode_three_reg!(data, length, ShloR64),
+        209 => decode_three_reg!(data, length, SharR64),
+        210 => decode_three_reg!(data, length, And),
+        211 => decode_three_reg!(data, length, Xor),
+        212 => decode_three_reg!(data, length, Or),
+        216 => decode_three_reg!(data, length, SetLtU),
+        217 => decode_three_reg!(data, length, SetLtS),
 
-        // Two-register instructions: opcode + (src_hi | dst_lo)
-        101 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let src = (data[1] >> 4) & 0x0F;
-            Ok((Instruction::Sbrk { dst, src }, length))
-        }
-        102 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let src = (data[1] >> 4) & 0x0F;
-            Ok((Instruction::CountSetBits64 { dst, src }, length))
-        }
-        103 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let src = (data[1] >> 4) & 0x0F;
-            Ok((Instruction::CountSetBits32 { dst, src }, length))
-        }
-        104 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let src = (data[1] >> 4) & 0x0F;
-            Ok((Instruction::LeadingZeroBits64 { dst, src }, length))
-        }
-        105 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let src = (data[1] >> 4) & 0x0F;
-            Ok((Instruction::LeadingZeroBits32 { dst, src }, length))
-        }
-        106 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let src = (data[1] >> 4) & 0x0F;
-            Ok((Instruction::TrailingZeroBits64 { dst, src }, length))
-        }
-        107 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let src = (data[1] >> 4) & 0x0F;
-            Ok((Instruction::TrailingZeroBits32 { dst, src }, length))
-        }
-        108 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let src = (data[1] >> 4) & 0x0F;
-            Ok((Instruction::SignExtend8 { dst, src }, length))
-        }
-        109 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let src = (data[1] >> 4) & 0x0F;
-            Ok((Instruction::SignExtend16 { dst, src }, length))
-        }
-        110 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let src = (data[1] >> 4) & 0x0F;
-            Ok((Instruction::ZeroExtend16 { dst, src }, length))
-        }
+        // Two-register instructions
+        101 => decode_two_reg!(data, length, Sbrk),
+        102 => decode_two_reg!(data, length, CountSetBits64),
+        103 => decode_two_reg!(data, length, CountSetBits32),
+        104 => decode_two_reg!(data, length, LeadingZeroBits64),
+        105 => decode_two_reg!(data, length, LeadingZeroBits32),
+        106 => decode_two_reg!(data, length, TrailingZeroBits64),
+        107 => decode_two_reg!(data, length, TrailingZeroBits32),
+        108 => decode_two_reg!(data, length, SignExtend8),
+        109 => decode_two_reg!(data, length, SignExtend16),
+        110 => decode_two_reg!(data, length, ZeroExtend16),
 
-        // AddImm32: opcode + (src_hi | dst_lo) + variable-length immediate
-        131 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let src = (data[1] >> 4) & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let value = decode_imm_bytes(imm_bytes);
-            Ok((Instruction::AddImm32 { dst, src, value }, length))
-        }
+        // Two-register + immediate instructions
+        131 => decode_two_reg_imm!(data, length, AddImm32),
+        149 => decode_two_reg_imm!(data, length, AddImm64),
+        136 => decode_two_reg_imm!(data, length, SetLtUImm),
+        137 => decode_two_reg_imm!(data, length, SetLtSImm),
 
-        // AddImm64: opcode + (src_hi | dst_lo) + variable-length immediate
-        149 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let src = (data[1] >> 4) & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let value = decode_imm_bytes(imm_bytes);
-            Ok((Instruction::AddImm64 { dst, src, value }, length))
-        }
+        // Load indirect instructions
+        124 => decode_load_ind!(data, length, LoadIndU8),
+        125 => decode_load_ind!(data, length, LoadIndI8),
+        126 => decode_load_ind!(data, length, LoadIndU16),
+        127 => decode_load_ind!(data, length, LoadIndI16),
+        128 => decode_load_ind!(data, length, LoadIndU32),
+        130 => decode_load_ind!(data, length, LoadIndU64),
 
-        // SetLtUImm: opcode + (src_hi | dst_lo) + variable-length immediate
-        136 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let src = (data[1] >> 4) & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let value = decode_imm_bytes(imm_bytes);
-            Ok((Instruction::SetLtUImm { dst, src, value }, length))
-        }
+        // Store indirect instructions
+        120 => decode_store_ind!(data, length, StoreIndU8),
+        121 => decode_store_ind!(data, length, StoreIndU16),
+        122 => decode_store_ind!(data, length, StoreIndU32),
+        123 => decode_store_ind!(data, length, StoreIndU64),
 
-        // SetLtSImm: opcode + (src_hi | dst_lo) + variable-length immediate
-        137 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let src = (data[1] >> 4) & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let value = decode_imm_bytes(imm_bytes);
-            Ok((Instruction::SetLtSImm { dst, src, value }, length))
-        }
+        // Branch with immediate instructions
+        81 => decode_branch_imm!(data, length, BranchEqImm),
+        82 => decode_branch_imm!(data, length, BranchNeImm),
+        89 => decode_branch_imm!(data, length, BranchGeSImm),
 
-        // LoadIndU8: opcode + (base_hi | dst_lo) + variable-length offset
-        124 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let base = (data[1] >> 4) & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let offset = decode_imm_bytes(imm_bytes);
-            Ok((Instruction::LoadIndU8 { dst, base, offset }, length))
-        }
-
-        // LoadIndI8: opcode + (base_hi | dst_lo) + variable-length offset
-        125 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let base = (data[1] >> 4) & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let offset = decode_imm_bytes(imm_bytes);
-            Ok((Instruction::LoadIndI8 { dst, base, offset }, length))
-        }
-
-        // StoreIndU8: opcode + (base_hi | src_lo) + variable-length offset
-        120 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src = data[1] & 0x0F;
-            let base = (data[1] >> 4) & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let offset = decode_imm_bytes(imm_bytes);
-            Ok((Instruction::StoreIndU8 { base, src, offset }, length))
-        }
-
-        // LoadIndU16: opcode + (base_hi | dst_lo) + variable-length offset
-        126 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let base = (data[1] >> 4) & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let offset = decode_imm_bytes(imm_bytes);
-            Ok((Instruction::LoadIndU16 { dst, base, offset }, length))
-        }
-
-        // LoadIndI16: opcode + (base_hi | dst_lo) + variable-length offset
-        127 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let base = (data[1] >> 4) & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let offset = decode_imm_bytes(imm_bytes);
-            Ok((Instruction::LoadIndI16 { dst, base, offset }, length))
-        }
-
-        // StoreIndU16: opcode + (base_hi | src_lo) + variable-length offset
-        121 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src = data[1] & 0x0F;
-            let base = (data[1] >> 4) & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let offset = decode_imm_bytes(imm_bytes);
-            Ok((Instruction::StoreIndU16 { base, src, offset }, length))
-        }
-
-        // LoadIndU32: opcode + (base_hi | dst_lo) + variable-length offset
-        128 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let base = (data[1] >> 4) & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let offset = decode_imm_bytes(imm_bytes);
-            Ok((Instruction::LoadIndU32 { dst, base, offset }, length))
-        }
-
-        // StoreIndU32: opcode + (base_hi | src_lo) + variable-length offset
-        122 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src = data[1] & 0x0F;
-            let base = (data[1] >> 4) & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let offset = decode_imm_bytes(imm_bytes);
-            Ok((Instruction::StoreIndU32 { base, src, offset }, length))
-        }
-
-        // LoadIndU64: opcode + (base_hi | dst_lo) + variable-length offset
-        130 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let dst = data[1] & 0x0F;
-            let base = (data[1] >> 4) & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let offset = decode_imm_bytes(imm_bytes);
-            Ok((Instruction::LoadIndU64 { dst, base, offset }, length))
-        }
-
-        // StoreIndU64: opcode + (base_hi | src_lo) + variable-length offset
-        123 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let src = data[1] & 0x0F;
-            let base = (data[1] >> 4) & 0x0F;
-            let imm_len = length - 2;
-            let imm_bytes = &data[2..2 + imm_len];
-            let offset = decode_imm_bytes(imm_bytes);
-            Ok((Instruction::StoreIndU64 { base, src, offset }, length))
-        }
-
-        // BranchEqImm: opcode + (imm_len_hi | reg_lo) + variable-length imm + 4-byte offset
-        81 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let reg = data[1] & 0x0F;
-            let imm_len = ((data[1] >> 4) & 0x0F) as usize;
-            if length < 2 + imm_len + 4 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let imm_bytes = &data[2..2 + imm_len];
-            let value = decode_imm_bytes(imm_bytes);
-            let offset_start = 2 + imm_len;
-            let offset = i32::from_le_bytes([
-                data[offset_start],
-                data[offset_start + 1],
-                data[offset_start + 2],
-                data[offset_start + 3],
-            ]);
-            Ok((Instruction::BranchEqImm { reg, value, offset }, length))
-        }
-
-        // BranchNeImm: opcode + (imm_len_hi | reg_lo) + variable-length imm + 4-byte offset
-        82 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let reg = data[1] & 0x0F;
-            let imm_len = ((data[1] >> 4) & 0x0F) as usize;
-            if length < 2 + imm_len + 4 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let imm_bytes = &data[2..2 + imm_len];
-            let value = decode_imm_bytes(imm_bytes);
-            let offset_start = 2 + imm_len;
-            let offset = i32::from_le_bytes([
-                data[offset_start],
-                data[offset_start + 1],
-                data[offset_start + 2],
-                data[offset_start + 3],
-            ]);
-            Ok((Instruction::BranchNeImm { reg, value, offset }, length))
-        }
-
-        // BranchGeSImm: opcode + (imm_len_hi | reg_lo) + variable-length imm + 4-byte offset
-        89 => {
-            if length < 2 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let reg = data[1] & 0x0F;
-            let imm_len = ((data[1] >> 4) & 0x0F) as usize;
-            if length < 2 + imm_len + 4 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let imm_bytes = &data[2..2 + imm_len];
-            let value = decode_imm_bytes(imm_bytes);
-            let offset_start = 2 + imm_len;
-            let offset = i32::from_le_bytes([
-                data[offset_start],
-                data[offset_start + 1],
-                data[offset_start + 2],
-                data[offset_start + 3],
-            ]);
-            Ok((Instruction::BranchGeSImm { reg, value, offset }, length))
-        }
-
-        // BranchGeU: opcode + (reg1_hi | reg2_lo) + 4-byte offset
-        174 => {
-            if length < 6 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let reg2 = data[1] & 0x0F;
-            let reg1 = (data[1] >> 4) & 0x0F;
-            let offset = i32::from_le_bytes([data[2], data[3], data[4], data[5]]);
-            Ok((Instruction::BranchGeU { reg1, reg2, offset }, length))
-        }
-
-        // BranchLtU: opcode + (reg1_hi | reg2_lo) + 4-byte offset
-        172 => {
-            if length < 6 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let reg2 = data[1] & 0x0F;
-            let reg1 = (data[1] >> 4) & 0x0F;
-            let offset = i32::from_le_bytes([data[2], data[3], data[4], data[5]]);
-            Ok((Instruction::BranchLtU { reg1, reg2, offset }, length))
-        }
+        // Branch with two registers
+        172 => decode_branch_reg!(data, length, BranchLtU),
+        174 => decode_branch_reg!(data, length, BranchGeU),
 
         // Ecalli: opcode + variable-length unsigned immediate
         10 => {
-            if length < 1 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let imm_len = length - 1;
-            let imm_bytes = &data[1..1 + imm_len];
-            let index = decode_uimm_bytes(imm_bytes);
+            let index = decode_uimm_bytes(&data[1..length]);
             Ok((Instruction::Ecalli { index }, length))
         }
 
