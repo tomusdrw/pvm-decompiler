@@ -37,18 +37,96 @@ pub struct Variable {
     pub var_type: VarType,
 }
 
+/// Binary operator for expression nodes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BinOp {
+    Add,
+    Sub,
+    Mul,
+    DivU,
+    DivS,
+    RemU,
+    RemS,
+    Shl,
+    ShrU,
+    ShrS,
+    And,
+    Or,
+    Xor,
+    LtU,
+    LtS,
+}
+
+impl fmt::Display for BinOp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            BinOp::Add => "+",
+            BinOp::Sub => "-",
+            BinOp::Mul => "*",
+            BinOp::DivU => "/u",
+            BinOp::DivS => "/s",
+            BinOp::RemU => "%u",
+            BinOp::RemS => "%s",
+            BinOp::Shl => "<<",
+            BinOp::ShrU => ">>u",
+            BinOp::ShrS => ">>s",
+            BinOp::And => "&",
+            BinOp::Or => "|",
+            BinOp::Xor => "^",
+            BinOp::LtU => "<u",
+            BinOp::LtS => "<s",
+        };
+        write!(f, "{}", s)
+    }
+}
+
+/// Unary operator for expression nodes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnaryOp {
+    Not,
+    Sext8,
+    Sext16,
+    Zext16,
+    Popcnt32,
+    Popcnt64,
+    Clz32,
+    Clz64,
+    Ctz32,
+    Ctz64,
+    Sbrk,
+}
+
+impl fmt::Display for UnaryOp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            UnaryOp::Not => "!",
+            UnaryOp::Sext8 => "sext8",
+            UnaryOp::Sext16 => "sext16",
+            UnaryOp::Zext16 => "zext16",
+            UnaryOp::Popcnt32 => "popcnt32",
+            UnaryOp::Popcnt64 => "popcnt64",
+            UnaryOp::Clz32 => "clz32",
+            UnaryOp::Clz64 => "clz64",
+            UnaryOp::Ctz32 => "ctz32",
+            UnaryOp::Ctz64 => "ctz64",
+            UnaryOp::Sbrk => "sbrk",
+        };
+        write!(f, "{}", s)
+    }
+}
+
 /// An expression tree representing a computation.
 #[derive(Debug, Clone)]
 pub enum Expression {
     Const(i64),
     Var(String),
     BinOp {
-        op: String,
+        op: BinOp,
         lhs: Box<Expression>,
         rhs: Box<Expression>,
     },
     UnaryOp {
-        op: String,
+        op: UnaryOp,
         operand: Box<Expression>,
     },
     Load {
@@ -306,57 +384,89 @@ impl LiftedProgram {
             Instruction::LoadImm64 { value, .. } => Expression::Const(*value as i64),
 
             // Three-register binary ops
-            Instruction::Add32 { src1, src2, .. } => self.make_binop(pc, "+", *src1, *src2),
-            Instruction::Sub32 { src1, src2, .. } => self.make_binop(pc, "-", *src1, *src2),
-            Instruction::Mul32 { src1, src2, .. } => self.make_binop(pc, "*", *src1, *src2),
-            Instruction::DivU32 { src1, src2, .. } => self.make_binop(pc, "/u", *src1, *src2),
-            Instruction::DivS32 { src1, src2, .. } => self.make_binop(pc, "/s", *src1, *src2),
-            Instruction::RemU32 { src1, src2, .. } => self.make_binop(pc, "%u", *src1, *src2),
-            Instruction::RemS32 { src1, src2, .. } => self.make_binop(pc, "%s", *src1, *src2),
-            Instruction::ShloL32 { src1, src2, .. } => self.make_binop(pc, "<<", *src1, *src2),
-            Instruction::ShloR32 { src1, src2, .. } => self.make_binop(pc, ">>u", *src1, *src2),
-            Instruction::SharR32 { src1, src2, .. } => self.make_binop(pc, ">>s", *src1, *src2),
-            Instruction::Add64 { src1, src2, .. } => self.make_binop(pc, "+", *src1, *src2),
-            Instruction::Sub64 { src1, src2, .. } => self.make_binop(pc, "-", *src1, *src2),
-            Instruction::Mul64 { src1, src2, .. } => self.make_binop(pc, "*", *src1, *src2),
-            Instruction::DivU64 { src1, src2, .. } => self.make_binop(pc, "/u", *src1, *src2),
-            Instruction::DivS64 { src1, src2, .. } => self.make_binop(pc, "/s", *src1, *src2),
-            Instruction::RemU64 { src1, src2, .. } => self.make_binop(pc, "%u", *src1, *src2),
-            Instruction::RemS64 { src1, src2, .. } => self.make_binop(pc, "%s", *src1, *src2),
-            Instruction::ShloL64 { src1, src2, .. } => self.make_binop(pc, "<<", *src1, *src2),
-            Instruction::ShloR64 { src1, src2, .. } => self.make_binop(pc, ">>u", *src1, *src2),
-            Instruction::SharR64 { src1, src2, .. } => self.make_binop(pc, ">>s", *src1, *src2),
-            Instruction::And { src1, src2, .. } => self.make_binop(pc, "&", *src1, *src2),
-            Instruction::Or { src1, src2, .. } => self.make_binop(pc, "|", *src1, *src2),
-            Instruction::Xor { src1, src2, .. } => self.make_binop(pc, "^", *src1, *src2),
-            Instruction::SetLtU { src1, src2, .. } => self.make_binop(pc, "<u", *src1, *src2),
-            Instruction::SetLtS { src1, src2, .. } => self.make_binop(pc, "<s", *src1, *src2),
+            Instruction::Add32 { src1, src2, .. } => self.make_binop(pc, BinOp::Add, *src1, *src2),
+            Instruction::Sub32 { src1, src2, .. } => self.make_binop(pc, BinOp::Sub, *src1, *src2),
+            Instruction::Mul32 { src1, src2, .. } => self.make_binop(pc, BinOp::Mul, *src1, *src2),
+            Instruction::DivU32 { src1, src2, .. } => {
+                self.make_binop(pc, BinOp::DivU, *src1, *src2)
+            }
+            Instruction::DivS32 { src1, src2, .. } => {
+                self.make_binop(pc, BinOp::DivS, *src1, *src2)
+            }
+            Instruction::RemU32 { src1, src2, .. } => {
+                self.make_binop(pc, BinOp::RemU, *src1, *src2)
+            }
+            Instruction::RemS32 { src1, src2, .. } => {
+                self.make_binop(pc, BinOp::RemS, *src1, *src2)
+            }
+            Instruction::ShloL32 { src1, src2, .. } => {
+                self.make_binop(pc, BinOp::Shl, *src1, *src2)
+            }
+            Instruction::ShloR32 { src1, src2, .. } => {
+                self.make_binop(pc, BinOp::ShrU, *src1, *src2)
+            }
+            Instruction::SharR32 { src1, src2, .. } => {
+                self.make_binop(pc, BinOp::ShrS, *src1, *src2)
+            }
+            Instruction::Add64 { src1, src2, .. } => self.make_binop(pc, BinOp::Add, *src1, *src2),
+            Instruction::Sub64 { src1, src2, .. } => self.make_binop(pc, BinOp::Sub, *src1, *src2),
+            Instruction::Mul64 { src1, src2, .. } => self.make_binop(pc, BinOp::Mul, *src1, *src2),
+            Instruction::DivU64 { src1, src2, .. } => {
+                self.make_binop(pc, BinOp::DivU, *src1, *src2)
+            }
+            Instruction::DivS64 { src1, src2, .. } => {
+                self.make_binop(pc, BinOp::DivS, *src1, *src2)
+            }
+            Instruction::RemU64 { src1, src2, .. } => {
+                self.make_binop(pc, BinOp::RemU, *src1, *src2)
+            }
+            Instruction::RemS64 { src1, src2, .. } => {
+                self.make_binop(pc, BinOp::RemS, *src1, *src2)
+            }
+            Instruction::ShloL64 { src1, src2, .. } => {
+                self.make_binop(pc, BinOp::Shl, *src1, *src2)
+            }
+            Instruction::ShloR64 { src1, src2, .. } => {
+                self.make_binop(pc, BinOp::ShrU, *src1, *src2)
+            }
+            Instruction::SharR64 { src1, src2, .. } => {
+                self.make_binop(pc, BinOp::ShrS, *src1, *src2)
+            }
+            Instruction::And { src1, src2, .. } => self.make_binop(pc, BinOp::And, *src1, *src2),
+            Instruction::Or { src1, src2, .. } => self.make_binop(pc, BinOp::Or, *src1, *src2),
+            Instruction::Xor { src1, src2, .. } => self.make_binop(pc, BinOp::Xor, *src1, *src2),
+            Instruction::SetLtU { src1, src2, .. } => self.make_binop(pc, BinOp::LtU, *src1, *src2),
+            Instruction::SetLtS { src1, src2, .. } => self.make_binop(pc, BinOp::LtS, *src1, *src2),
 
             // Register + immediate ops
             Instruction::AddImm32 { src, value, .. } => {
-                self.make_binop_imm(pc, "+", *src, *value as i64)
+                self.make_binop_imm(pc, BinOp::Add, *src, *value as i64)
             }
             Instruction::AddImm64 { src, value, .. } => {
-                self.make_binop_imm(pc, "+", *src, *value as i64)
+                self.make_binop_imm(pc, BinOp::Add, *src, *value as i64)
             }
             Instruction::SetLtUImm { src, value, .. } => {
-                self.make_binop_imm(pc, "<u", *src, *value as i64)
+                self.make_binop_imm(pc, BinOp::LtU, *src, *value as i64)
             }
             Instruction::SetLtSImm { src, value, .. } => {
-                self.make_binop_imm(pc, "<s", *src, *value as i64)
+                self.make_binop_imm(pc, BinOp::LtS, *src, *value as i64)
             }
 
             // Unary ops
-            Instruction::CountSetBits64 { src, .. } => self.make_unary(pc, "popcnt64", *src),
-            Instruction::CountSetBits32 { src, .. } => self.make_unary(pc, "popcnt32", *src),
-            Instruction::LeadingZeroBits64 { src, .. } => self.make_unary(pc, "clz64", *src),
-            Instruction::LeadingZeroBits32 { src, .. } => self.make_unary(pc, "clz32", *src),
-            Instruction::TrailingZeroBits64 { src, .. } => self.make_unary(pc, "ctz64", *src),
-            Instruction::TrailingZeroBits32 { src, .. } => self.make_unary(pc, "ctz32", *src),
-            Instruction::SignExtend8 { src, .. } => self.make_unary(pc, "sext8", *src),
-            Instruction::SignExtend16 { src, .. } => self.make_unary(pc, "sext16", *src),
-            Instruction::ZeroExtend16 { src, .. } => self.make_unary(pc, "zext16", *src),
-            Instruction::Sbrk { src, .. } => self.make_unary(pc, "sbrk", *src),
+            Instruction::CountSetBits64 { src, .. } => self.make_unary(pc, UnaryOp::Popcnt64, *src),
+            Instruction::CountSetBits32 { src, .. } => self.make_unary(pc, UnaryOp::Popcnt32, *src),
+            Instruction::LeadingZeroBits64 { src, .. } => self.make_unary(pc, UnaryOp::Clz64, *src),
+            Instruction::LeadingZeroBits32 { src, .. } => self.make_unary(pc, UnaryOp::Clz32, *src),
+            Instruction::TrailingZeroBits64 { src, .. } => {
+                self.make_unary(pc, UnaryOp::Ctz64, *src)
+            }
+            Instruction::TrailingZeroBits32 { src, .. } => {
+                self.make_unary(pc, UnaryOp::Ctz32, *src)
+            }
+            Instruction::SignExtend8 { src, .. } => self.make_unary(pc, UnaryOp::Sext8, *src),
+            Instruction::SignExtend16 { src, .. } => self.make_unary(pc, UnaryOp::Sext16, *src),
+            Instruction::ZeroExtend16 { src, .. } => self.make_unary(pc, UnaryOp::Zext16, *src),
+            Instruction::Sbrk { src, .. } => self.make_unary(pc, UnaryOp::Sbrk, *src),
 
             // Load instructions
             Instruction::LoadIndU8 { base, offset, .. } => self.make_load(pc, "u8", *base, *offset),
@@ -468,25 +578,25 @@ impl LiftedProgram {
         false
     }
 
-    fn make_binop(&self, pc: usize, op: &str, src1: u8, src2: u8) -> Expression {
+    fn make_binop(&self, pc: usize, op: BinOp, src1: u8, src2: u8) -> Expression {
         Expression::BinOp {
-            op: op.to_string(),
+            op,
             lhs: Box::new(Expression::Var(self.reg_name(pc, src1))),
             rhs: Box::new(Expression::Var(self.reg_name(pc, src2))),
         }
     }
 
-    fn make_binop_imm(&self, pc: usize, op: &str, src: u8, value: i64) -> Expression {
+    fn make_binop_imm(&self, pc: usize, op: BinOp, src: u8, value: i64) -> Expression {
         Expression::BinOp {
-            op: op.to_string(),
+            op,
             lhs: Box::new(Expression::Var(self.reg_name(pc, src))),
             rhs: Box::new(Expression::Const(value)),
         }
     }
 
-    fn make_unary(&self, pc: usize, op: &str, src: u8) -> Expression {
+    fn make_unary(&self, pc: usize, op: UnaryOp, src: u8) -> Expression {
         Expression::UnaryOp {
-            op: op.to_string(),
+            op,
             operand: Box::new(Expression::Var(self.reg_name(pc, src))),
         }
     }
@@ -1073,31 +1183,41 @@ fn simplify_expression(expr: Expression) -> Expression {
             let lhs = simplify_expression(*lhs);
             let rhs = simplify_expression(*rhs);
 
-            match (&op[..], &lhs, &rhs) {
+            match (op, &lhs, &rhs) {
                 // Constant folding: C1 + C2, C1 - C2, etc.
-                ("+", Expression::Const(a), Expression::Const(b)) => {
+                (BinOp::Add, Expression::Const(a), Expression::Const(b)) => {
                     Expression::Const(a.wrapping_add(*b))
                 }
-                ("-", Expression::Const(a), Expression::Const(b)) => {
+                (BinOp::Sub, Expression::Const(a), Expression::Const(b)) => {
                     Expression::Const(a.wrapping_sub(*b))
                 }
-                ("*", Expression::Const(a), Expression::Const(b)) => {
+                (BinOp::Mul, Expression::Const(a), Expression::Const(b)) => {
                     Expression::Const(a.wrapping_mul(*b))
                 }
                 // x + 0, x - 0, x | 0, x ^ 0, x << 0, x >>u 0, x >>s 0 → x
-                ("+" | "-" | "|" | "^" | "<<" | ">>u" | ">>s", _, Expression::Const(0)) => lhs,
+                (
+                    BinOp::Add
+                    | BinOp::Sub
+                    | BinOp::Or
+                    | BinOp::Xor
+                    | BinOp::Shl
+                    | BinOp::ShrU
+                    | BinOp::ShrS,
+                    _,
+                    Expression::Const(0),
+                ) => lhs,
                 // 0 + x, 0 | x, 0 ^ x → x (commutative identities)
-                ("+" | "|" | "^", Expression::Const(0), _) => rhs,
+                (BinOp::Add | BinOp::Or | BinOp::Xor, Expression::Const(0), _) => rhs,
                 // (x + C1) + C2 → x + (C1 + C2) — reassociate to fold constants
                 (
-                    "+",
+                    BinOp::Add,
                     Expression::BinOp {
-                        op: inner_op,
+                        op: BinOp::Add,
                         lhs: x,
                         rhs: inner_rhs,
                     },
                     Expression::Const(c2),
-                ) if inner_op == "+" && matches!(inner_rhs.as_ref(), Expression::Const(_)) => {
+                ) if matches!(inner_rhs.as_ref(), Expression::Const(_)) => {
                     let c1 = match inner_rhs.as_ref() {
                         Expression::Const(v) => *v,
                         _ => unreachable!(),
@@ -1107,23 +1227,23 @@ fn simplify_expression(expr: Expression) -> Expression {
                         *x.clone()
                     } else {
                         Expression::BinOp {
-                            op: "+".to_string(),
+                            op: BinOp::Add,
                             lhs: x.clone(),
                             rhs: Box::new(Expression::Const(sum)),
                         }
                     }
                 }
                 // x * 1, x /u 1, x /s 1 → x
-                ("*" | "/u" | "/s", _, Expression::Const(1)) => lhs,
+                (BinOp::Mul | BinOp::DivU | BinOp::DivS, _, Expression::Const(1)) => lhs,
                 // 1 * x → x
-                ("*", Expression::Const(1), _) => rhs,
+                (BinOp::Mul, Expression::Const(1), _) => rhs,
                 // x * 0 → 0, x & 0 → 0
-                ("*" | "&", _, Expression::Const(0)) => Expression::Const(0),
+                (BinOp::Mul | BinOp::And, _, Expression::Const(0)) => Expression::Const(0),
                 // 0 * x → 0, 0 & x → 0
-                ("*" | "&", Expression::Const(0), _) => Expression::Const(0),
+                (BinOp::Mul | BinOp::And, Expression::Const(0), _) => Expression::Const(0),
                 // bool <u 1 → !bool (negation pattern from SetLtUImm { value: 1 })
-                ("<u", _, Expression::Const(1)) => Expression::UnaryOp {
-                    op: "!".to_string(),
+                (BinOp::LtU, _, Expression::Const(1)) => Expression::UnaryOp {
+                    op: UnaryOp::Not,
                     operand: Box::new(lhs),
                 },
                 _ => Expression::BinOp {
@@ -1145,11 +1265,10 @@ fn simplify_expression(expr: Expression) -> Expression {
             let base = simplify_expression(*base);
             // Absorb base constant into offset: Load[x + C, off] → Load[x, off + C]
             if let Expression::BinOp {
-                op: ref bop,
+                op: BinOp::Add,
                 ref lhs,
                 ref rhs,
             } = base
-                && bop == "+"
                 && let Expression::Const(c) = rhs.as_ref()
                 && let Ok(c32) = i32::try_from(*c)
             {
@@ -1175,11 +1294,10 @@ fn simplify_expression(expr: Expression) -> Expression {
             let value = simplify_expression(*value);
             // Absorb base constant into offset: Store[x + C, off] → Store[x, off + C]
             if let Expression::BinOp {
-                op: ref bop,
+                op: BinOp::Add,
                 ref lhs,
                 ref rhs,
             } = base
-                && bop == "+"
                 && let Expression::Const(c) = rhs.as_ref()
                 && let Ok(c32) = i32::try_from(*c)
             {
@@ -1211,12 +1329,12 @@ fn substitute_var(expr: &Expression, name: &str, replacement: &Expression) -> Ex
         Expression::Var(n) if n == name => replacement.clone(),
         Expression::Var(_) | Expression::Const(_) | Expression::Raw(_) => expr.clone(),
         Expression::BinOp { op, lhs, rhs } => Expression::BinOp {
-            op: op.clone(),
+            op: *op,
             lhs: Box::new(substitute_var(lhs, name, replacement)),
             rhs: Box::new(substitute_var(rhs, name, replacement)),
         },
         Expression::UnaryOp { op, operand } => Expression::UnaryOp {
-            op: op.clone(),
+            op: *op,
             operand: Box::new(substitute_var(operand, name, replacement)),
         },
         Expression::Load {
@@ -1410,12 +1528,12 @@ fn replace_stack_loads(
             value: Box::new(replace_stack_loads(value, stack_vars)),
         },
         Expression::BinOp { op, lhs, rhs } => Expression::BinOp {
-            op: op.clone(),
+            op: *op,
             lhs: Box::new(replace_stack_loads(lhs, stack_vars)),
             rhs: Box::new(replace_stack_loads(rhs, stack_vars)),
         },
         Expression::UnaryOp { op, operand } => Expression::UnaryOp {
-            op: op.clone(),
+            op: *op,
             operand: Box::new(replace_stack_loads(operand, stack_vars)),
         },
         Expression::Call { name, args } => Expression::Call {
@@ -1437,15 +1555,15 @@ pub fn format_expression(expr: &Expression) -> String {
         Expression::Raw(s) => s.clone(),
         Expression::BinOp { op, lhs, rhs } => {
             // Convert `x + -N` to `x - N`.
-            if op == "+"
+            if *op == BinOp::Add
                 && let Expression::Const(v) = rhs.as_ref()
                 && *v < 0
             {
-                let lhs_str = format_expression_maybe_parens(lhs, "-", true);
+                let lhs_str = format_expression_maybe_parens(lhs, BinOp::Sub, true);
                 return format!("{} - {}", lhs_str, -v);
             }
-            let lhs_str = format_expression_maybe_parens(lhs, op, true);
-            let rhs_str = format_expression_maybe_parens(rhs, op, false);
+            let lhs_str = format_expression_maybe_parens(lhs, *op, true);
+            let rhs_str = format_expression_maybe_parens(rhs, *op, false);
             format!("{} {} {}", lhs_str, op, rhs_str)
         }
         Expression::UnaryOp { op, operand } => {
@@ -1495,10 +1613,10 @@ fn format_mem_address(base: &Expression, offset: i32) -> String {
 }
 
 /// Format a sub-expression, adding parentheses only when needed for precedence.
-fn format_expression_maybe_parens(expr: &Expression, parent_op: &str, _is_left: bool) -> String {
+fn format_expression_maybe_parens(expr: &Expression, parent_op: BinOp, _is_left: bool) -> String {
     match expr {
         Expression::BinOp { op, .. } => {
-            let needs_parens = op_precedence(op) < op_precedence(parent_op);
+            let needs_parens = op_precedence(*op) < op_precedence(parent_op);
             if needs_parens {
                 format!("({})", format_expression(expr))
             } else {
@@ -1510,16 +1628,15 @@ fn format_expression_maybe_parens(expr: &Expression, parent_op: &str, _is_left: 
 }
 
 /// Simple operator precedence (higher = binds tighter).
-fn op_precedence(op: &str) -> u8 {
+fn op_precedence(op: BinOp) -> u8 {
     match op {
-        "|" => 1,
-        "^" => 2,
-        "&" => 3,
-        "==" | "!=" | "<u" | "<s" | ">=u" | ">=s" => 4,
-        "<<" | ">>u" | ">>s" => 5,
-        "+" | "-" => 6,
-        "*" | "/u" | "/s" | "%u" | "%s" => 7,
-        _ => 0,
+        BinOp::Or => 1,
+        BinOp::Xor => 2,
+        BinOp::And => 3,
+        BinOp::LtU | BinOp::LtS => 4,
+        BinOp::Shl | BinOp::ShrU | BinOp::ShrS => 5,
+        BinOp::Add | BinOp::Sub => 6,
+        BinOp::Mul | BinOp::DivU | BinOp::DivS | BinOp::RemU | BinOp::RemS => 7,
     }
 }
 
@@ -1733,7 +1850,7 @@ mod tests {
     #[test]
     fn test_simplify_add_zero() {
         let expr = Expression::BinOp {
-            op: "+".to_string(),
+            op: BinOp::Add,
             lhs: Box::new(Expression::Var("x".to_string())),
             rhs: Box::new(Expression::Const(0)),
         };
@@ -1744,7 +1861,7 @@ mod tests {
     #[test]
     fn test_simplify_xor_zero() {
         let expr = Expression::BinOp {
-            op: "^".to_string(),
+            op: BinOp::Xor,
             lhs: Box::new(Expression::Var("x".to_string())),
             rhs: Box::new(Expression::Const(0)),
         };
@@ -1755,7 +1872,7 @@ mod tests {
     #[test]
     fn test_simplify_mul_one() {
         let expr = Expression::BinOp {
-            op: "*".to_string(),
+            op: BinOp::Mul,
             lhs: Box::new(Expression::Var("x".to_string())),
             rhs: Box::new(Expression::Const(1)),
         };
@@ -1766,7 +1883,7 @@ mod tests {
     #[test]
     fn test_simplify_mul_zero() {
         let expr = Expression::BinOp {
-            op: "*".to_string(),
+            op: BinOp::Mul,
             lhs: Box::new(Expression::Var("x".to_string())),
             rhs: Box::new(Expression::Const(0)),
         };
@@ -1777,7 +1894,7 @@ mod tests {
     #[test]
     fn test_simplify_and_zero() {
         let expr = Expression::BinOp {
-            op: "&".to_string(),
+            op: BinOp::And,
             lhs: Box::new(Expression::Var("x".to_string())),
             rhs: Box::new(Expression::Const(0)),
         };
@@ -1788,7 +1905,7 @@ mod tests {
     #[test]
     fn test_simplify_ltu_1_negation() {
         let expr = Expression::BinOp {
-            op: "<u".to_string(),
+            op: BinOp::LtU,
             lhs: Box::new(Expression::Var("cond_0".to_string())),
             rhs: Box::new(Expression::Const(1)),
         };
@@ -1799,7 +1916,7 @@ mod tests {
     #[test]
     fn test_simplify_shift_zero() {
         let expr = Expression::BinOp {
-            op: "<<".to_string(),
+            op: BinOp::Shl,
             lhs: Box::new(Expression::Var("x".to_string())),
             rhs: Box::new(Expression::Const(0)),
         };
@@ -1811,9 +1928,9 @@ mod tests {
     fn test_simplify_nested() {
         // (x + 0) * 1 → x
         let expr = Expression::BinOp {
-            op: "*".to_string(),
+            op: BinOp::Mul,
             lhs: Box::new(Expression::BinOp {
-                op: "+".to_string(),
+                op: BinOp::Add,
                 lhs: Box::new(Expression::Var("x".to_string())),
                 rhs: Box::new(Expression::Const(0)),
             }),
@@ -1826,7 +1943,7 @@ mod tests {
     #[test]
     fn test_simplify_no_change() {
         let expr = Expression::BinOp {
-            op: "+".to_string(),
+            op: BinOp::Add,
             lhs: Box::new(Expression::Var("x".to_string())),
             rhs: Box::new(Expression::Const(5)),
         };
@@ -1838,9 +1955,9 @@ mod tests {
     fn test_format_expression_precedence() {
         // (a + b) * c should parenthesize the addition
         let expr = Expression::BinOp {
-            op: "*".to_string(),
+            op: BinOp::Mul,
             lhs: Box::new(Expression::BinOp {
-                op: "+".to_string(),
+                op: BinOp::Add,
                 lhs: Box::new(Expression::Var("a".to_string())),
                 rhs: Box::new(Expression::Var("b".to_string())),
             }),
@@ -1854,9 +1971,9 @@ mod tests {
     fn test_format_expression_no_unnecessary_parens() {
         // a * b + c should NOT parenthesize the multiplication
         let expr = Expression::BinOp {
-            op: "+".to_string(),
+            op: BinOp::Add,
             lhs: Box::new(Expression::BinOp {
-                op: "*".to_string(),
+                op: BinOp::Mul,
                 lhs: Box::new(Expression::Var("a".to_string())),
                 rhs: Box::new(Expression::Var("b".to_string())),
             }),
