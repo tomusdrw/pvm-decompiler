@@ -258,6 +258,13 @@ impl LiftedProgram {
         let mut ptr_counter: usize = 0;
         let mut cond_counter: usize = 0;
 
+        // Build a PC → Instruction index for O(1) lookups during type inference.
+        let instruction_at_pc: HashMap<usize, &Instruction> = cfg
+            .blocks
+            .values()
+            .flat_map(|block| block.instructions.iter().map(|(pc, instr)| (*pc, instr)))
+            .collect();
+
         // Collect all definitions in PC order for deterministic naming.
         let mut all_defs: Vec<(usize, u8)> = Vec::new();
         let mut sorted_blocks: Vec<usize> = cfg.blocks.keys().copied().collect();
@@ -277,7 +284,7 @@ impl LiftedProgram {
 
         // Infer types and assign names.
         for &(def_pc, reg) in &all_defs {
-            let var_type = self.infer_type(def_pc, reg, cfg, dataflow);
+            let var_type = self.infer_type(def_pc, reg, &instruction_at_pc, dataflow);
             let name = match var_type {
                 VarType::Pointer => {
                     let name = format!("ptr_{}", ptr_counter);
@@ -325,11 +332,11 @@ impl LiftedProgram {
         &self,
         def_pc: usize,
         reg: u8,
-        cfg: &ControlFlowGraph,
+        instruction_at_pc: &HashMap<usize, &Instruction>,
         dataflow: &DataFlowAnalysis,
     ) -> VarType {
         // Check the defining instruction itself.
-        if let Some(instr) = Self::instruction_at(cfg, def_pc) {
+        if let Some(instr) = instruction_at_pc.get(&def_pc) {
             match instr {
                 Instruction::SetLtU { .. }
                 | Instruction::SetLtS { .. }
@@ -345,7 +352,7 @@ impl LiftedProgram {
             for chain in chains {
                 if chain.definition.pc == def_pc && chain.definition.reg == reg {
                     for u in &chain.uses {
-                        if let Some(use_instr) = Self::instruction_at(cfg, u.pc)
+                        if let Some(use_instr) = instruction_at_pc.get(&u.pc)
                             && Self::is_used_as_base(use_instr, reg)
                         {
                             return VarType::Pointer;
@@ -373,18 +380,6 @@ impl LiftedProgram {
             | Instruction::StoreIndU64 { base, .. } => *base == reg,
             _ => false,
         }
-    }
-
-    /// Look up the instruction at a given PC across all blocks.
-    fn instruction_at(cfg: &ControlFlowGraph, pc: usize) -> Option<&Instruction> {
-        for block in cfg.blocks.values() {
-            for (ipc, instr) in &block.instructions {
-                if *ipc == pc {
-                    return Some(instr);
-                }
-            }
-        }
-        None
     }
 
     /// Build an Expression for every instruction PC.
