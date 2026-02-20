@@ -2115,6 +2115,54 @@ mod tests {
     }
 
     #[test]
+    fn test_cross_block_no_fold_side_effects() {
+        // Block 0: r0 = load_u32(r2, 0)   (side effect - memory load)
+        // Block 10: r1 = r0 + 1; trap
+        // r0 is SDSU across blocks, block 0 dominates block 10, but r0's definition
+        // is a Load expression which has side effects -> should NOT be folded.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::LoadIndU32 {
+                            dst: 0,
+                            base: 2,
+                            offset: 0,
+                        },
+                    )],
+                    vec![10],
+                ),
+                (
+                    10,
+                    vec![
+                        (
+                            10,
+                            Instruction::AddImm32 {
+                                dst: 1,
+                                src: 0,
+                                value: 1,
+                            },
+                        ),
+                        (14, Instruction::Trap),
+                    ],
+                    vec![],
+                ),
+            ],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        // PC 0 (Load) should NOT be eliminated because loads have side effects.
+        assert!(
+            !lifted.eliminated_pcs.contains(&0),
+            "Load at PC 0 should not be folded across blocks (side effect)"
+        );
+    }
+
+    #[test]
     fn test_copy_propagation() {
         // r0 = 10; r1 = r0 (move/add 0); r2 = r1 + 5; trap
         // After copy propagation, r1 = r0 should be eliminated and r2 should use r0's var name.
