@@ -140,15 +140,8 @@ impl ControlFlowGraph {
             let end_pc = if i + 1 < sorted_leaders.len() {
                 sorted_leaders[i + 1]
             } else {
-                // Last block extends to end of code
-                program
-                    .instructions
-                    .last()
-                    .map(|(pc, _instr)| {
-                        // Estimate end PC (this is approximate)
-                        pc + 1 // Simplified: assume 1 byte per instruction
-                    })
-                    .unwrap_or(0)
+                // Last block extends to end of code section
+                program.code_len
             };
 
             // Collect instructions in this block
@@ -345,6 +338,7 @@ mod tests {
                 (9, Instruction::LoadImm { reg: 1, value: 2 }),
                 (13, Instruction::Trap),
             ],
+            code_len: 14,
         };
         let cfg = ControlFlowGraph::build(&program);
 
@@ -371,6 +365,7 @@ mod tests {
                 (10, Instruction::LoadImm { reg: 1, value: 1 }),
                 (14, Instruction::Trap),
             ],
+            code_len: 15,
         };
         let cfg = ControlFlowGraph::build(&program);
 
@@ -405,6 +400,7 @@ mod tests {
                 (10, Instruction::LoadImm { reg: 1, value: 2 }),
                 (14, Instruction::Trap),
             ],
+            code_len: 15,
         };
         let cfg = ControlFlowGraph::build(&program);
 
@@ -421,6 +417,7 @@ mod tests {
         let program = DecodedProgram {
             jump_table: vec![],
             instructions: vec![],
+            code_len: 0,
         };
         let cfg = ControlFlowGraph::build(&program);
         assert!(cfg.blocks.is_empty());
@@ -444,6 +441,7 @@ mod tests {
                 (4, Instruction::Trap),
                 (5, Instruction::LoadImm { reg: 1, value: 2 }),
             ],
+            code_len: 9,
         };
         let cfg = ControlFlowGraph::build(&program);
 
@@ -453,5 +451,23 @@ mod tests {
             entry.successors.is_empty(),
             "Trap block should have no successors"
         );
+    }
+
+    #[test]
+    fn test_last_block_end_pc_uses_code_len() {
+        // Instructions at PC 0 (4 bytes) and PC 4 (5 bytes) => code_len = 9
+        let program = DecodedProgram {
+            jump_table: vec![],
+            instructions: vec![
+                (0, Instruction::LoadImm { reg: 0, value: 1 }),
+                (4, Instruction::Jump { offset: -4 }),
+            ],
+            code_len: 9,
+        };
+        let cfg = ControlFlowGraph::build(&program);
+
+        // The block containing the Jump should have end_pc = 9 (code_len), not 5 (pc + 1)
+        let block = cfg.blocks.get(&0).unwrap();
+        assert_eq!(block.end_pc, 9, "Last block end_pc should equal code_len");
     }
 }

@@ -1333,6 +1333,7 @@ mod tests {
         DecodedProgram {
             jump_table: vec![],
             instructions: vec![],
+            code_len: 0,
         }
     }
 
@@ -1723,6 +1724,7 @@ mod tests {
         let program = DecodedProgram {
             jump_table: vec![100, 200, 100, 300],
             instructions: vec![(0, Instruction::JumpInd { reg: 3, offset: 0 })],
+            code_len: 3,
         };
 
         let result = StructuralAnalysis::analyze(&cfg, &program);

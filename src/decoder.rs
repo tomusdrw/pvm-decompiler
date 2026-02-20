@@ -7,6 +7,7 @@ use wasm_pvm::pvm::Instruction;
 pub struct DecodedProgram {
     pub jump_table: Vec<u32>,
     pub instructions: Vec<(usize, Instruction)>, // (PC, Instruction)
+    pub code_len: usize,                         // Total byte length of the code section
 }
 
 #[derive(Debug)]
@@ -222,6 +223,7 @@ fn decode_blob_internal(blob_data: &[u8]) -> Result<DecodedProgram, Box<dyn Erro
     Ok(DecodedProgram {
         jump_table,
         instructions,
+        code_len: code_len as usize,
     })
 }
 
