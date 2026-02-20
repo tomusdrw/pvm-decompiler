@@ -115,6 +115,31 @@ impl fmt::Display for UnaryOp {
     }
 }
 
+/// Memory access width for Load/Store expressions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MemWidth {
+    U8,
+    I8,
+    U16,
+    I16,
+    U32,
+    U64,
+}
+
+impl fmt::Display for MemWidth {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            MemWidth::U8 => "u8",
+            MemWidth::I8 => "i8",
+            MemWidth::U16 => "u16",
+            MemWidth::I16 => "i16",
+            MemWidth::U32 => "u32",
+            MemWidth::U64 => "u64",
+        };
+        write!(f, "{}", s)
+    }
+}
+
 /// An expression tree representing a computation.
 #[derive(Debug, Clone)]
 pub enum Expression {
@@ -130,12 +155,12 @@ pub enum Expression {
         operand: Box<Expression>,
     },
     Load {
-        width: String,
+        width: MemWidth,
         base: Box<Expression>,
         offset: i32,
     },
     Store {
-        width: String,
+        width: MemWidth,
         base: Box<Expression>,
         offset: i32,
         value: Box<Expression>,
@@ -469,34 +494,38 @@ impl LiftedProgram {
             Instruction::Sbrk { src, .. } => self.make_unary(pc, UnaryOp::Sbrk, *src),
 
             // Load instructions
-            Instruction::LoadIndU8 { base, offset, .. } => self.make_load(pc, "u8", *base, *offset),
-            Instruction::LoadIndI8 { base, offset, .. } => self.make_load(pc, "i8", *base, *offset),
+            Instruction::LoadIndU8 { base, offset, .. } => {
+                self.make_load(pc, MemWidth::U8, *base, *offset)
+            }
+            Instruction::LoadIndI8 { base, offset, .. } => {
+                self.make_load(pc, MemWidth::I8, *base, *offset)
+            }
             Instruction::LoadIndU16 { base, offset, .. } => {
-                self.make_load(pc, "u16", *base, *offset)
+                self.make_load(pc, MemWidth::U16, *base, *offset)
             }
             Instruction::LoadIndI16 { base, offset, .. } => {
-                self.make_load(pc, "i16", *base, *offset)
+                self.make_load(pc, MemWidth::I16, *base, *offset)
             }
             Instruction::LoadIndU32 { base, offset, .. } => {
-                self.make_load(pc, "u32", *base, *offset)
+                self.make_load(pc, MemWidth::U32, *base, *offset)
             }
             Instruction::LoadIndU64 { base, offset, .. } => {
-                self.make_load(pc, "u64", *base, *offset)
+                self.make_load(pc, MemWidth::U64, *base, *offset)
             }
 
             // Store instructions
             Instruction::StoreIndU8 {
                 base, src, offset, ..
-            } => self.make_store(pc, "u8", *base, *offset, *src),
+            } => self.make_store(pc, MemWidth::U8, *base, *offset, *src),
             Instruction::StoreIndU16 {
                 base, src, offset, ..
-            } => self.make_store(pc, "u16", *base, *offset, *src),
+            } => self.make_store(pc, MemWidth::U16, *base, *offset, *src),
             Instruction::StoreIndU32 {
                 base, src, offset, ..
-            } => self.make_store(pc, "u32", *base, *offset, *src),
+            } => self.make_store(pc, MemWidth::U32, *base, *offset, *src),
             Instruction::StoreIndU64 {
                 base, src, offset, ..
-            } => self.make_store(pc, "u64", *base, *offset, *src),
+            } => self.make_store(pc, MemWidth::U64, *base, *offset, *src),
 
             // Ecalli
             Instruction::Ecalli { index } => Expression::Call {
@@ -601,17 +630,17 @@ impl LiftedProgram {
         }
     }
 
-    fn make_load(&self, pc: usize, width: &str, base: u8, offset: i32) -> Expression {
+    fn make_load(&self, pc: usize, width: MemWidth, base: u8, offset: i32) -> Expression {
         Expression::Load {
-            width: width.to_string(),
+            width,
             base: Box::new(Expression::Var(self.reg_name(pc, base))),
             offset,
         }
     }
 
-    fn make_store(&self, pc: usize, width: &str, base: u8, offset: i32, src: u8) -> Expression {
+    fn make_store(&self, pc: usize, width: MemWidth, base: u8, offset: i32, src: u8) -> Expression {
         Expression::Store {
-            width: width.to_string(),
+            width,
             base: Box::new(Expression::Var(self.reg_name(pc, base))),
             offset,
             value: Box::new(Expression::Var(self.reg_name(pc, src))),
@@ -1342,7 +1371,7 @@ fn substitute_var(expr: &Expression, name: &str, replacement: &Expression) -> Ex
             base,
             offset,
         } => Expression::Load {
-            width: width.clone(),
+            width: *width,
             base: Box::new(substitute_var(base, name, replacement)),
             offset: *offset,
         },
@@ -1352,7 +1381,7 @@ fn substitute_var(expr: &Expression, name: &str, replacement: &Expression) -> Ex
             offset,
             value,
         } => Expression::Store {
-            width: width.clone(),
+            width: *width,
             base: Box::new(substitute_var(base, name, replacement)),
             offset: *offset,
             value: Box::new(substitute_var(value, name, replacement)),
@@ -1511,7 +1540,7 @@ fn replace_stack_loads(
                 return Expression::Var(slot_name.clone());
             }
             Expression::Load {
-                width: width.clone(),
+                width: *width,
                 base: Box::new(replace_stack_loads(base, stack_vars)),
                 offset: *offset,
             }
@@ -1522,7 +1551,7 @@ fn replace_stack_loads(
             offset,
             value,
         } => Expression::Store {
-            width: width.clone(),
+            width: *width,
             base: Box::new(replace_stack_loads(base, stack_vars)),
             offset: *offset,
             value: Box::new(replace_stack_loads(value, stack_vars)),

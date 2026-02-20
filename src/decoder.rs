@@ -732,6 +732,56 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn test_decode_two_reg() {
+        // SignExtend8: opcode 108, dst=4 (low), src=7 (high) -> byte1=0x74
+        let (instr, _) = decode_instruction(&[108, 0x74], 2).unwrap();
+        assert!(matches!(instr, Instruction::SignExtend8 { dst: 4, src: 7 }));
+    }
+
+    #[test]
+    fn test_decode_two_reg_imm() {
+        // AddImm32: opcode 131, dst=2 (low), src=5 (high) -> byte1=0x52, value=10
+        let (instr, _) = decode_instruction(&[131, 0x52, 10], 3).unwrap();
+        assert!(matches!(
+            instr,
+            Instruction::AddImm32 {
+                dst: 2,
+                src: 5,
+                value: 10
+            }
+        ));
+    }
+
+    #[test]
+    fn test_decode_branch_reg() {
+        // BranchGeU: opcode 174, reg2=1 (low), reg1=3 (high) -> byte1=0x31, offset=20
+        let data = [174, 0x31, 0x14, 0x00, 0x00, 0x00];
+        let (instr, _) = decode_instruction(&data, 6).unwrap();
+        assert!(matches!(
+            instr,
+            Instruction::BranchGeU {
+                reg1: 3,
+                reg2: 1,
+                offset: 20
+            }
+        ));
+    }
+
+    #[test]
+    fn test_decode_three_reg_too_short() {
+        // Three-register instruction with insufficient length should error
+        let result = decode_instruction(&[190, 0x32], 2);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_decode_branch_imm_too_short() {
+        // BranchEqImm with imm_len=1 but not enough bytes for the 4-byte offset
+        let result = decode_instruction(&[81, 0x13, 0x00], 3);
+        assert!(result.is_err());
+    }
+
     // --- decode_blob_internal ---
 
     #[test]
