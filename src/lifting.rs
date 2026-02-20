@@ -88,6 +88,11 @@ impl LiftedProgram {
         lifted.simplify_all_expressions();
         lifted.fold_expressions(cfg);
         lifted.simplify_all_expressions();
+        lifted.propagate_copies();
+        lifted.forward_store_loads(cfg);
+        lifted.propagate_copies();
+        lifted.eliminate_dead_stores();
+        lifted.simplify_all_expressions();
 
         lifted
     }
@@ -565,6 +570,126 @@ impl LiftedProgram {
         }
     }
 
+    /// Copy propagation: when a variable is defined as just another variable
+    /// (`dst = src`), replace all uses of `dst` with `src` and eliminate the copy.
+    fn propagate_copies(&mut self) {
+        let mut changed = true;
+        while changed {
+            changed = false;
+
+            // Find definitions that are just Var(other_name).
+            let mut copy_defs: Vec<(usize, String, String)> = Vec::new(); // (def_pc, dst_name, src_name)
+            for (&(def_pc, _reg), var) in &self.variables {
+                if self.eliminated_pcs.contains(&def_pc) {
+                    continue;
+                }
+                if let Some(Expression::Var(source_name)) = self.expressions.get(&def_pc) {
+                    copy_defs.push((def_pc, var.name.clone(), source_name.clone()));
+                }
+            }
+
+            for (def_pc, dst_name, src_name) in copy_defs {
+                // Replace dst_name with src_name in all var_at_use entries.
+                for value in self.var_at_use.values_mut() {
+                    if *value == dst_name {
+                        *value = src_name.clone();
+                    }
+                }
+
+                // Replace Var(dst_name) with Var(src_name) in all expressions.
+                let replacement = Expression::Var(src_name);
+                let pcs: Vec<usize> = self.expressions.keys().copied().collect();
+                for pc in pcs {
+                    if let Some(expr) = self.expressions.remove(&pc) {
+                        let new_expr = substitute_var(&expr, &dst_name, &replacement);
+                        self.expressions.insert(pc, new_expr);
+                    }
+                }
+
+                self.eliminated_pcs.insert(def_pc);
+                changed = true;
+            }
+        }
+    }
+
+    /// Store-load forwarding: within each basic block, when a store is followed
+    /// by a load from the same address, replace the load with the stored value.
+    fn forward_store_loads(&mut self, cfg: &ControlFlowGraph) {
+        let mut sorted_blocks: Vec<usize> = cfg.blocks.keys().copied().collect();
+        sorted_blocks.sort();
+
+        for &block_pc in &sorted_blocks {
+            let block = match cfg.blocks.get(&block_pc) {
+                Some(b) => b,
+                None => continue,
+            };
+
+            // Track stores: (base_str, offset) -> (value_expr, store_pc)
+            let mut store_map: HashMap<(String, i32), (Expression, usize)> = HashMap::new();
+
+            for (pc, _instr) in &block.instructions {
+                if self.eliminated_pcs.contains(pc) {
+                    continue;
+                }
+
+                let expr = match self.expressions.get(pc) {
+                    Some(e) => e.clone(),
+                    None => continue,
+                };
+
+                match &expr {
+                    Expression::Store {
+                        base,
+                        offset,
+                        value,
+                        ..
+                    } => {
+                        let base_str = format_expression(base);
+                        store_map.insert((base_str, *offset), (*value.clone(), *pc));
+                    }
+                    Expression::Load { base, offset, .. } => {
+                        let base_str = format_expression(base);
+                        if let Some((stored_value, _store_pc)) = store_map.get(&(base_str, *offset))
+                        {
+                            // Replace the load expression with the stored value.
+                            self.expressions.insert(*pc, stored_value.clone());
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    /// Dead store elimination: remove stores to stack locations that are never
+    /// read by any remaining load in the program.
+    fn eliminate_dead_stores(&mut self) {
+        // Collect all (base_str, offset) pairs that appear in remaining Load expressions.
+        let mut live_loads: HashSet<(String, i32)> = HashSet::new();
+        for (pc, expr) in &self.expressions {
+            if self.eliminated_pcs.contains(pc) {
+                continue;
+            }
+            collect_live_loads(expr, &mut live_loads);
+        }
+
+        // Eliminate stores whose target is not in any live load and whose base
+        // looks like a stack pointer (ptr_* variable).
+        let pcs: Vec<usize> = self.expressions.keys().copied().collect();
+        for pc in pcs {
+            if self.eliminated_pcs.contains(&pc) {
+                continue;
+            }
+            if let Some(Expression::Store { base, offset, .. }) = self.expressions.get(&pc) {
+                let base_str = format_expression(base);
+                // Only eliminate stores to known stack slots (ptr_* base).
+                if base_str.starts_with("ptr_") && !live_loads.contains(&(base_str, *offset)) {
+                    self.eliminated_pcs.insert(pc);
+                }
+            }
+        }
+    }
+
     /// Produce a summary of the lifting results.
     pub fn summarize(&self) -> String {
         use std::fmt::Write;
@@ -824,6 +949,33 @@ fn expression_depth(expr: &Expression) -> usize {
             1 + expression_depth(base).max(expression_depth(value))
         }
         Expression::Call { args, .. } => 1 + args.iter().map(expression_depth).max().unwrap_or(0),
+    }
+}
+
+/// Recursively collect all (base_str, offset) pairs from Load expressions in an expression tree.
+fn collect_live_loads(expr: &Expression, live: &mut HashSet<(String, i32)>) {
+    match expr {
+        Expression::Load { base, offset, .. } => {
+            live.insert((format_expression(base), *offset));
+            collect_live_loads(base, live);
+        }
+        Expression::BinOp { lhs, rhs, .. } => {
+            collect_live_loads(lhs, live);
+            collect_live_loads(rhs, live);
+        }
+        Expression::UnaryOp { operand, .. } => {
+            collect_live_loads(operand, live);
+        }
+        Expression::Store { base, value, .. } => {
+            collect_live_loads(base, live);
+            collect_live_loads(value, live);
+        }
+        Expression::Call { args, .. } => {
+            for arg in args {
+                collect_live_loads(arg, live);
+            }
+        }
+        Expression::Const(_) | Expression::Var(_) | Expression::Raw(_) => {}
     }
 }
 
@@ -1319,5 +1471,227 @@ mod tests {
 
         // PC 10 should NOT be eliminated.
         assert!(!lifted.eliminated_pcs.contains(&10));
+    }
+
+    #[test]
+    fn test_copy_propagation() {
+        // r0 = 10; r1 = r0 (move/add 0); r2 = r1 + 5; trap
+        // After copy propagation, r1 = r0 should be eliminated and r2 should use r0's var name.
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (0, Instruction::LoadImm { reg: 0, value: 10 }),
+                    (
+                        4,
+                        Instruction::AddImm32 {
+                            dst: 1,
+                            src: 0,
+                            value: 0,
+                        },
+                    ),
+                    (
+                        8,
+                        Instruction::AddImm32 {
+                            dst: 2,
+                            src: 1,
+                            value: 5,
+                        },
+                    ),
+                    (12, Instruction::Trap),
+                ],
+                vec![],
+            )],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        // PC 4 (the copy r1 = r0 + 0 = r0) should be eliminated.
+        assert!(
+            lifted.eliminated_pcs.contains(&4),
+            "Copy at PC 4 should be eliminated"
+        );
+    }
+
+    #[test]
+    fn test_store_load_forwarding() {
+        // r0 = 100 (ptr); store u64[r0+8] = r1; r2 = load u64[r0+8]; trap
+        // The load should be forwarded to use r1's value directly.
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (0, Instruction::LoadImm { reg: 0, value: 100 }),
+                    (4, Instruction::LoadImm { reg: 1, value: 42 }),
+                    (
+                        8,
+                        Instruction::StoreIndU64 {
+                            base: 0,
+                            src: 1,
+                            offset: 8,
+                        },
+                    ),
+                    (
+                        12,
+                        Instruction::LoadIndU64 {
+                            dst: 2,
+                            base: 0,
+                            offset: 8,
+                        },
+                    ),
+                    (16, Instruction::Trap),
+                ],
+                vec![],
+            )],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        // PC 12 (the load) should have been forwarded to the stored value,
+        // not remain as a Load expression.
+        let expr = lifted.expressions.get(&12).unwrap();
+        assert!(
+            !matches!(expr, Expression::Load { .. }),
+            "Load at PC 12 should have been forwarded, got: {}",
+            format_expression(expr)
+        );
+    }
+
+    #[test]
+    fn test_dead_store_elimination() {
+        // r0 = 100 (ptr); store u64[r0+8] = r1; store u64[r0+16] = r1; trap
+        // Both stores are never loaded, so they should be eliminated.
+        // Two stores so r0 has multiple uses and isn't constant-propagated.
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (0, Instruction::LoadImm { reg: 0, value: 100 }),
+                    (4, Instruction::LoadImm { reg: 1, value: 42 }),
+                    (
+                        8,
+                        Instruction::StoreIndU64 {
+                            base: 0,
+                            src: 1,
+                            offset: 8,
+                        },
+                    ),
+                    (
+                        12,
+                        Instruction::StoreIndU64 {
+                            base: 0,
+                            src: 1,
+                            offset: 16,
+                        },
+                    ),
+                    (16, Instruction::Trap),
+                ],
+                vec![],
+            )],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        // r0 is used as a base in stores, so it should be inferred as a pointer (ptr_*).
+        let var = lifted.variables.get(&(0, 0)).unwrap();
+        assert!(
+            var.name.starts_with("ptr_"),
+            "Base register should be a pointer, got: {}",
+            var.name
+        );
+
+        // The store at PC 8 should be eliminated since no load reads from it.
+        assert!(
+            lifted.eliminated_pcs.contains(&8),
+            "Dead store at PC 8 should be eliminated"
+        );
+        // The store at PC 12 should also be eliminated.
+        assert!(
+            lifted.eliminated_pcs.contains(&12),
+            "Dead store at PC 12 should be eliminated"
+        );
+    }
+
+    #[test]
+    fn test_store_load_forward_then_dead_store() {
+        // r0 = 100 (ptr); r1 = 7; store u64[r0+16] = r1; r2 = load u64[r0+16];
+        // r3 = r2 + r4; store u64[r0+32] = r3; trap
+        // r2 is used at PC 20 (different reg from r4), and r4 used at PC 20.
+        // r0 has multiple uses (base in 3 stores/loads), not constant-propagated.
+        // r2 has uses at PC 20 and PC 24 (two distinct use sites via different instructions),
+        // preventing fold. After forwarding, load at PC 12 replaced. After DSE, store at PC 8 removed.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 0, value: 100 }),
+                        (4, Instruction::LoadImm { reg: 1, value: 7 }),
+                        (
+                            8,
+                            Instruction::StoreIndU64 {
+                                base: 0,
+                                src: 1,
+                                offset: 16,
+                            },
+                        ),
+                        (
+                            12,
+                            Instruction::LoadIndU64 {
+                                dst: 2,
+                                base: 0,
+                                offset: 16,
+                            },
+                        ),
+                    ],
+                    vec![20],
+                ),
+                (
+                    20,
+                    vec![
+                        (
+                            20,
+                            Instruction::AddImm32 {
+                                dst: 3,
+                                src: 2,
+                                value: 1,
+                            },
+                        ),
+                        (
+                            24,
+                            Instruction::AddImm32 {
+                                dst: 4,
+                                src: 2,
+                                value: 2,
+                            },
+                        ),
+                        (28, Instruction::Trap),
+                    ],
+                    vec![],
+                ),
+            ],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        // The load at PC 12 should not be a Load expression anymore.
+        let expr12 = lifted.expressions.get(&12);
+        if let Some(e) = expr12 {
+            assert!(
+                !matches!(e, Expression::Load { .. }),
+                "Load should have been forwarded, got: {}",
+                format_expression(e)
+            );
+        }
+
+        // The store at PC 8 should be eliminated (dead store after forwarding).
+        assert!(
+            lifted.eliminated_pcs.contains(&8),
+            "Store at PC 8 should be a dead store after forwarding"
+        );
     }
 }
