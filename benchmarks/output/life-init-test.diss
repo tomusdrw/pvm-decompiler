@@ -1,0 +1,1576 @@
+Reading benchmarks/compiled/life-init-test.pvm...
+Successfully decoded as SPI format
+Jump Table: [10]
+
+Instructions:
+  PC 0x0000: Jump { offset: 10 }
+  PC 0x0005: Trap
+  PC 0x0006: Fallthrough
+  PC 0x0007: Fallthrough
+  PC 0x0008: Fallthrough
+  PC 0x0009: Fallthrough
+  PC 0x000a: AddImm64 { dst: 1, src: 1, value: -1368 }
+  PC 0x000e: AddImm64 { dst: 7, src: 7, value: -327680 }
+  PC 0x0013: StoreIndU64 { base: 1, src: 7, offset: 40 }
+  PC 0x0016: StoreIndU64 { base: 1, src: 8, offset: 48 }
+  PC 0x0019: Fallthrough
+  PC 0x001a: LoadImm { reg: 2, value: 0 }
+  PC 0x001c: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x001e: StoreIndU64 { base: 1, src: 2, offset: 56 }
+  PC 0x0021: LoadImm { reg: 3, value: 4 }
+  PC 0x0024: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0027: StoreIndU64 { base: 1, src: 4, offset: 64 }
+  PC 0x002a: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x002c: StoreIndU64 { base: 1, src: 2, offset: 72 }
+  PC 0x002f: LoadImm { reg: 3, value: 1 }
+  PC 0x0032: StoreIndU8 { base: 2, src: 3, offset: 327680 }
+  PC 0x0037: LoadImm { reg: 2, value: 0 }
+  PC 0x0039: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x003b: StoreIndU64 { base: 1, src: 2, offset: 88 }
+  PC 0x003e: LoadImm { reg: 3, value: 5 }
+  PC 0x0041: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0044: StoreIndU64 { base: 1, src: 4, offset: 96 }
+  PC 0x0047: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0049: StoreIndU64 { base: 1, src: 2, offset: 104 }
+  PC 0x004c: LoadImm { reg: 3, value: 1 }
+  PC 0x004f: StoreIndU8 { base: 2, src: 3, offset: 327680 }
+  PC 0x0054: LoadImm { reg: 2, value: 0 }
+  PC 0x0056: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0058: StoreIndU64 { base: 1, src: 2, offset: 120 }
+  PC 0x005b: LoadImm { reg: 3, value: 6 }
+  PC 0x005e: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0061: StoreIndU64 { base: 1, src: 4, offset: 128 }
+  PC 0x0065: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0067: StoreIndU64 { base: 1, src: 2, offset: 136 }
+  PC 0x006b: LoadImm { reg: 3, value: 1 }
+  PC 0x006e: StoreIndU8 { base: 2, src: 3, offset: 327680 }
+  PC 0x0073: LoadImm { reg: 2, value: 197120 }
+  PC 0x0078: LoadImm { reg: 3, value: 4 }
+  PC 0x007b: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+  PC 0x0080: LoadImm { reg: 2, value: 197124 }
+  PC 0x0085: LoadImm { reg: 3, value: 4 }
+  PC 0x0088: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+  PC 0x008d: LoadImm { reg: 2, value: 0 }
+  PC 0x008f: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x0094: StoreIndU64 { base: 1, src: 4, offset: 168 }
+  PC 0x0098: LoadImm { reg: 2, value: 0 }
+  PC 0x009a: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x009c: StoreIndU64 { base: 1, src: 2, offset: 176 }
+  PC 0x00a0: LoadImm { reg: 3, value: 1 }
+  PC 0x00a3: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x00a6: StoreIndU64 { base: 1, src: 4, offset: 184 }
+  PC 0x00aa: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x00ac: StoreIndU64 { base: 1, src: 2, offset: 192 }
+  PC 0x00b0: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x00b5: StoreIndU64 { base: 1, src: 4, offset: 200 }
+  PC 0x00b9: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x00bb: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x00bd: StoreIndU64 { base: 1, src: 2, offset: 208 }
+  PC 0x00c1: LoadImm { reg: 3, value: 8 }
+  PC 0x00c4: ShloL32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x00c7: StoreIndU64 { base: 1, src: 4, offset: 216 }
+  PC 0x00cb: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x00cd: StoreIndU64 { base: 1, src: 2, offset: 224 }
+  PC 0x00d1: LoadIndU64 { dst: 2, base: 1, offset: 168 }
+  PC 0x00d5: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x00d7: StoreIndU64 { base: 1, src: 2, offset: 232 }
+  PC 0x00db: LoadIndU64 { dst: 2, base: 1, offset: 224 }
+  PC 0x00df: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x00e1: StoreIndU64 { base: 1, src: 2, offset: 240 }
+  PC 0x00e5: LoadIndU64 { dst: 2, base: 1, offset: 232 }
+  PC 0x00e9: LoadIndU64 { dst: 3, base: 1, offset: 240 }
+  PC 0x00ed: Or { dst: 4, src1: 2, src2: 3 }
+  PC 0x00f0: StoreIndU64 { base: 1, src: 4, offset: 248 }
+  PC 0x00f4: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x00f6: StoreIndU64 { base: 1, src: 2, offset: 256 }
+  PC 0x00fa: LoadImm { reg: 2, value: 0 }
+  PC 0x00fc: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x00fe: StoreIndU64 { base: 1, src: 2, offset: 264 }
+  PC 0x0102: LoadImm { reg: 3, value: 2 }
+  PC 0x0105: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0108: StoreIndU64 { base: 1, src: 4, offset: 272 }
+  PC 0x010c: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x010e: StoreIndU64 { base: 1, src: 2, offset: 280 }
+  PC 0x0112: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x0117: StoreIndU64 { base: 1, src: 4, offset: 288 }
+  PC 0x011b: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x011d: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x011f: StoreIndU64 { base: 1, src: 2, offset: 296 }
+  PC 0x0123: LoadImm { reg: 3, value: 16 }
+  PC 0x0126: ShloL32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0129: StoreIndU64 { base: 1, src: 4, offset: 304 }
+  PC 0x012d: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x012f: StoreIndU64 { base: 1, src: 2, offset: 312 }
+  PC 0x0133: LoadImm { reg: 2, value: 0 }
+  PC 0x0135: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0137: StoreIndU64 { base: 1, src: 2, offset: 320 }
+  PC 0x013b: LoadImm { reg: 3, value: 3 }
+  PC 0x013e: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0141: StoreIndU64 { base: 1, src: 4, offset: 328 }
+  PC 0x0145: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0147: StoreIndU64 { base: 1, src: 2, offset: 336 }
+  PC 0x014b: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x0150: StoreIndU64 { base: 1, src: 4, offset: 344 }
+  PC 0x0154: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0156: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0158: StoreIndU64 { base: 1, src: 2, offset: 352 }
+  PC 0x015c: LoadImm { reg: 3, value: 24 }
+  PC 0x015f: ShloL32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0162: StoreIndU64 { base: 1, src: 4, offset: 360 }
+  PC 0x0166: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0168: StoreIndU64 { base: 1, src: 2, offset: 368 }
+  PC 0x016c: LoadIndU64 { dst: 2, base: 1, offset: 312 }
+  PC 0x0170: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0172: StoreIndU64 { base: 1, src: 2, offset: 376 }
+  PC 0x0176: LoadIndU64 { dst: 2, base: 1, offset: 368 }
+  PC 0x017a: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x017c: StoreIndU64 { base: 1, src: 2, offset: 384 }
+  PC 0x0180: LoadIndU64 { dst: 2, base: 1, offset: 376 }
+  PC 0x0184: LoadIndU64 { dst: 3, base: 1, offset: 384 }
+  PC 0x0188: Or { dst: 4, src1: 2, src2: 3 }
+  PC 0x018b: StoreIndU64 { base: 1, src: 4, offset: 392 }
+  PC 0x018f: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0191: StoreIndU64 { base: 1, src: 2, offset: 400 }
+  PC 0x0195: LoadIndU64 { dst: 2, base: 1, offset: 256 }
+  PC 0x0199: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x019b: StoreIndU64 { base: 1, src: 2, offset: 408 }
+  PC 0x019f: LoadIndU64 { dst: 2, base: 1, offset: 400 }
+  PC 0x01a3: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x01a5: StoreIndU64 { base: 1, src: 2, offset: 416 }
+  PC 0x01a9: LoadIndU64 { dst: 2, base: 1, offset: 408 }
+  PC 0x01ad: LoadIndU64 { dst: 3, base: 1, offset: 416 }
+  PC 0x01b1: Or { dst: 4, src1: 2, src2: 3 }
+  PC 0x01b4: StoreIndU64 { base: 1, src: 4, offset: 424 }
+  PC 0x01b8: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x01ba: StoreIndU64 { base: 1, src: 2, offset: 432 }
+  PC 0x01be: LoadImm { reg: 2, value: 197128 }
+  PC 0x01c3: LoadIndU64 { dst: 3, base: 1, offset: 432 }
+  PC 0x01c7: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+  PC 0x01cc: LoadImm { reg: 2, value: 0 }
+  PC 0x01ce: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x01d0: StoreIndU64 { base: 1, src: 2, offset: 448 }
+  PC 0x01d4: LoadImm { reg: 3, value: 4 }
+  PC 0x01d7: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x01da: StoreIndU64 { base: 1, src: 4, offset: 456 }
+  PC 0x01de: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x01e0: StoreIndU64 { base: 1, src: 2, offset: 464 }
+  PC 0x01e4: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x01e9: StoreIndU64 { base: 1, src: 4, offset: 472 }
+  PC 0x01ed: LoadImm { reg: 2, value: 0 }
+  PC 0x01ef: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x01f1: StoreIndU64 { base: 1, src: 2, offset: 480 }
+  PC 0x01f5: LoadImm { reg: 3, value: 5 }
+  PC 0x01f8: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x01fb: StoreIndU64 { base: 1, src: 4, offset: 488 }
+  PC 0x01ff: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0201: StoreIndU64 { base: 1, src: 2, offset: 496 }
+  PC 0x0205: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x020a: StoreIndU64 { base: 1, src: 4, offset: 504 }
+  PC 0x020e: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0210: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0212: StoreIndU64 { base: 1, src: 2, offset: 512 }
+  PC 0x0216: LoadImm { reg: 3, value: 8 }
+  PC 0x0219: ShloL32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x021c: StoreIndU64 { base: 1, src: 4, offset: 520 }
+  PC 0x0220: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0222: StoreIndU64 { base: 1, src: 2, offset: 528 }
+  PC 0x0226: LoadIndU64 { dst: 2, base: 1, offset: 472 }
+  PC 0x022a: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x022c: StoreIndU64 { base: 1, src: 2, offset: 536 }
+  PC 0x0230: LoadIndU64 { dst: 2, base: 1, offset: 528 }
+  PC 0x0234: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0236: StoreIndU64 { base: 1, src: 2, offset: 544 }
+  PC 0x023a: LoadIndU64 { dst: 2, base: 1, offset: 536 }
+  PC 0x023e: LoadIndU64 { dst: 3, base: 1, offset: 544 }
+  PC 0x0242: Or { dst: 4, src1: 2, src2: 3 }
+  PC 0x0245: StoreIndU64 { base: 1, src: 4, offset: 552 }
+  PC 0x0249: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x024b: StoreIndU64 { base: 1, src: 2, offset: 560 }
+  PC 0x024f: LoadImm { reg: 2, value: 0 }
+  PC 0x0251: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0253: StoreIndU64 { base: 1, src: 2, offset: 568 }
+  PC 0x0257: LoadImm { reg: 3, value: 6 }
+  PC 0x025a: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x025d: StoreIndU64 { base: 1, src: 4, offset: 576 }
+  PC 0x0261: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0263: StoreIndU64 { base: 1, src: 2, offset: 584 }
+  PC 0x0267: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x026c: StoreIndU64 { base: 1, src: 4, offset: 592 }
+  PC 0x0270: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0272: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0274: StoreIndU64 { base: 1, src: 2, offset: 600 }
+  PC 0x0278: LoadImm { reg: 3, value: 16 }
+  PC 0x027b: ShloL32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x027e: StoreIndU64 { base: 1, src: 4, offset: 608 }
+  PC 0x0282: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0284: StoreIndU64 { base: 1, src: 2, offset: 616 }
+  PC 0x0288: LoadImm { reg: 2, value: 0 }
+  PC 0x028a: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x028c: StoreIndU64 { base: 1, src: 2, offset: 624 }
+  PC 0x0290: LoadImm { reg: 3, value: 7 }
+  PC 0x0293: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0296: StoreIndU64 { base: 1, src: 4, offset: 632 }
+  PC 0x029a: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x029c: StoreIndU64 { base: 1, src: 2, offset: 640 }
+  PC 0x02a0: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x02a5: StoreIndU64 { base: 1, src: 4, offset: 648 }
+  PC 0x02a9: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x02ab: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x02ad: StoreIndU64 { base: 1, src: 2, offset: 656 }
+  PC 0x02b1: LoadImm { reg: 3, value: 24 }
+  PC 0x02b4: ShloL32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x02b7: StoreIndU64 { base: 1, src: 4, offset: 664 }
+  PC 0x02bb: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x02bd: StoreIndU64 { base: 1, src: 2, offset: 672 }
+  PC 0x02c1: LoadIndU64 { dst: 2, base: 1, offset: 616 }
+  PC 0x02c5: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x02c7: StoreIndU64 { base: 1, src: 2, offset: 680 }
+  PC 0x02cb: LoadIndU64 { dst: 2, base: 1, offset: 672 }
+  PC 0x02cf: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x02d1: StoreIndU64 { base: 1, src: 2, offset: 688 }
+  PC 0x02d5: LoadIndU64 { dst: 2, base: 1, offset: 680 }
+  PC 0x02d9: LoadIndU64 { dst: 3, base: 1, offset: 688 }
+  PC 0x02dd: Or { dst: 4, src1: 2, src2: 3 }
+  PC 0x02e0: StoreIndU64 { base: 1, src: 4, offset: 696 }
+  PC 0x02e4: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x02e6: StoreIndU64 { base: 1, src: 2, offset: 704 }
+  PC 0x02ea: LoadIndU64 { dst: 2, base: 1, offset: 560 }
+  PC 0x02ee: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x02f0: StoreIndU64 { base: 1, src: 2, offset: 712 }
+  PC 0x02f4: LoadIndU64 { dst: 2, base: 1, offset: 704 }
+  PC 0x02f8: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x02fa: StoreIndU64 { base: 1, src: 2, offset: 720 }
+  PC 0x02fe: LoadIndU64 { dst: 2, base: 1, offset: 712 }
+  PC 0x0302: LoadIndU64 { dst: 3, base: 1, offset: 720 }
+  PC 0x0306: Or { dst: 4, src1: 2, src2: 3 }
+  PC 0x0309: StoreIndU64 { base: 1, src: 4, offset: 728 }
+  PC 0x030d: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x030f: StoreIndU64 { base: 1, src: 2, offset: 736 }
+  PC 0x0313: LoadImm { reg: 2, value: 197132 }
+  PC 0x0318: LoadIndU64 { dst: 3, base: 1, offset: 736 }
+  PC 0x031c: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+  PC 0x0321: LoadImm { reg: 2, value: 0 }
+  PC 0x0323: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0325: StoreIndU64 { base: 1, src: 2, offset: 752 }
+  PC 0x0329: LoadImm { reg: 3, value: 8 }
+  PC 0x032c: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x032f: StoreIndU64 { base: 1, src: 4, offset: 760 }
+  PC 0x0333: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0335: StoreIndU64 { base: 1, src: 2, offset: 768 }
+  PC 0x0339: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x033e: StoreIndU64 { base: 1, src: 4, offset: 776 }
+  PC 0x0342: LoadImm { reg: 2, value: 0 }
+  PC 0x0344: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0346: StoreIndU64 { base: 1, src: 2, offset: 784 }
+  PC 0x034a: LoadImm { reg: 3, value: 9 }
+  PC 0x034d: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0350: StoreIndU64 { base: 1, src: 4, offset: 792 }
+  PC 0x0354: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0356: StoreIndU64 { base: 1, src: 2, offset: 800 }
+  PC 0x035a: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x035f: StoreIndU64 { base: 1, src: 4, offset: 808 }
+  PC 0x0363: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0365: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0367: StoreIndU64 { base: 1, src: 2, offset: 816 }
+  PC 0x036b: LoadImm { reg: 3, value: 8 }
+  PC 0x036e: ShloL32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0371: StoreIndU64 { base: 1, src: 4, offset: 824 }
+  PC 0x0375: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0377: StoreIndU64 { base: 1, src: 2, offset: 832 }
+  PC 0x037b: LoadIndU64 { dst: 2, base: 1, offset: 776 }
+  PC 0x037f: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0381: StoreIndU64 { base: 1, src: 2, offset: 840 }
+  PC 0x0385: LoadIndU64 { dst: 2, base: 1, offset: 832 }
+  PC 0x0389: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x038b: StoreIndU64 { base: 1, src: 2, offset: 848 }
+  PC 0x038f: LoadIndU64 { dst: 2, base: 1, offset: 840 }
+  PC 0x0393: LoadIndU64 { dst: 3, base: 1, offset: 848 }
+  PC 0x0397: Or { dst: 4, src1: 2, src2: 3 }
+  PC 0x039a: StoreIndU64 { base: 1, src: 4, offset: 856 }
+  PC 0x039e: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x03a0: StoreIndU64 { base: 1, src: 2, offset: 864 }
+  PC 0x03a4: LoadImm { reg: 2, value: 0 }
+  PC 0x03a6: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x03a8: StoreIndU64 { base: 1, src: 2, offset: 872 }
+  PC 0x03ac: LoadImm { reg: 3, value: 10 }
+  PC 0x03af: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x03b2: StoreIndU64 { base: 1, src: 4, offset: 880 }
+  PC 0x03b6: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x03b8: StoreIndU64 { base: 1, src: 2, offset: 888 }
+  PC 0x03bc: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x03c1: StoreIndU64 { base: 1, src: 4, offset: 896 }
+  PC 0x03c5: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x03c7: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x03c9: StoreIndU64 { base: 1, src: 2, offset: 904 }
+  PC 0x03cd: LoadImm { reg: 3, value: 16 }
+  PC 0x03d0: ShloL32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x03d3: StoreIndU64 { base: 1, src: 4, offset: 912 }
+  PC 0x03d7: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x03d9: StoreIndU64 { base: 1, src: 2, offset: 920 }
+  PC 0x03dd: LoadImm { reg: 2, value: 0 }
+  PC 0x03df: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x03e1: StoreIndU64 { base: 1, src: 2, offset: 928 }
+  PC 0x03e5: LoadImm { reg: 3, value: 11 }
+  PC 0x03e8: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x03eb: StoreIndU64 { base: 1, src: 4, offset: 936 }
+  PC 0x03ef: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x03f1: StoreIndU64 { base: 1, src: 2, offset: 944 }
+  PC 0x03f5: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x03fa: StoreIndU64 { base: 1, src: 4, offset: 952 }
+  PC 0x03fe: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0400: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0402: StoreIndU64 { base: 1, src: 2, offset: 960 }
+  PC 0x0406: LoadImm { reg: 3, value: 24 }
+  PC 0x0409: ShloL32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x040c: StoreIndU64 { base: 1, src: 4, offset: 968 }
+  PC 0x0410: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0412: StoreIndU64 { base: 1, src: 2, offset: 976 }
+  PC 0x0416: LoadIndU64 { dst: 2, base: 1, offset: 920 }
+  PC 0x041a: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x041c: StoreIndU64 { base: 1, src: 2, offset: 984 }
+  PC 0x0420: LoadIndU64 { dst: 2, base: 1, offset: 976 }
+  PC 0x0424: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0426: StoreIndU64 { base: 1, src: 2, offset: 992 }
+  PC 0x042a: LoadIndU64 { dst: 2, base: 1, offset: 984 }
+  PC 0x042e: LoadIndU64 { dst: 3, base: 1, offset: 992 }
+  PC 0x0432: Or { dst: 4, src1: 2, src2: 3 }
+  PC 0x0435: StoreIndU64 { base: 1, src: 4, offset: 1000 }
+  PC 0x0439: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x043b: StoreIndU64 { base: 1, src: 2, offset: 1008 }
+  PC 0x043f: LoadIndU64 { dst: 2, base: 1, offset: 864 }
+  PC 0x0443: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0445: StoreIndU64 { base: 1, src: 2, offset: 1016 }
+  PC 0x0449: LoadIndU64 { dst: 2, base: 1, offset: 1008 }
+  PC 0x044d: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x044f: StoreIndU64 { base: 1, src: 2, offset: 1024 }
+  PC 0x0453: LoadIndU64 { dst: 2, base: 1, offset: 1016 }
+  PC 0x0457: LoadIndU64 { dst: 3, base: 1, offset: 1024 }
+  PC 0x045b: Or { dst: 4, src1: 2, src2: 3 }
+  PC 0x045e: StoreIndU64 { base: 1, src: 4, offset: 1032 }
+  PC 0x0462: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0464: StoreIndU64 { base: 1, src: 2, offset: 1040 }
+  PC 0x0468: LoadImm { reg: 2, value: 197136 }
+  PC 0x046d: LoadIndU64 { dst: 3, base: 1, offset: 1040 }
+  PC 0x0471: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+  PC 0x0476: LoadImm { reg: 2, value: 0 }
+  PC 0x0478: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x047a: StoreIndU64 { base: 1, src: 2, offset: 1056 }
+  PC 0x047e: LoadImm { reg: 3, value: 12 }
+  PC 0x0481: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0484: StoreIndU64 { base: 1, src: 4, offset: 1064 }
+  PC 0x0488: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x048a: StoreIndU64 { base: 1, src: 2, offset: 1072 }
+  PC 0x048e: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x0493: StoreIndU64 { base: 1, src: 4, offset: 1080 }
+  PC 0x0497: LoadImm { reg: 2, value: 0 }
+  PC 0x0499: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x049b: StoreIndU64 { base: 1, src: 2, offset: 1088 }
+  PC 0x049f: LoadImm { reg: 3, value: 13 }
+  PC 0x04a2: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x04a5: StoreIndU64 { base: 1, src: 4, offset: 1096 }
+  PC 0x04a9: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x04ab: StoreIndU64 { base: 1, src: 2, offset: 1104 }
+  PC 0x04af: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x04b4: StoreIndU64 { base: 1, src: 4, offset: 1112 }
+  PC 0x04b8: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x04ba: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x04bc: StoreIndU64 { base: 1, src: 2, offset: 1120 }
+  PC 0x04c0: LoadImm { reg: 3, value: 8 }
+  PC 0x04c3: ShloL32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x04c6: StoreIndU64 { base: 1, src: 4, offset: 1128 }
+  PC 0x04ca: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x04cc: StoreIndU64 { base: 1, src: 2, offset: 1136 }
+  PC 0x04d0: LoadIndU64 { dst: 2, base: 1, offset: 1080 }
+  PC 0x04d4: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x04d6: StoreIndU64 { base: 1, src: 2, offset: 1144 }
+  PC 0x04da: LoadIndU64 { dst: 2, base: 1, offset: 1136 }
+  PC 0x04de: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x04e0: StoreIndU64 { base: 1, src: 2, offset: 1152 }
+  PC 0x04e4: LoadIndU64 { dst: 2, base: 1, offset: 1144 }
+  PC 0x04e8: LoadIndU64 { dst: 3, base: 1, offset: 1152 }
+  PC 0x04ec: Or { dst: 4, src1: 2, src2: 3 }
+  PC 0x04ef: StoreIndU64 { base: 1, src: 4, offset: 1160 }
+  PC 0x04f3: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x04f5: StoreIndU64 { base: 1, src: 2, offset: 1168 }
+  PC 0x04f9: LoadImm { reg: 2, value: 0 }
+  PC 0x04fb: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x04fd: StoreIndU64 { base: 1, src: 2, offset: 1176 }
+  PC 0x0501: LoadImm { reg: 3, value: 14 }
+  PC 0x0504: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0507: StoreIndU64 { base: 1, src: 4, offset: 1184 }
+  PC 0x050b: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x050d: StoreIndU64 { base: 1, src: 2, offset: 1192 }
+  PC 0x0511: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x0516: StoreIndU64 { base: 1, src: 4, offset: 1200 }
+  PC 0x051a: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x051c: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x051e: StoreIndU64 { base: 1, src: 2, offset: 1208 }
+  PC 0x0522: LoadImm { reg: 3, value: 16 }
+  PC 0x0525: ShloL32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0528: StoreIndU64 { base: 1, src: 4, offset: 1216 }
+  PC 0x052c: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x052e: StoreIndU64 { base: 1, src: 2, offset: 1224 }
+  PC 0x0532: LoadImm { reg: 2, value: 0 }
+  PC 0x0534: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0536: StoreIndU64 { base: 1, src: 2, offset: 1232 }
+  PC 0x053a: LoadImm { reg: 3, value: 15 }
+  PC 0x053d: Add32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0540: StoreIndU64 { base: 1, src: 4, offset: 1240 }
+  PC 0x0544: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0546: StoreIndU64 { base: 1, src: 2, offset: 1248 }
+  PC 0x054a: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+  PC 0x054f: StoreIndU64 { base: 1, src: 4, offset: 1256 }
+  PC 0x0553: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0555: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0557: StoreIndU64 { base: 1, src: 2, offset: 1264 }
+  PC 0x055b: LoadImm { reg: 3, value: 24 }
+  PC 0x055e: ShloL32 { dst: 4, src1: 2, src2: 3 }
+  PC 0x0561: StoreIndU64 { base: 1, src: 4, offset: 1272 }
+  PC 0x0565: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0567: StoreIndU64 { base: 1, src: 2, offset: 1280 }
+  PC 0x056b: LoadIndU64 { dst: 2, base: 1, offset: 1224 }
+  PC 0x056f: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x0571: StoreIndU64 { base: 1, src: 2, offset: 1288 }
+  PC 0x0575: LoadIndU64 { dst: 2, base: 1, offset: 1280 }
+  PC 0x0579: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x057b: StoreIndU64 { base: 1, src: 2, offset: 1296 }
+  PC 0x057f: LoadIndU64 { dst: 2, base: 1, offset: 1288 }
+  PC 0x0583: LoadIndU64 { dst: 3, base: 1, offset: 1296 }
+  PC 0x0587: Or { dst: 4, src1: 2, src2: 3 }
+  PC 0x058a: StoreIndU64 { base: 1, src: 4, offset: 1304 }
+  PC 0x058e: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x0590: StoreIndU64 { base: 1, src: 2, offset: 1312 }
+  PC 0x0594: LoadIndU64 { dst: 2, base: 1, offset: 1168 }
+  PC 0x0598: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x059a: StoreIndU64 { base: 1, src: 2, offset: 1320 }
+  PC 0x059e: LoadIndU64 { dst: 2, base: 1, offset: 1312 }
+  PC 0x05a2: AddImm32 { dst: 2, src: 2, value: 0 }
+  PC 0x05a4: StoreIndU64 { base: 1, src: 2, offset: 1328 }
+  PC 0x05a8: LoadIndU64 { dst: 2, base: 1, offset: 1320 }
+  PC 0x05ac: LoadIndU64 { dst: 3, base: 1, offset: 1328 }
+  PC 0x05b0: Or { dst: 4, src1: 2, src2: 3 }
+  PC 0x05b3: StoreIndU64 { base: 1, src: 4, offset: 1336 }
+  PC 0x05b7: AddImm64 { dst: 2, src: 4, value: 0 }
+  PC 0x05b9: StoreIndU64 { base: 1, src: 2, offset: 1344 }
+  PC 0x05bd: LoadImm { reg: 2, value: 197140 }
+  PC 0x05c2: LoadIndU64 { dst: 3, base: 1, offset: 1344 }
+  PC 0x05c6: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+  PC 0x05cb: LoadImm64 { reg: 2, value: 103079412224 }
+  PC 0x05d5: StoreIndU64 { base: 1, src: 2, offset: 1360 }
+  PC 0x05d9: Jump { offset: 5 }
+  PC 0x05de: LoadIndU64 { dst: 2, base: 1, offset: 1360 }
+  PC 0x05e2: LoadImm { reg: 3, value: 32 }
+  PC 0x05e5: ShloR64 { dst: 3, src1: 2, src2: 3 }
+  PC 0x05e8: AddImm32 { dst: 7, src: 2, value: 327680 }
+  PC 0x05ed: Add64 { dst: 8, src1: 7, src2: 3 }
+  PC 0x05f0: LoadImm { reg: 2, value: -65536 }
+  PC 0x05f5: JumpInd { reg: 2, offset: 0 }
+
+=== Control Flow Graph ===
+Entry PC: 0x0000
+Number of blocks: 5
+
+Block @ 0x0000 - 0x0005:
+    0x0000: Jump { offset: 10 }
+  Successors: 0x000a
+
+Block @ 0x0005 - 0x0006:
+    0x0005: Trap
+  Successors: (none)
+
+Block @ 0x0006 - 0x000a:
+    0x0006: Fallthrough
+    0x0007: Fallthrough
+    0x0008: Fallthrough
+    0x0009: Fallthrough
+  Successors: 0x000a
+
+Block @ 0x000a - 0x05de:
+    0x000a: AddImm64 { dst: 1, src: 1, value: -1368 }
+    0x000e: AddImm64 { dst: 7, src: 7, value: -327680 }
+    0x0013: StoreIndU64 { base: 1, src: 7, offset: 40 }
+    0x0016: StoreIndU64 { base: 1, src: 8, offset: 48 }
+    0x0019: Fallthrough
+    0x001a: LoadImm { reg: 2, value: 0 }
+    0x001c: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x001e: StoreIndU64 { base: 1, src: 2, offset: 56 }
+    0x0021: LoadImm { reg: 3, value: 4 }
+    0x0024: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x0027: StoreIndU64 { base: 1, src: 4, offset: 64 }
+    0x002a: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x002c: StoreIndU64 { base: 1, src: 2, offset: 72 }
+    0x002f: LoadImm { reg: 3, value: 1 }
+    0x0032: StoreIndU8 { base: 2, src: 3, offset: 327680 }
+    0x0037: LoadImm { reg: 2, value: 0 }
+    0x0039: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x003b: StoreIndU64 { base: 1, src: 2, offset: 88 }
+    0x003e: LoadImm { reg: 3, value: 5 }
+    0x0041: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x0044: StoreIndU64 { base: 1, src: 4, offset: 96 }
+    0x0047: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0049: StoreIndU64 { base: 1, src: 2, offset: 104 }
+    0x004c: LoadImm { reg: 3, value: 1 }
+    0x004f: StoreIndU8 { base: 2, src: 3, offset: 327680 }
+    0x0054: LoadImm { reg: 2, value: 0 }
+    0x0056: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0058: StoreIndU64 { base: 1, src: 2, offset: 120 }
+    0x005b: LoadImm { reg: 3, value: 6 }
+    0x005e: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x0061: StoreIndU64 { base: 1, src: 4, offset: 128 }
+    0x0065: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0067: StoreIndU64 { base: 1, src: 2, offset: 136 }
+    0x006b: LoadImm { reg: 3, value: 1 }
+    0x006e: StoreIndU8 { base: 2, src: 3, offset: 327680 }
+    0x0073: LoadImm { reg: 2, value: 197120 }
+    0x0078: LoadImm { reg: 3, value: 4 }
+    0x007b: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+    0x0080: LoadImm { reg: 2, value: 197124 }
+    0x0085: LoadImm { reg: 3, value: 4 }
+    0x0088: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+    0x008d: LoadImm { reg: 2, value: 0 }
+    0x008f: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x0094: StoreIndU64 { base: 1, src: 4, offset: 168 }
+    0x0098: LoadImm { reg: 2, value: 0 }
+    0x009a: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x009c: StoreIndU64 { base: 1, src: 2, offset: 176 }
+    0x00a0: LoadImm { reg: 3, value: 1 }
+    0x00a3: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x00a6: StoreIndU64 { base: 1, src: 4, offset: 184 }
+    0x00aa: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x00ac: StoreIndU64 { base: 1, src: 2, offset: 192 }
+    0x00b0: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x00b5: StoreIndU64 { base: 1, src: 4, offset: 200 }
+    0x00b9: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x00bb: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x00bd: StoreIndU64 { base: 1, src: 2, offset: 208 }
+    0x00c1: LoadImm { reg: 3, value: 8 }
+    0x00c4: ShloL32 { dst: 4, src1: 2, src2: 3 }
+    0x00c7: StoreIndU64 { base: 1, src: 4, offset: 216 }
+    0x00cb: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x00cd: StoreIndU64 { base: 1, src: 2, offset: 224 }
+    0x00d1: LoadIndU64 { dst: 2, base: 1, offset: 168 }
+    0x00d5: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x00d7: StoreIndU64 { base: 1, src: 2, offset: 232 }
+    0x00db: LoadIndU64 { dst: 2, base: 1, offset: 224 }
+    0x00df: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x00e1: StoreIndU64 { base: 1, src: 2, offset: 240 }
+    0x00e5: LoadIndU64 { dst: 2, base: 1, offset: 232 }
+    0x00e9: LoadIndU64 { dst: 3, base: 1, offset: 240 }
+    0x00ed: Or { dst: 4, src1: 2, src2: 3 }
+    0x00f0: StoreIndU64 { base: 1, src: 4, offset: 248 }
+    0x00f4: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x00f6: StoreIndU64 { base: 1, src: 2, offset: 256 }
+    0x00fa: LoadImm { reg: 2, value: 0 }
+    0x00fc: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x00fe: StoreIndU64 { base: 1, src: 2, offset: 264 }
+    0x0102: LoadImm { reg: 3, value: 2 }
+    0x0105: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x0108: StoreIndU64 { base: 1, src: 4, offset: 272 }
+    0x010c: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x010e: StoreIndU64 { base: 1, src: 2, offset: 280 }
+    0x0112: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x0117: StoreIndU64 { base: 1, src: 4, offset: 288 }
+    0x011b: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x011d: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x011f: StoreIndU64 { base: 1, src: 2, offset: 296 }
+    0x0123: LoadImm { reg: 3, value: 16 }
+    0x0126: ShloL32 { dst: 4, src1: 2, src2: 3 }
+    0x0129: StoreIndU64 { base: 1, src: 4, offset: 304 }
+    0x012d: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x012f: StoreIndU64 { base: 1, src: 2, offset: 312 }
+    0x0133: LoadImm { reg: 2, value: 0 }
+    0x0135: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0137: StoreIndU64 { base: 1, src: 2, offset: 320 }
+    0x013b: LoadImm { reg: 3, value: 3 }
+    0x013e: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x0141: StoreIndU64 { base: 1, src: 4, offset: 328 }
+    0x0145: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0147: StoreIndU64 { base: 1, src: 2, offset: 336 }
+    0x014b: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x0150: StoreIndU64 { base: 1, src: 4, offset: 344 }
+    0x0154: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0156: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0158: StoreIndU64 { base: 1, src: 2, offset: 352 }
+    0x015c: LoadImm { reg: 3, value: 24 }
+    0x015f: ShloL32 { dst: 4, src1: 2, src2: 3 }
+    0x0162: StoreIndU64 { base: 1, src: 4, offset: 360 }
+    0x0166: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0168: StoreIndU64 { base: 1, src: 2, offset: 368 }
+    0x016c: LoadIndU64 { dst: 2, base: 1, offset: 312 }
+    0x0170: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0172: StoreIndU64 { base: 1, src: 2, offset: 376 }
+    0x0176: LoadIndU64 { dst: 2, base: 1, offset: 368 }
+    0x017a: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x017c: StoreIndU64 { base: 1, src: 2, offset: 384 }
+    0x0180: LoadIndU64 { dst: 2, base: 1, offset: 376 }
+    0x0184: LoadIndU64 { dst: 3, base: 1, offset: 384 }
+    0x0188: Or { dst: 4, src1: 2, src2: 3 }
+    0x018b: StoreIndU64 { base: 1, src: 4, offset: 392 }
+    0x018f: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0191: StoreIndU64 { base: 1, src: 2, offset: 400 }
+    0x0195: LoadIndU64 { dst: 2, base: 1, offset: 256 }
+    0x0199: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x019b: StoreIndU64 { base: 1, src: 2, offset: 408 }
+    0x019f: LoadIndU64 { dst: 2, base: 1, offset: 400 }
+    0x01a3: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x01a5: StoreIndU64 { base: 1, src: 2, offset: 416 }
+    0x01a9: LoadIndU64 { dst: 2, base: 1, offset: 408 }
+    0x01ad: LoadIndU64 { dst: 3, base: 1, offset: 416 }
+    0x01b1: Or { dst: 4, src1: 2, src2: 3 }
+    0x01b4: StoreIndU64 { base: 1, src: 4, offset: 424 }
+    0x01b8: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x01ba: StoreIndU64 { base: 1, src: 2, offset: 432 }
+    0x01be: LoadImm { reg: 2, value: 197128 }
+    0x01c3: LoadIndU64 { dst: 3, base: 1, offset: 432 }
+    0x01c7: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+    0x01cc: LoadImm { reg: 2, value: 0 }
+    0x01ce: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x01d0: StoreIndU64 { base: 1, src: 2, offset: 448 }
+    0x01d4: LoadImm { reg: 3, value: 4 }
+    0x01d7: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x01da: StoreIndU64 { base: 1, src: 4, offset: 456 }
+    0x01de: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x01e0: StoreIndU64 { base: 1, src: 2, offset: 464 }
+    0x01e4: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x01e9: StoreIndU64 { base: 1, src: 4, offset: 472 }
+    0x01ed: LoadImm { reg: 2, value: 0 }
+    0x01ef: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x01f1: StoreIndU64 { base: 1, src: 2, offset: 480 }
+    0x01f5: LoadImm { reg: 3, value: 5 }
+    0x01f8: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x01fb: StoreIndU64 { base: 1, src: 4, offset: 488 }
+    0x01ff: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0201: StoreIndU64 { base: 1, src: 2, offset: 496 }
+    0x0205: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x020a: StoreIndU64 { base: 1, src: 4, offset: 504 }
+    0x020e: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0210: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0212: StoreIndU64 { base: 1, src: 2, offset: 512 }
+    0x0216: LoadImm { reg: 3, value: 8 }
+    0x0219: ShloL32 { dst: 4, src1: 2, src2: 3 }
+    0x021c: StoreIndU64 { base: 1, src: 4, offset: 520 }
+    0x0220: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0222: StoreIndU64 { base: 1, src: 2, offset: 528 }
+    0x0226: LoadIndU64 { dst: 2, base: 1, offset: 472 }
+    0x022a: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x022c: StoreIndU64 { base: 1, src: 2, offset: 536 }
+    0x0230: LoadIndU64 { dst: 2, base: 1, offset: 528 }
+    0x0234: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0236: StoreIndU64 { base: 1, src: 2, offset: 544 }
+    0x023a: LoadIndU64 { dst: 2, base: 1, offset: 536 }
+    0x023e: LoadIndU64 { dst: 3, base: 1, offset: 544 }
+    0x0242: Or { dst: 4, src1: 2, src2: 3 }
+    0x0245: StoreIndU64 { base: 1, src: 4, offset: 552 }
+    0x0249: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x024b: StoreIndU64 { base: 1, src: 2, offset: 560 }
+    0x024f: LoadImm { reg: 2, value: 0 }
+    0x0251: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0253: StoreIndU64 { base: 1, src: 2, offset: 568 }
+    0x0257: LoadImm { reg: 3, value: 6 }
+    0x025a: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x025d: StoreIndU64 { base: 1, src: 4, offset: 576 }
+    0x0261: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0263: StoreIndU64 { base: 1, src: 2, offset: 584 }
+    0x0267: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x026c: StoreIndU64 { base: 1, src: 4, offset: 592 }
+    0x0270: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0272: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0274: StoreIndU64 { base: 1, src: 2, offset: 600 }
+    0x0278: LoadImm { reg: 3, value: 16 }
+    0x027b: ShloL32 { dst: 4, src1: 2, src2: 3 }
+    0x027e: StoreIndU64 { base: 1, src: 4, offset: 608 }
+    0x0282: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0284: StoreIndU64 { base: 1, src: 2, offset: 616 }
+    0x0288: LoadImm { reg: 2, value: 0 }
+    0x028a: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x028c: StoreIndU64 { base: 1, src: 2, offset: 624 }
+    0x0290: LoadImm { reg: 3, value: 7 }
+    0x0293: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x0296: StoreIndU64 { base: 1, src: 4, offset: 632 }
+    0x029a: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x029c: StoreIndU64 { base: 1, src: 2, offset: 640 }
+    0x02a0: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x02a5: StoreIndU64 { base: 1, src: 4, offset: 648 }
+    0x02a9: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x02ab: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x02ad: StoreIndU64 { base: 1, src: 2, offset: 656 }
+    0x02b1: LoadImm { reg: 3, value: 24 }
+    0x02b4: ShloL32 { dst: 4, src1: 2, src2: 3 }
+    0x02b7: StoreIndU64 { base: 1, src: 4, offset: 664 }
+    0x02bb: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x02bd: StoreIndU64 { base: 1, src: 2, offset: 672 }
+    0x02c1: LoadIndU64 { dst: 2, base: 1, offset: 616 }
+    0x02c5: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x02c7: StoreIndU64 { base: 1, src: 2, offset: 680 }
+    0x02cb: LoadIndU64 { dst: 2, base: 1, offset: 672 }
+    0x02cf: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x02d1: StoreIndU64 { base: 1, src: 2, offset: 688 }
+    0x02d5: LoadIndU64 { dst: 2, base: 1, offset: 680 }
+    0x02d9: LoadIndU64 { dst: 3, base: 1, offset: 688 }
+    0x02dd: Or { dst: 4, src1: 2, src2: 3 }
+    0x02e0: StoreIndU64 { base: 1, src: 4, offset: 696 }
+    0x02e4: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x02e6: StoreIndU64 { base: 1, src: 2, offset: 704 }
+    0x02ea: LoadIndU64 { dst: 2, base: 1, offset: 560 }
+    0x02ee: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x02f0: StoreIndU64 { base: 1, src: 2, offset: 712 }
+    0x02f4: LoadIndU64 { dst: 2, base: 1, offset: 704 }
+    0x02f8: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x02fa: StoreIndU64 { base: 1, src: 2, offset: 720 }
+    0x02fe: LoadIndU64 { dst: 2, base: 1, offset: 712 }
+    0x0302: LoadIndU64 { dst: 3, base: 1, offset: 720 }
+    0x0306: Or { dst: 4, src1: 2, src2: 3 }
+    0x0309: StoreIndU64 { base: 1, src: 4, offset: 728 }
+    0x030d: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x030f: StoreIndU64 { base: 1, src: 2, offset: 736 }
+    0x0313: LoadImm { reg: 2, value: 197132 }
+    0x0318: LoadIndU64 { dst: 3, base: 1, offset: 736 }
+    0x031c: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+    0x0321: LoadImm { reg: 2, value: 0 }
+    0x0323: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0325: StoreIndU64 { base: 1, src: 2, offset: 752 }
+    0x0329: LoadImm { reg: 3, value: 8 }
+    0x032c: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x032f: StoreIndU64 { base: 1, src: 4, offset: 760 }
+    0x0333: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0335: StoreIndU64 { base: 1, src: 2, offset: 768 }
+    0x0339: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x033e: StoreIndU64 { base: 1, src: 4, offset: 776 }
+    0x0342: LoadImm { reg: 2, value: 0 }
+    0x0344: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0346: StoreIndU64 { base: 1, src: 2, offset: 784 }
+    0x034a: LoadImm { reg: 3, value: 9 }
+    0x034d: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x0350: StoreIndU64 { base: 1, src: 4, offset: 792 }
+    0x0354: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0356: StoreIndU64 { base: 1, src: 2, offset: 800 }
+    0x035a: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x035f: StoreIndU64 { base: 1, src: 4, offset: 808 }
+    0x0363: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0365: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0367: StoreIndU64 { base: 1, src: 2, offset: 816 }
+    0x036b: LoadImm { reg: 3, value: 8 }
+    0x036e: ShloL32 { dst: 4, src1: 2, src2: 3 }
+    0x0371: StoreIndU64 { base: 1, src: 4, offset: 824 }
+    0x0375: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0377: StoreIndU64 { base: 1, src: 2, offset: 832 }
+    0x037b: LoadIndU64 { dst: 2, base: 1, offset: 776 }
+    0x037f: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0381: StoreIndU64 { base: 1, src: 2, offset: 840 }
+    0x0385: LoadIndU64 { dst: 2, base: 1, offset: 832 }
+    0x0389: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x038b: StoreIndU64 { base: 1, src: 2, offset: 848 }
+    0x038f: LoadIndU64 { dst: 2, base: 1, offset: 840 }
+    0x0393: LoadIndU64 { dst: 3, base: 1, offset: 848 }
+    0x0397: Or { dst: 4, src1: 2, src2: 3 }
+    0x039a: StoreIndU64 { base: 1, src: 4, offset: 856 }
+    0x039e: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x03a0: StoreIndU64 { base: 1, src: 2, offset: 864 }
+    0x03a4: LoadImm { reg: 2, value: 0 }
+    0x03a6: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x03a8: StoreIndU64 { base: 1, src: 2, offset: 872 }
+    0x03ac: LoadImm { reg: 3, value: 10 }
+    0x03af: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x03b2: StoreIndU64 { base: 1, src: 4, offset: 880 }
+    0x03b6: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x03b8: StoreIndU64 { base: 1, src: 2, offset: 888 }
+    0x03bc: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x03c1: StoreIndU64 { base: 1, src: 4, offset: 896 }
+    0x03c5: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x03c7: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x03c9: StoreIndU64 { base: 1, src: 2, offset: 904 }
+    0x03cd: LoadImm { reg: 3, value: 16 }
+    0x03d0: ShloL32 { dst: 4, src1: 2, src2: 3 }
+    0x03d3: StoreIndU64 { base: 1, src: 4, offset: 912 }
+    0x03d7: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x03d9: StoreIndU64 { base: 1, src: 2, offset: 920 }
+    0x03dd: LoadImm { reg: 2, value: 0 }
+    0x03df: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x03e1: StoreIndU64 { base: 1, src: 2, offset: 928 }
+    0x03e5: LoadImm { reg: 3, value: 11 }
+    0x03e8: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x03eb: StoreIndU64 { base: 1, src: 4, offset: 936 }
+    0x03ef: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x03f1: StoreIndU64 { base: 1, src: 2, offset: 944 }
+    0x03f5: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x03fa: StoreIndU64 { base: 1, src: 4, offset: 952 }
+    0x03fe: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0400: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0402: StoreIndU64 { base: 1, src: 2, offset: 960 }
+    0x0406: LoadImm { reg: 3, value: 24 }
+    0x0409: ShloL32 { dst: 4, src1: 2, src2: 3 }
+    0x040c: StoreIndU64 { base: 1, src: 4, offset: 968 }
+    0x0410: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0412: StoreIndU64 { base: 1, src: 2, offset: 976 }
+    0x0416: LoadIndU64 { dst: 2, base: 1, offset: 920 }
+    0x041a: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x041c: StoreIndU64 { base: 1, src: 2, offset: 984 }
+    0x0420: LoadIndU64 { dst: 2, base: 1, offset: 976 }
+    0x0424: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0426: StoreIndU64 { base: 1, src: 2, offset: 992 }
+    0x042a: LoadIndU64 { dst: 2, base: 1, offset: 984 }
+    0x042e: LoadIndU64 { dst: 3, base: 1, offset: 992 }
+    0x0432: Or { dst: 4, src1: 2, src2: 3 }
+    0x0435: StoreIndU64 { base: 1, src: 4, offset: 1000 }
+    0x0439: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x043b: StoreIndU64 { base: 1, src: 2, offset: 1008 }
+    0x043f: LoadIndU64 { dst: 2, base: 1, offset: 864 }
+    0x0443: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0445: StoreIndU64 { base: 1, src: 2, offset: 1016 }
+    0x0449: LoadIndU64 { dst: 2, base: 1, offset: 1008 }
+    0x044d: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x044f: StoreIndU64 { base: 1, src: 2, offset: 1024 }
+    0x0453: LoadIndU64 { dst: 2, base: 1, offset: 1016 }
+    0x0457: LoadIndU64 { dst: 3, base: 1, offset: 1024 }
+    0x045b: Or { dst: 4, src1: 2, src2: 3 }
+    0x045e: StoreIndU64 { base: 1, src: 4, offset: 1032 }
+    0x0462: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0464: StoreIndU64 { base: 1, src: 2, offset: 1040 }
+    0x0468: LoadImm { reg: 2, value: 197136 }
+    0x046d: LoadIndU64 { dst: 3, base: 1, offset: 1040 }
+    0x0471: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+    0x0476: LoadImm { reg: 2, value: 0 }
+    0x0478: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x047a: StoreIndU64 { base: 1, src: 2, offset: 1056 }
+    0x047e: LoadImm { reg: 3, value: 12 }
+    0x0481: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x0484: StoreIndU64 { base: 1, src: 4, offset: 1064 }
+    0x0488: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x048a: StoreIndU64 { base: 1, src: 2, offset: 1072 }
+    0x048e: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x0493: StoreIndU64 { base: 1, src: 4, offset: 1080 }
+    0x0497: LoadImm { reg: 2, value: 0 }
+    0x0499: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x049b: StoreIndU64 { base: 1, src: 2, offset: 1088 }
+    0x049f: LoadImm { reg: 3, value: 13 }
+    0x04a2: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x04a5: StoreIndU64 { base: 1, src: 4, offset: 1096 }
+    0x04a9: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x04ab: StoreIndU64 { base: 1, src: 2, offset: 1104 }
+    0x04af: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x04b4: StoreIndU64 { base: 1, src: 4, offset: 1112 }
+    0x04b8: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x04ba: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x04bc: StoreIndU64 { base: 1, src: 2, offset: 1120 }
+    0x04c0: LoadImm { reg: 3, value: 8 }
+    0x04c3: ShloL32 { dst: 4, src1: 2, src2: 3 }
+    0x04c6: StoreIndU64 { base: 1, src: 4, offset: 1128 }
+    0x04ca: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x04cc: StoreIndU64 { base: 1, src: 2, offset: 1136 }
+    0x04d0: LoadIndU64 { dst: 2, base: 1, offset: 1080 }
+    0x04d4: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x04d6: StoreIndU64 { base: 1, src: 2, offset: 1144 }
+    0x04da: LoadIndU64 { dst: 2, base: 1, offset: 1136 }
+    0x04de: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x04e0: StoreIndU64 { base: 1, src: 2, offset: 1152 }
+    0x04e4: LoadIndU64 { dst: 2, base: 1, offset: 1144 }
+    0x04e8: LoadIndU64 { dst: 3, base: 1, offset: 1152 }
+    0x04ec: Or { dst: 4, src1: 2, src2: 3 }
+    0x04ef: StoreIndU64 { base: 1, src: 4, offset: 1160 }
+    0x04f3: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x04f5: StoreIndU64 { base: 1, src: 2, offset: 1168 }
+    0x04f9: LoadImm { reg: 2, value: 0 }
+    0x04fb: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x04fd: StoreIndU64 { base: 1, src: 2, offset: 1176 }
+    0x0501: LoadImm { reg: 3, value: 14 }
+    0x0504: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x0507: StoreIndU64 { base: 1, src: 4, offset: 1184 }
+    0x050b: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x050d: StoreIndU64 { base: 1, src: 2, offset: 1192 }
+    0x0511: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x0516: StoreIndU64 { base: 1, src: 4, offset: 1200 }
+    0x051a: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x051c: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x051e: StoreIndU64 { base: 1, src: 2, offset: 1208 }
+    0x0522: LoadImm { reg: 3, value: 16 }
+    0x0525: ShloL32 { dst: 4, src1: 2, src2: 3 }
+    0x0528: StoreIndU64 { base: 1, src: 4, offset: 1216 }
+    0x052c: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x052e: StoreIndU64 { base: 1, src: 2, offset: 1224 }
+    0x0532: LoadImm { reg: 2, value: 0 }
+    0x0534: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0536: StoreIndU64 { base: 1, src: 2, offset: 1232 }
+    0x053a: LoadImm { reg: 3, value: 15 }
+    0x053d: Add32 { dst: 4, src1: 2, src2: 3 }
+    0x0540: StoreIndU64 { base: 1, src: 4, offset: 1240 }
+    0x0544: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0546: StoreIndU64 { base: 1, src: 2, offset: 1248 }
+    0x054a: LoadIndU8 { dst: 4, base: 2, offset: 327680 }
+    0x054f: StoreIndU64 { base: 1, src: 4, offset: 1256 }
+    0x0553: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0555: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0557: StoreIndU64 { base: 1, src: 2, offset: 1264 }
+    0x055b: LoadImm { reg: 3, value: 24 }
+    0x055e: ShloL32 { dst: 4, src1: 2, src2: 3 }
+    0x0561: StoreIndU64 { base: 1, src: 4, offset: 1272 }
+    0x0565: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0567: StoreIndU64 { base: 1, src: 2, offset: 1280 }
+    0x056b: LoadIndU64 { dst: 2, base: 1, offset: 1224 }
+    0x056f: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x0571: StoreIndU64 { base: 1, src: 2, offset: 1288 }
+    0x0575: LoadIndU64 { dst: 2, base: 1, offset: 1280 }
+    0x0579: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x057b: StoreIndU64 { base: 1, src: 2, offset: 1296 }
+    0x057f: LoadIndU64 { dst: 2, base: 1, offset: 1288 }
+    0x0583: LoadIndU64 { dst: 3, base: 1, offset: 1296 }
+    0x0587: Or { dst: 4, src1: 2, src2: 3 }
+    0x058a: StoreIndU64 { base: 1, src: 4, offset: 1304 }
+    0x058e: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x0590: StoreIndU64 { base: 1, src: 2, offset: 1312 }
+    0x0594: LoadIndU64 { dst: 2, base: 1, offset: 1168 }
+    0x0598: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x059a: StoreIndU64 { base: 1, src: 2, offset: 1320 }
+    0x059e: LoadIndU64 { dst: 2, base: 1, offset: 1312 }
+    0x05a2: AddImm32 { dst: 2, src: 2, value: 0 }
+    0x05a4: StoreIndU64 { base: 1, src: 2, offset: 1328 }
+    0x05a8: LoadIndU64 { dst: 2, base: 1, offset: 1320 }
+    0x05ac: LoadIndU64 { dst: 3, base: 1, offset: 1328 }
+    0x05b0: Or { dst: 4, src1: 2, src2: 3 }
+    0x05b3: StoreIndU64 { base: 1, src: 4, offset: 1336 }
+    0x05b7: AddImm64 { dst: 2, src: 4, value: 0 }
+    0x05b9: StoreIndU64 { base: 1, src: 2, offset: 1344 }
+    0x05bd: LoadImm { reg: 2, value: 197140 }
+    0x05c2: LoadIndU64 { dst: 3, base: 1, offset: 1344 }
+    0x05c6: StoreIndU32 { base: 2, src: 3, offset: 327680 }
+    0x05cb: LoadImm64 { reg: 2, value: 103079412224 }
+    0x05d5: StoreIndU64 { base: 1, src: 2, offset: 1360 }
+    0x05d9: Jump { offset: 5 }
+  Successors: 0x05de
+  Predecessors: 0x0000, 0x0006
+
+Block @ 0x05de - 0x05f6:
+    0x05de: LoadIndU64 { dst: 2, base: 1, offset: 1360 }
+    0x05e2: LoadImm { reg: 3, value: 32 }
+    0x05e5: ShloR64 { dst: 3, src1: 2, src2: 3 }
+    0x05e8: AddImm32 { dst: 7, src: 2, value: 327680 }
+    0x05ed: Add64 { dst: 8, src1: 7, src2: 3 }
+    0x05f0: LoadImm { reg: 2, value: -65536 }
+    0x05f5: JumpInd { reg: 2, offset: 0 }
+  Successors: (none)
+  Predecessors: 0x000a
+
+=== Data Flow Analysis ===
+
+Total definitions: 287
+Total uses: 601
+
+Def-Use Chains:
+  r1 defined @ 0x000a -> used at: 0x0013, 0x0016, 0x001e, 0x0027, 0x002c, 0x003b, 0x0044, 0x0049, 0x0058, 0x0061, 0x0067, 0x0094, 0x009c, 0x00a6, 0x00ac, 0x00b5, 0x00bd, 0x00c7, 0x00cd, 0x00d1, 0x00d7, 0x00db, 0x00e1, 0x00e5, 0x00e9, 0x00f0, 0x00f6, 0x00fe, 0x0108, 0x010e, 0x0117, 0x011f, 0x0129, 0x012f, 0x0137, 0x0141, 0x0147, 0x0150, 0x0158, 0x0162, 0x0168, 0x016c, 0x0172, 0x0176, 0x017c, 0x0180, 0x0184, 0x018b, 0x0191, 0x0195, 0x019b, 0x019f, 0x01a5, 0x01a9, 0x01ad, 0x01b4, 0x01ba, 0x01c3, 0x01d0, 0x01da, 0x01e0, 0x01e9, 0x01f1, 0x01fb, 0x0201, 0x020a, 0x0212, 0x021c, 0x0222, 0x0226, 0x022c, 0x0230, 0x0236, 0x023a, 0x023e, 0x0245, 0x024b, 0x0253, 0x025d, 0x0263, 0x026c, 0x0274, 0x027e, 0x0284, 0x028c, 0x0296, 0x029c, 0x02a5, 0x02ad, 0x02b7, 0x02bd, 0x02c1, 0x02c7, 0x02cb, 0x02d1, 0x02d5, 0x02d9, 0x02e0, 0x02e6, 0x02ea, 0x02f0, 0x02f4, 0x02fa, 0x02fe, 0x0302, 0x0309, 0x030f, 0x0318, 0x0325, 0x032f, 0x0335, 0x033e, 0x0346, 0x0350, 0x0356, 0x035f, 0x0367, 0x0371, 0x0377, 0x037b, 0x0381, 0x0385, 0x038b, 0x038f, 0x0393, 0x039a, 0x03a0, 0x03a8, 0x03b2, 0x03b8, 0x03c1, 0x03c9, 0x03d3, 0x03d9, 0x03e1, 0x03eb, 0x03f1, 0x03fa, 0x0402, 0x040c, 0x0412, 0x0416, 0x041c, 0x0420, 0x0426, 0x042a, 0x042e, 0x0435, 0x043b, 0x043f, 0x0445, 0x0449, 0x044f, 0x0453, 0x0457, 0x045e, 0x0464, 0x046d, 0x047a, 0x0484, 0x048a, 0x0493, 0x049b, 0x04a5, 0x04ab, 0x04b4, 0x04bc, 0x04c6, 0x04cc, 0x04d0, 0x04d6, 0x04da, 0x04e0, 0x04e4, 0x04e8, 0x04ef, 0x04f5, 0x04fd, 0x0507, 0x050d, 0x0516, 0x051e, 0x0528, 0x052e, 0x0536, 0x0540, 0x0546, 0x054f, 0x0557, 0x0561, 0x0567, 0x056b, 0x0571, 0x0575, 0x057b, 0x057f, 0x0583, 0x058a, 0x0590, 0x0594, 0x059a, 0x059e, 0x05a4, 0x05a8, 0x05ac, 0x05b3, 0x05b9, 0x05c2, 0x05d5, 0x05de
+  r7 defined @ 0x000e -> used at: 0x0013
+  r2 defined @ 0x001a -> used at: 0x001c
+  r2 defined @ 0x001c -> used at: 0x001e, 0x0024
+  r3 defined @ 0x0021 -> used at: 0x0024
+  r4 defined @ 0x0024 -> used at: 0x0027, 0x002a
+  r2 defined @ 0x002a -> used at: 0x002c, 0x0032
+  r3 defined @ 0x002f -> used at: 0x0032
+  r2 defined @ 0x0037 -> used at: 0x0039
+  r2 defined @ 0x0039 -> used at: 0x003b, 0x0041
+  r3 defined @ 0x003e -> used at: 0x0041
+  r4 defined @ 0x0041 -> used at: 0x0044, 0x0047
+  r2 defined @ 0x0047 -> used at: 0x0049, 0x004f
+  r3 defined @ 0x004c -> used at: 0x004f
+  r2 defined @ 0x0054 -> used at: 0x0056
+  r2 defined @ 0x0056 -> used at: 0x0058, 0x005e
+  r3 defined @ 0x005b -> used at: 0x005e
+  r4 defined @ 0x005e -> used at: 0x0061, 0x0065
+  r2 defined @ 0x0065 -> used at: 0x0067, 0x006e
+  r3 defined @ 0x006b -> used at: 0x006e
+  r2 defined @ 0x0073 -> used at: 0x007b
+  r3 defined @ 0x0078 -> used at: 0x007b
+  r2 defined @ 0x0080 -> used at: 0x0088
+  r3 defined @ 0x0085 -> used at: 0x0088
+  r2 defined @ 0x008d -> used at: 0x008f
+  r4 defined @ 0x008f -> used at: 0x0094
+  r2 defined @ 0x0098 -> used at: 0x009a
+  r2 defined @ 0x009a -> used at: 0x009c, 0x00a3
+  r3 defined @ 0x00a0 -> used at: 0x00a3
+  r4 defined @ 0x00a3 -> used at: 0x00a6, 0x00aa
+  r2 defined @ 0x00aa -> used at: 0x00ac, 0x00b0
+  r4 defined @ 0x00b0 -> used at: 0x00b5, 0x00b9
+  r2 defined @ 0x00b9 -> used at: 0x00bb
+  r2 defined @ 0x00bb -> used at: 0x00bd, 0x00c4
+  r3 defined @ 0x00c1 -> used at: 0x00c4
+  r4 defined @ 0x00c4 -> used at: 0x00c7, 0x00cb
+  r2 defined @ 0x00cb -> used at: 0x00cd
+  r2 defined @ 0x00d1 -> used at: 0x00d5
+  r2 defined @ 0x00d5 -> used at: 0x00d7
+  r2 defined @ 0x00db -> used at: 0x00df
+  r2 defined @ 0x00df -> used at: 0x00e1
+  r2 defined @ 0x00e5 -> used at: 0x00ed
+  r3 defined @ 0x00e9 -> used at: 0x00ed
+  r4 defined @ 0x00ed -> used at: 0x00f0, 0x00f4
+  r2 defined @ 0x00f4 -> used at: 0x00f6
+  r2 defined @ 0x00fa -> used at: 0x00fc
+  r2 defined @ 0x00fc -> used at: 0x00fe, 0x0105
+  r3 defined @ 0x0102 -> used at: 0x0105
+  r4 defined @ 0x0105 -> used at: 0x0108, 0x010c
+  r2 defined @ 0x010c -> used at: 0x010e, 0x0112
+  r4 defined @ 0x0112 -> used at: 0x0117, 0x011b
+  r2 defined @ 0x011b -> used at: 0x011d
+  r2 defined @ 0x011d -> used at: 0x011f, 0x0126
+  r3 defined @ 0x0123 -> used at: 0x0126
+  r4 defined @ 0x0126 -> used at: 0x0129, 0x012d
+  r2 defined @ 0x012d -> used at: 0x012f
+  r2 defined @ 0x0133 -> used at: 0x0135
+  r2 defined @ 0x0135 -> used at: 0x0137, 0x013e
+  r3 defined @ 0x013b -> used at: 0x013e
+  r4 defined @ 0x013e -> used at: 0x0141, 0x0145
+  r2 defined @ 0x0145 -> used at: 0x0147, 0x014b
+  r4 defined @ 0x014b -> used at: 0x0150, 0x0154
+  r2 defined @ 0x0154 -> used at: 0x0156
+  r2 defined @ 0x0156 -> used at: 0x0158, 0x015f
+  r3 defined @ 0x015c -> used at: 0x015f
+  r4 defined @ 0x015f -> used at: 0x0162, 0x0166
+  r2 defined @ 0x0166 -> used at: 0x0168
+  r2 defined @ 0x016c -> used at: 0x0170
+  r2 defined @ 0x0170 -> used at: 0x0172
+  r2 defined @ 0x0176 -> used at: 0x017a
+  r2 defined @ 0x017a -> used at: 0x017c
+  r2 defined @ 0x0180 -> used at: 0x0188
+  r3 defined @ 0x0184 -> used at: 0x0188
+  r4 defined @ 0x0188 -> used at: 0x018b, 0x018f
+  r2 defined @ 0x018f -> used at: 0x0191
+  r2 defined @ 0x0195 -> used at: 0x0199
+  r2 defined @ 0x0199 -> used at: 0x019b
+  r2 defined @ 0x019f -> used at: 0x01a3
+  r2 defined @ 0x01a3 -> used at: 0x01a5
+  r2 defined @ 0x01a9 -> used at: 0x01b1
+  r3 defined @ 0x01ad -> used at: 0x01b1
+  r4 defined @ 0x01b1 -> used at: 0x01b4, 0x01b8
+  r2 defined @ 0x01b8 -> used at: 0x01ba
+  r2 defined @ 0x01be -> used at: 0x01c7
+  r3 defined @ 0x01c3 -> used at: 0x01c7
+  r2 defined @ 0x01cc -> used at: 0x01ce
+  r2 defined @ 0x01ce -> used at: 0x01d0, 0x01d7
+  r3 defined @ 0x01d4 -> used at: 0x01d7
+  r4 defined @ 0x01d7 -> used at: 0x01da, 0x01de
+  r2 defined @ 0x01de -> used at: 0x01e0, 0x01e4
+  r4 defined @ 0x01e4 -> used at: 0x01e9
+  r2 defined @ 0x01ed -> used at: 0x01ef
+  r2 defined @ 0x01ef -> used at: 0x01f1, 0x01f8
+  r3 defined @ 0x01f5 -> used at: 0x01f8
+  r4 defined @ 0x01f8 -> used at: 0x01fb, 0x01ff
+  r2 defined @ 0x01ff -> used at: 0x0201, 0x0205
+  r4 defined @ 0x0205 -> used at: 0x020a, 0x020e
+  r2 defined @ 0x020e -> used at: 0x0210
+  r2 defined @ 0x0210 -> used at: 0x0212, 0x0219
+  r3 defined @ 0x0216 -> used at: 0x0219
+  r4 defined @ 0x0219 -> used at: 0x021c, 0x0220
+  r2 defined @ 0x0220 -> used at: 0x0222
+  r2 defined @ 0x0226 -> used at: 0x022a
+  r2 defined @ 0x022a -> used at: 0x022c
+  r2 defined @ 0x0230 -> used at: 0x0234
+  r2 defined @ 0x0234 -> used at: 0x0236
+  r2 defined @ 0x023a -> used at: 0x0242
+  r3 defined @ 0x023e -> used at: 0x0242
+  r4 defined @ 0x0242 -> used at: 0x0245, 0x0249
+  r2 defined @ 0x0249 -> used at: 0x024b
+  r2 defined @ 0x024f -> used at: 0x0251
+  r2 defined @ 0x0251 -> used at: 0x0253, 0x025a
+  r3 defined @ 0x0257 -> used at: 0x025a
+  r4 defined @ 0x025a -> used at: 0x025d, 0x0261
+  r2 defined @ 0x0261 -> used at: 0x0263, 0x0267
+  r4 defined @ 0x0267 -> used at: 0x026c, 0x0270
+  r2 defined @ 0x0270 -> used at: 0x0272
+  r2 defined @ 0x0272 -> used at: 0x0274, 0x027b
+  r3 defined @ 0x0278 -> used at: 0x027b
+  r4 defined @ 0x027b -> used at: 0x027e, 0x0282
+  r2 defined @ 0x0282 -> used at: 0x0284
+  r2 defined @ 0x0288 -> used at: 0x028a
+  r2 defined @ 0x028a -> used at: 0x028c, 0x0293
+  r3 defined @ 0x0290 -> used at: 0x0293
+  r4 defined @ 0x0293 -> used at: 0x0296, 0x029a
+  r2 defined @ 0x029a -> used at: 0x029c, 0x02a0
+  r4 defined @ 0x02a0 -> used at: 0x02a5, 0x02a9
+  r2 defined @ 0x02a9 -> used at: 0x02ab
+  r2 defined @ 0x02ab -> used at: 0x02ad, 0x02b4
+  r3 defined @ 0x02b1 -> used at: 0x02b4
+  r4 defined @ 0x02b4 -> used at: 0x02b7, 0x02bb
+  r2 defined @ 0x02bb -> used at: 0x02bd
+  r2 defined @ 0x02c1 -> used at: 0x02c5
+  r2 defined @ 0x02c5 -> used at: 0x02c7
+  r2 defined @ 0x02cb -> used at: 0x02cf
+  r2 defined @ 0x02cf -> used at: 0x02d1
+  r2 defined @ 0x02d5 -> used at: 0x02dd
+  r3 defined @ 0x02d9 -> used at: 0x02dd
+  r4 defined @ 0x02dd -> used at: 0x02e0, 0x02e4
+  r2 defined @ 0x02e4 -> used at: 0x02e6
+  r2 defined @ 0x02ea -> used at: 0x02ee
+  r2 defined @ 0x02ee -> used at: 0x02f0
+  r2 defined @ 0x02f4 -> used at: 0x02f8
+  r2 defined @ 0x02f8 -> used at: 0x02fa
+  r2 defined @ 0x02fe -> used at: 0x0306
+  r3 defined @ 0x0302 -> used at: 0x0306
+  r4 defined @ 0x0306 -> used at: 0x0309, 0x030d
+  r2 defined @ 0x030d -> used at: 0x030f
+  r2 defined @ 0x0313 -> used at: 0x031c
+  r3 defined @ 0x0318 -> used at: 0x031c
+  r2 defined @ 0x0321 -> used at: 0x0323
+  r2 defined @ 0x0323 -> used at: 0x0325, 0x032c
+  r3 defined @ 0x0329 -> used at: 0x032c
+  r4 defined @ 0x032c -> used at: 0x032f, 0x0333
+  r2 defined @ 0x0333 -> used at: 0x0335, 0x0339
+  r4 defined @ 0x0339 -> used at: 0x033e
+  r2 defined @ 0x0342 -> used at: 0x0344
+  r2 defined @ 0x0344 -> used at: 0x0346, 0x034d
+  r3 defined @ 0x034a -> used at: 0x034d
+  r4 defined @ 0x034d -> used at: 0x0350, 0x0354
+  r2 defined @ 0x0354 -> used at: 0x0356, 0x035a
+  r4 defined @ 0x035a -> used at: 0x035f, 0x0363
+  r2 defined @ 0x0363 -> used at: 0x0365
+  r2 defined @ 0x0365 -> used at: 0x0367, 0x036e
+  r3 defined @ 0x036b -> used at: 0x036e
+  r4 defined @ 0x036e -> used at: 0x0371, 0x0375
+  r2 defined @ 0x0375 -> used at: 0x0377
+  r2 defined @ 0x037b -> used at: 0x037f
+  r2 defined @ 0x037f -> used at: 0x0381
+  r2 defined @ 0x0385 -> used at: 0x0389
+  r2 defined @ 0x0389 -> used at: 0x038b
+  r2 defined @ 0x038f -> used at: 0x0397
+  r3 defined @ 0x0393 -> used at: 0x0397
+  r4 defined @ 0x0397 -> used at: 0x039a, 0x039e
+  r2 defined @ 0x039e -> used at: 0x03a0
+  r2 defined @ 0x03a4 -> used at: 0x03a6
+  r2 defined @ 0x03a6 -> used at: 0x03a8, 0x03af
+  r3 defined @ 0x03ac -> used at: 0x03af
+  r4 defined @ 0x03af -> used at: 0x03b2, 0x03b6
+  r2 defined @ 0x03b6 -> used at: 0x03b8, 0x03bc
+  r4 defined @ 0x03bc -> used at: 0x03c1, 0x03c5
+  r2 defined @ 0x03c5 -> used at: 0x03c7
+  r2 defined @ 0x03c7 -> used at: 0x03c9, 0x03d0
+  r3 defined @ 0x03cd -> used at: 0x03d0
+  r4 defined @ 0x03d0 -> used at: 0x03d3, 0x03d7
+  r2 defined @ 0x03d7 -> used at: 0x03d9
+  r2 defined @ 0x03dd -> used at: 0x03df
+  r2 defined @ 0x03df -> used at: 0x03e1, 0x03e8
+  r3 defined @ 0x03e5 -> used at: 0x03e8
+  r4 defined @ 0x03e8 -> used at: 0x03eb, 0x03ef
+  r2 defined @ 0x03ef -> used at: 0x03f1, 0x03f5
+  r4 defined @ 0x03f5 -> used at: 0x03fa, 0x03fe
+  r2 defined @ 0x03fe -> used at: 0x0400
+  r2 defined @ 0x0400 -> used at: 0x0402, 0x0409
+  r3 defined @ 0x0406 -> used at: 0x0409
+  r4 defined @ 0x0409 -> used at: 0x040c, 0x0410
+  r2 defined @ 0x0410 -> used at: 0x0412
+  r2 defined @ 0x0416 -> used at: 0x041a
+  r2 defined @ 0x041a -> used at: 0x041c
+  r2 defined @ 0x0420 -> used at: 0x0424
+  r2 defined @ 0x0424 -> used at: 0x0426
+  r2 defined @ 0x042a -> used at: 0x0432
+  r3 defined @ 0x042e -> used at: 0x0432
+  r4 defined @ 0x0432 -> used at: 0x0435, 0x0439
+  r2 defined @ 0x0439 -> used at: 0x043b
+  r2 defined @ 0x043f -> used at: 0x0443
+  r2 defined @ 0x0443 -> used at: 0x0445
+  r2 defined @ 0x0449 -> used at: 0x044d
+  r2 defined @ 0x044d -> used at: 0x044f
+  r2 defined @ 0x0453 -> used at: 0x045b
+  r3 defined @ 0x0457 -> used at: 0x045b
+  r4 defined @ 0x045b -> used at: 0x045e, 0x0462
+  r2 defined @ 0x0462 -> used at: 0x0464
+  r2 defined @ 0x0468 -> used at: 0x0471
+  r3 defined @ 0x046d -> used at: 0x0471
+  r2 defined @ 0x0476 -> used at: 0x0478
+  r2 defined @ 0x0478 -> used at: 0x047a, 0x0481
+  r3 defined @ 0x047e -> used at: 0x0481
+  r4 defined @ 0x0481 -> used at: 0x0484, 0x0488
+  r2 defined @ 0x0488 -> used at: 0x048a, 0x048e
+  r4 defined @ 0x048e -> used at: 0x0493
+  r2 defined @ 0x0497 -> used at: 0x0499
+  r2 defined @ 0x0499 -> used at: 0x049b, 0x04a2
+  r3 defined @ 0x049f -> used at: 0x04a2
+  r4 defined @ 0x04a2 -> used at: 0x04a5, 0x04a9
+  r2 defined @ 0x04a9 -> used at: 0x04ab, 0x04af
+  r4 defined @ 0x04af -> used at: 0x04b4, 0x04b8
+  r2 defined @ 0x04b8 -> used at: 0x04ba
+  r2 defined @ 0x04ba -> used at: 0x04bc, 0x04c3
+  r3 defined @ 0x04c0 -> used at: 0x04c3
+  r4 defined @ 0x04c3 -> used at: 0x04c6, 0x04ca
+  r2 defined @ 0x04ca -> used at: 0x04cc
+  r2 defined @ 0x04d0 -> used at: 0x04d4
+  r2 defined @ 0x04d4 -> used at: 0x04d6
+  r2 defined @ 0x04da -> used at: 0x04de
+  r2 defined @ 0x04de -> used at: 0x04e0
+  r2 defined @ 0x04e4 -> used at: 0x04ec
+  r3 defined @ 0x04e8 -> used at: 0x04ec
+  r4 defined @ 0x04ec -> used at: 0x04ef, 0x04f3
+  r2 defined @ 0x04f3 -> used at: 0x04f5
+  r2 defined @ 0x04f9 -> used at: 0x04fb
+  r2 defined @ 0x04fb -> used at: 0x04fd, 0x0504
+  r3 defined @ 0x0501 -> used at: 0x0504
+  r4 defined @ 0x0504 -> used at: 0x0507, 0x050b
+  r2 defined @ 0x050b -> used at: 0x050d, 0x0511
+  r4 defined @ 0x0511 -> used at: 0x0516, 0x051a
+  r2 defined @ 0x051a -> used at: 0x051c
+  r2 defined @ 0x051c -> used at: 0x051e, 0x0525
+  r3 defined @ 0x0522 -> used at: 0x0525
+  r4 defined @ 0x0525 -> used at: 0x0528, 0x052c
+  r2 defined @ 0x052c -> used at: 0x052e
+  r2 defined @ 0x0532 -> used at: 0x0534
+  r2 defined @ 0x0534 -> used at: 0x0536, 0x053d
+  r3 defined @ 0x053a -> used at: 0x053d
+  r4 defined @ 0x053d -> used at: 0x0540, 0x0544
+  r2 defined @ 0x0544 -> used at: 0x0546, 0x054a
+  r4 defined @ 0x054a -> used at: 0x054f, 0x0553
+  r2 defined @ 0x0553 -> used at: 0x0555
+  r2 defined @ 0x0555 -> used at: 0x0557, 0x055e
+  r3 defined @ 0x055b -> used at: 0x055e
+  r4 defined @ 0x055e -> used at: 0x0561, 0x0565
+  r2 defined @ 0x0565 -> used at: 0x0567
+  r2 defined @ 0x056b -> used at: 0x056f
+  r2 defined @ 0x056f -> used at: 0x0571
+  r2 defined @ 0x0575 -> used at: 0x0579
+  r2 defined @ 0x0579 -> used at: 0x057b
+  r2 defined @ 0x057f -> used at: 0x0587
+  r3 defined @ 0x0583 -> used at: 0x0587
+  r4 defined @ 0x0587 -> used at: 0x058a, 0x058e
+  r2 defined @ 0x058e -> used at: 0x0590
+  r2 defined @ 0x0594 -> used at: 0x0598
+  r2 defined @ 0x0598 -> used at: 0x059a
+  r2 defined @ 0x059e -> used at: 0x05a2
+  r2 defined @ 0x05a2 -> used at: 0x05a4
+  r2 defined @ 0x05a8 -> used at: 0x05b0
+  r3 defined @ 0x05ac -> used at: 0x05b0
+  r4 defined @ 0x05b0 -> used at: 0x05b3, 0x05b7
+  r2 defined @ 0x05b7 -> used at: 0x05b9
+  r2 defined @ 0x05bd -> used at: 0x05c6
+  r3 defined @ 0x05c2 -> used at: 0x05c6
+  r2 defined @ 0x05cb -> used at: 0x05d5
+  r2 defined @ 0x05de -> used at: 0x05e5, 0x05e8
+  r3 defined @ 0x05e2 -> used at: 0x05e5
+  r3 defined @ 0x05e5 -> used at: 0x05ed
+  r7 defined @ 0x05e8 -> used at: 0x05ed
+  r8 defined @ 0x05ed -> used at: (no uses - dead definition?)
+  r2 defined @ 0x05f0 -> used at: 0x05f5
+
+=== Register Lifting ===
+
+Variables: 287, Eliminated instructions: 438
+  ptr_0 : ptr (r1 @ 0x000a)
+  var_0 : int (r7 @ 0x000e)
+  var_1 : int (r2 @ 0x001a)
+  var_2 : int (r2 @ 0x001c)
+  var_3 : int (r3 @ 0x0021)
+  var_4 : int (r4 @ 0x0024)
+  ptr_1 : ptr (r2 @ 0x002a)
+  var_5 : int (r3 @ 0x002f)
+  var_6 : int (r2 @ 0x0037)
+  var_7 : int (r2 @ 0x0039)
+  var_8 : int (r3 @ 0x003e)
+  var_9 : int (r4 @ 0x0041)
+  ptr_2 : ptr (r2 @ 0x0047)
+  var_10 : int (r3 @ 0x004c)
+  var_11 : int (r2 @ 0x0054)
+  var_12 : int (r2 @ 0x0056)
+  var_13 : int (r3 @ 0x005b)
+  var_14 : int (r4 @ 0x005e)
+  ptr_3 : ptr (r2 @ 0x0065)
+  var_15 : int (r3 @ 0x006b)
+  ptr_4 : ptr (r2 @ 0x0073)
+  var_16 : int (r3 @ 0x0078)
+  ptr_5 : ptr (r2 @ 0x0080)
+  var_17 : int (r3 @ 0x0085)
+  ptr_6 : ptr (r2 @ 0x008d)
+  var_18 : int (r4 @ 0x008f)
+  var_19 : int (r2 @ 0x0098)
+  var_20 : int (r2 @ 0x009a)
+  var_21 : int (r3 @ 0x00a0)
+  var_22 : int (r4 @ 0x00a3)
+  ptr_7 : ptr (r2 @ 0x00aa)
+  var_23 : int (r4 @ 0x00b0)
+  var_24 : int (r2 @ 0x00b9)
+  var_25 : int (r2 @ 0x00bb)
+  var_26 : int (r3 @ 0x00c1)
+  var_27 : int (r4 @ 0x00c4)
+  var_28 : int (r2 @ 0x00cb)
+  var_29 : int (r2 @ 0x00d1)
+  var_30 : int (r2 @ 0x00d5)
+  var_31 : int (r2 @ 0x00db)
+  var_32 : int (r2 @ 0x00df)
+  var_33 : int (r2 @ 0x00e5)
+  var_34 : int (r3 @ 0x00e9)
+  var_35 : int (r4 @ 0x00ed)
+  var_36 : int (r2 @ 0x00f4)
+  var_37 : int (r2 @ 0x00fa)
+  var_38 : int (r2 @ 0x00fc)
+  var_39 : int (r3 @ 0x0102)
+  var_40 : int (r4 @ 0x0105)
+  ptr_8 : ptr (r2 @ 0x010c)
+  var_41 : int (r4 @ 0x0112)
+  var_42 : int (r2 @ 0x011b)
+  var_43 : int (r2 @ 0x011d)
+  var_44 : int (r3 @ 0x0123)
+  var_45 : int (r4 @ 0x0126)
+  var_46 : int (r2 @ 0x012d)
+  var_47 : int (r2 @ 0x0133)
+  var_48 : int (r2 @ 0x0135)
+  var_49 : int (r3 @ 0x013b)
+  var_50 : int (r4 @ 0x013e)
+  ptr_9 : ptr (r2 @ 0x0145)
+  var_51 : int (r4 @ 0x014b)
+  var_52 : int (r2 @ 0x0154)
+  var_53 : int (r2 @ 0x0156)
+  var_54 : int (r3 @ 0x015c)
+  var_55 : int (r4 @ 0x015f)
+  var_56 : int (r2 @ 0x0166)
+  var_57 : int (r2 @ 0x016c)
+  var_58 : int (r2 @ 0x0170)
+  var_59 : int (r2 @ 0x0176)
+  var_60 : int (r2 @ 0x017a)
+  var_61 : int (r2 @ 0x0180)
+  var_62 : int (r3 @ 0x0184)
+  var_63 : int (r4 @ 0x0188)
+  var_64 : int (r2 @ 0x018f)
+  var_65 : int (r2 @ 0x0195)
+  var_66 : int (r2 @ 0x0199)
+  var_67 : int (r2 @ 0x019f)
+  var_68 : int (r2 @ 0x01a3)
+  var_69 : int (r2 @ 0x01a9)
+  var_70 : int (r3 @ 0x01ad)
+  var_71 : int (r4 @ 0x01b1)
+  var_72 : int (r2 @ 0x01b8)
+  ptr_10 : ptr (r2 @ 0x01be)
+  var_73 : int (r3 @ 0x01c3)
+  var_74 : int (r2 @ 0x01cc)
+  var_75 : int (r2 @ 0x01ce)
+  var_76 : int (r3 @ 0x01d4)
+  var_77 : int (r4 @ 0x01d7)
+  ptr_11 : ptr (r2 @ 0x01de)
+  var_78 : int (r4 @ 0x01e4)
+  var_79 : int (r2 @ 0x01ed)
+  var_80 : int (r2 @ 0x01ef)
+  var_81 : int (r3 @ 0x01f5)
+  var_82 : int (r4 @ 0x01f8)
+  ptr_12 : ptr (r2 @ 0x01ff)
+  var_83 : int (r4 @ 0x0205)
+  var_84 : int (r2 @ 0x020e)
+  var_85 : int (r2 @ 0x0210)
+  var_86 : int (r3 @ 0x0216)
+  var_87 : int (r4 @ 0x0219)
+  var_88 : int (r2 @ 0x0220)
+  var_89 : int (r2 @ 0x0226)
+  var_90 : int (r2 @ 0x022a)
+  var_91 : int (r2 @ 0x0230)
+  var_92 : int (r2 @ 0x0234)
+  var_93 : int (r2 @ 0x023a)
+  var_94 : int (r3 @ 0x023e)
+  var_95 : int (r4 @ 0x0242)
+  var_96 : int (r2 @ 0x0249)
+  var_97 : int (r2 @ 0x024f)
+  var_98 : int (r2 @ 0x0251)
+  var_99 : int (r3 @ 0x0257)
+  var_100 : int (r4 @ 0x025a)
+  ptr_13 : ptr (r2 @ 0x0261)
+  var_101 : int (r4 @ 0x0267)
+  var_102 : int (r2 @ 0x0270)
+  var_103 : int (r2 @ 0x0272)
+  var_104 : int (r3 @ 0x0278)
+  var_105 : int (r4 @ 0x027b)
+  var_106 : int (r2 @ 0x0282)
+  var_107 : int (r2 @ 0x0288)
+  var_108 : int (r2 @ 0x028a)
+  var_109 : int (r3 @ 0x0290)
+  var_110 : int (r4 @ 0x0293)
+  ptr_14 : ptr (r2 @ 0x029a)
+  var_111 : int (r4 @ 0x02a0)
+  var_112 : int (r2 @ 0x02a9)
+  var_113 : int (r2 @ 0x02ab)
+  var_114 : int (r3 @ 0x02b1)
+  var_115 : int (r4 @ 0x02b4)
+  var_116 : int (r2 @ 0x02bb)
+  var_117 : int (r2 @ 0x02c1)
+  var_118 : int (r2 @ 0x02c5)
+  var_119 : int (r2 @ 0x02cb)
+  var_120 : int (r2 @ 0x02cf)
+  var_121 : int (r2 @ 0x02d5)
+  var_122 : int (r3 @ 0x02d9)
+  var_123 : int (r4 @ 0x02dd)
+  var_124 : int (r2 @ 0x02e4)
+  var_125 : int (r2 @ 0x02ea)
+  var_126 : int (r2 @ 0x02ee)
+  var_127 : int (r2 @ 0x02f4)
+  var_128 : int (r2 @ 0x02f8)
+  var_129 : int (r2 @ 0x02fe)
+  var_130 : int (r3 @ 0x0302)
+  var_131 : int (r4 @ 0x0306)
+  var_132 : int (r2 @ 0x030d)
+  ptr_15 : ptr (r2 @ 0x0313)
+  var_133 : int (r3 @ 0x0318)
+  var_134 : int (r2 @ 0x0321)
+  var_135 : int (r2 @ 0x0323)
+  var_136 : int (r3 @ 0x0329)
+  var_137 : int (r4 @ 0x032c)
+  ptr_16 : ptr (r2 @ 0x0333)
+  var_138 : int (r4 @ 0x0339)
+  var_139 : int (r2 @ 0x0342)
+  var_140 : int (r2 @ 0x0344)
+  var_141 : int (r3 @ 0x034a)
+  var_142 : int (r4 @ 0x034d)
+  ptr_17 : ptr (r2 @ 0x0354)
+  var_143 : int (r4 @ 0x035a)
+  var_144 : int (r2 @ 0x0363)
+  var_145 : int (r2 @ 0x0365)
+  var_146 : int (r3 @ 0x036b)
+  var_147 : int (r4 @ 0x036e)
+  var_148 : int (r2 @ 0x0375)
+  var_149 : int (r2 @ 0x037b)
+  var_150 : int (r2 @ 0x037f)
+  var_151 : int (r2 @ 0x0385)
+  var_152 : int (r2 @ 0x0389)
+  var_153 : int (r2 @ 0x038f)
+  var_154 : int (r3 @ 0x0393)
+  var_155 : int (r4 @ 0x0397)
+  var_156 : int (r2 @ 0x039e)
+  var_157 : int (r2 @ 0x03a4)
+  var_158 : int (r2 @ 0x03a6)
+  var_159 : int (r3 @ 0x03ac)
+  var_160 : int (r4 @ 0x03af)
+  ptr_18 : ptr (r2 @ 0x03b6)
+  var_161 : int (r4 @ 0x03bc)
+  var_162 : int (r2 @ 0x03c5)
+  var_163 : int (r2 @ 0x03c7)
+  var_164 : int (r3 @ 0x03cd)
+  var_165 : int (r4 @ 0x03d0)
+  var_166 : int (r2 @ 0x03d7)
+  var_167 : int (r2 @ 0x03dd)
+  var_168 : int (r2 @ 0x03df)
+  var_169 : int (r3 @ 0x03e5)
+  var_170 : int (r4 @ 0x03e8)
+  ptr_19 : ptr (r2 @ 0x03ef)
+  var_171 : int (r4 @ 0x03f5)
+  var_172 : int (r2 @ 0x03fe)
+  var_173 : int (r2 @ 0x0400)
+  var_174 : int (r3 @ 0x0406)
+  var_175 : int (r4 @ 0x0409)
+  var_176 : int (r2 @ 0x0410)
+  var_177 : int (r2 @ 0x0416)
+  var_178 : int (r2 @ 0x041a)
+  var_179 : int (r2 @ 0x0420)
+  var_180 : int (r2 @ 0x0424)
+  var_181 : int (r2 @ 0x042a)
+  var_182 : int (r3 @ 0x042e)
+  var_183 : int (r4 @ 0x0432)
+  var_184 : int (r2 @ 0x0439)
+  var_185 : int (r2 @ 0x043f)
+  var_186 : int (r2 @ 0x0443)
+  var_187 : int (r2 @ 0x0449)
+  var_188 : int (r2 @ 0x044d)
+  var_189 : int (r2 @ 0x0453)
+  var_190 : int (r3 @ 0x0457)
+  var_191 : int (r4 @ 0x045b)
+  var_192 : int (r2 @ 0x0462)
+  ptr_20 : ptr (r2 @ 0x0468)
+  var_193 : int (r3 @ 0x046d)
+  var_194 : int (r2 @ 0x0476)
+  var_195 : int (r2 @ 0x0478)
+  var_196 : int (r3 @ 0x047e)
+  var_197 : int (r4 @ 0x0481)
+  ptr_21 : ptr (r2 @ 0x0488)
+  var_198 : int (r4 @ 0x048e)
+  var_199 : int (r2 @ 0x0497)
+  var_200 : int (r2 @ 0x0499)
+  var_201 : int (r3 @ 0x049f)
+  var_202 : int (r4 @ 0x04a2)
+  ptr_22 : ptr (r2 @ 0x04a9)
+  var_203 : int (r4 @ 0x04af)
+  var_204 : int (r2 @ 0x04b8)
+  var_205 : int (r2 @ 0x04ba)
+  var_206 : int (r3 @ 0x04c0)
+  var_207 : int (r4 @ 0x04c3)
+  var_208 : int (r2 @ 0x04ca)
+  var_209 : int (r2 @ 0x04d0)
+  var_210 : int (r2 @ 0x04d4)
+  var_211 : int (r2 @ 0x04da)
+  var_212 : int (r2 @ 0x04de)
+  var_213 : int (r2 @ 0x04e4)
+  var_214 : int (r3 @ 0x04e8)
+  var_215 : int (r4 @ 0x04ec)
+  var_216 : int (r2 @ 0x04f3)
+  var_217 : int (r2 @ 0x04f9)
+  var_218 : int (r2 @ 0x04fb)
+  var_219 : int (r3 @ 0x0501)
+  var_220 : int (r4 @ 0x0504)
+  ptr_23 : ptr (r2 @ 0x050b)
+  var_221 : int (r4 @ 0x0511)
+  var_222 : int (r2 @ 0x051a)
+  var_223 : int (r2 @ 0x051c)
+  var_224 : int (r3 @ 0x0522)
+  var_225 : int (r4 @ 0x0525)
+  var_226 : int (r2 @ 0x052c)
+  var_227 : int (r2 @ 0x0532)
+  var_228 : int (r2 @ 0x0534)
+  var_229 : int (r3 @ 0x053a)
+  var_230 : int (r4 @ 0x053d)
+  ptr_24 : ptr (r2 @ 0x0544)
+  var_231 : int (r4 @ 0x054a)
+  var_232 : int (r2 @ 0x0553)
+  var_233 : int (r2 @ 0x0555)
+  var_234 : int (r3 @ 0x055b)
+  var_235 : int (r4 @ 0x055e)
+  var_236 : int (r2 @ 0x0565)
+  var_237 : int (r2 @ 0x056b)
+  var_238 : int (r2 @ 0x056f)
+  var_239 : int (r2 @ 0x0575)
+  var_240 : int (r2 @ 0x0579)
+  var_241 : int (r2 @ 0x057f)
+  var_242 : int (r3 @ 0x0583)
+  var_243 : int (r4 @ 0x0587)
+  var_244 : int (r2 @ 0x058e)
+  var_245 : int (r2 @ 0x0594)
+  var_246 : int (r2 @ 0x0598)
+  var_247 : int (r2 @ 0x059e)
+  var_248 : int (r2 @ 0x05a2)
+  var_249 : int (r2 @ 0x05a8)
+  var_250 : int (r3 @ 0x05ac)
+  var_251 : int (r4 @ 0x05b0)
+  var_252 : int (r2 @ 0x05b7)
+  ptr_25 : ptr (r2 @ 0x05bd)
+  var_253 : int (r3 @ 0x05c2)
+  var_254 : int (r2 @ 0x05cb)
+  var_255 : int (r2 @ 0x05de)
+  var_256 : int (r3 @ 0x05e2)
+  var_257 : int (r3 @ 0x05e5)
+  var_258 : int (r7 @ 0x05e8)
+  var_259 : int (r8 @ 0x05ed)
+  var_260 : int (r2 @ 0x05f0)
+
+=== Structural Analysis ===
+
+Loops detected: 0
+If-then-else detected: 0
+Switch/case detected: 1
+
+  Switch: header=0x05de, reg=r2, cases=1
+
+=== Pseudo-Code ===
+
+block_0000:
+block_000a:
+let var_0: u64;
+let var_63: u64;
+let var_95: u64;
+let var_123: u64;
+var_0 = r7 - 327680
+u8[327684] = 1
+u8[327685] = 1
+u8[327686] = 1
+u32[524800] = 4
+u32[524804] = 4
+var_63 = u8[327682] << 16 | u8[327683] << 24
+u32[524808] = u8[327680] | u8[327681] << 8 | var_63
+var_95 = u8[327684] | u8[327685] << 8
+var_123 = u8[327686] << 16 | u8[327687] << 24
+u32[524812] = var_95 | var_123
+u32[524816] = u8[327688] | u8[327689] << 8 | u8[327690] << 16 | u8[327691] << 24
+u32[524820] = u8[327692] | u8[327693] << 8 | u8[327694] << 16 | u8[327695] << 24
+u64[r1 - 8] = 103079412224
+
+let var_259: u64;
+let ptr_0_1360: u64;
+var_259 = ptr_0_1360 + 327680 + (ptr_0_1360 >>u 32)
+
+let var_260: u64;
+switch (var_260) {
+    case 0: goto block_000a;
+}
+

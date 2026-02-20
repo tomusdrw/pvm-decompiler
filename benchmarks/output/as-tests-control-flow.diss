@@ -1119,3 +1119,731 @@ Block @ 0x05e4 - 0x05f6:
     0x05f5: JumpInd { reg: 0, offset: 0 }
   Successors: (none)
   Predecessors: 0x05c2
+
+=== Data Flow Analysis ===
+
+Total definitions: 262
+Total uses: 531
+
+Def-Use Chains:
+  r1 defined @ 0x000a -> used at: 0x000d, 0x000f, 0x05b8, 0x05c2
+  r0 defined @ 0x0012 -> used at: 0x05c5
+  r7 defined @ 0x0021 -> used at: 0x002d
+  r8 defined @ 0x0023 -> used at: 0x0035
+  r1 defined @ 0x0026 -> used at: 0x0029
+  r1 defined @ 0x0029 -> used at: 0x0032, 0x0035, 0x0040, 0x004a, 0x0051, 0x005a, 0x005f, 0x0064, 0x006e, 0x0073, 0x007d, 0x0084, 0x008e, 0x0094, 0x009a, 0x00a4, 0x00aa, 0x00b0, 0x00ba, 0x00c0, 0x00c4, 0x00c9, 0x00cd, 0x00d3, 0x00d7, 0x00db, 0x00e2, 0x00e8, 0x00ee, 0x00fc, 0x0268, 0x0272, 0x027e, 0x0288, 0x0290, 0x0298, 0x02a2, 0x02a8, 0x02ae, 0x02bc, 0x02c3, 0x02c7, 0x02d4, 0x02db, 0x02df, 0x02e3, 0x0376, 0x037c, 0x0380, 0x0386, 0x038a, 0x038e, 0x0395, 0x039b, 0x03a1, 0x03af, 0x03c2, 0x03c6, 0x03ca, 0x0422, 0x0428, 0x0432, 0x0438, 0x043e, 0x044c, 0x0464, 0x046a, 0x047a, 0x012a, 0x012f, 0x0133, 0x0139, 0x013d, 0x0141, 0x0148, 0x014e, 0x0154, 0x0160, 0x0166, 0x016c, 0x0178, 0x017e, 0x0184, 0x018e, 0x0194, 0x0198, 0x019d, 0x01a1, 0x01a7, 0x01ab, 0x01af, 0x01b6, 0x01bc, 0x01c2, 0x01d0, 0x01d4, 0x01d8, 0x01dc, 0x01e6, 0x01e9, 0x01ee, 0x0227, 0x022f, 0x0238, 0x023e, 0x0244, 0x0252, 0x02ec, 0x0325, 0x032d, 0x0336, 0x033c, 0x0342, 0x0350, 0x0498, 0x049c, 0x04a0, 0x04b3, 0x04b9, 0x04c3, 0x04c9, 0x04cd, 0x04d3, 0x04e0, 0x04e6, 0x04ea, 0x04f0, 0x04f4, 0x04fa, 0x04fe, 0x0502, 0x0509, 0x050f, 0x0515, 0x0523, 0x0534, 0x053a, 0x0544, 0x054a, 0x054e, 0x0552, 0x0556, 0x055f, 0x0565, 0x056f, 0x0575, 0x0579, 0x057f, 0x0589, 0x058f, 0x0593, 0x0597, 0x059b, 0x03d3, 0x03d9, 0x03e3, 0x03e9, 0x03ed, 0x03f3, 0x03fd, 0x0403, 0x0407, 0x040b, 0x040f
+  r7 defined @ 0x002d -> used at: 0x0032
+  r2 defined @ 0x0039 -> used at: 0x003e
+  r4 defined @ 0x003e -> used at: 0x0040
+  r2 defined @ 0x0043 -> used at: 0x0048
+  r4 defined @ 0x0048 -> used at: 0x004a, 0x004d
+  r2 defined @ 0x004d -> used at: 0x004f
+  r2 defined @ 0x004f -> used at: 0x0051, 0x0057
+  r3 defined @ 0x0054 -> used at: 0x0057
+  r4 defined @ 0x0057 -> used at: 0x005a, 0x005d
+  r2 defined @ 0x005d -> used at: 0x005f, 0x0062
+  r2 defined @ 0x0062 -> used at: 0x0064, 0x006b
+  r3 defined @ 0x0067 -> used at: 0x006b
+  r4 defined @ 0x006b -> used at: 0x006e, 0x0071
+  r2 defined @ 0x0071 -> used at: 0x0073
+  r2 defined @ 0x0076 -> used at: 0x007b
+  r4 defined @ 0x007b -> used at: 0x007d, 0x0080
+  r2 defined @ 0x0080 -> used at: 0x0082
+  r2 defined @ 0x0082 -> used at: 0x0084, 0x008b
+  r3 defined @ 0x0088 -> used at: 0x008b
+  r4 defined @ 0x008b -> used at: 0x008e, 0x0092
+  r2 defined @ 0x0092 -> used at: 0x0094, 0x0098
+  r2 defined @ 0x0098 -> used at: 0x009a, 0x00a1
+  r3 defined @ 0x009e -> used at: 0x00a1
+  r4 defined @ 0x00a1 -> used at: 0x00a4, 0x00a8
+  r2 defined @ 0x00a8 -> used at: 0x00aa, 0x00ae
+  r2 defined @ 0x00ae -> used at: 0x00b0, 0x00b7
+  r3 defined @ 0x00b4 -> used at: 0x00b7
+  r4 defined @ 0x00b7 -> used at: 0x00ba, 0x00be
+  r2 defined @ 0x00be -> used at: 0x00c0
+  r2 defined @ 0x00c4 -> used at: 0x00c7
+  r2 defined @ 0x00c7 -> used at: 0x00c9
+  r2 defined @ 0x00cd -> used at: 0x00d1
+  r2 defined @ 0x00d1 -> used at: 0x00d3
+  r2 defined @ 0x00d7 -> used at: 0x00df
+  r3 defined @ 0x00db -> used at: 0x00df
+  r4 defined @ 0x00df -> used at: 0x00e2, 0x00e6
+  r2 defined @ 0x00e6 -> used at: 0x00e8, 0x00ec
+  r2 defined @ 0x00ec -> used at: 0x00ee, 0x00f4
+  r3 defined @ 0x00f2 -> used at: 0x00f4
+  r4 defined @ 0x00f4 -> used at: 0x00f9
+  r8 defined @ 0x00f7 -> used at: 0x00f9
+  r4 defined @ 0x00f9 -> used at: 0x00fc, 0x0100
+  r2 defined @ 0x0100 -> used at: 0x0102
+  r2 defined @ 0x010d -> used at: 0x0112
+  r2 defined @ 0x0112 -> used at: 0x011b
+  r3 defined @ 0x0114 -> used at: 0x0119
+  r3 defined @ 0x0119 -> used at: 0x0120
+  r7 defined @ 0x011b -> used at: 0x0120
+  r8 defined @ 0x0120 -> used at: (no uses - dead definition?)
+  r2 defined @ 0x0123 -> used at: 0x0128
+  r2 defined @ 0x012a -> used at: 0x012d
+  r2 defined @ 0x012d -> used at: 0x012f
+  r2 defined @ 0x0133 -> used at: 0x0137
+  r2 defined @ 0x0137 -> used at: 0x0139
+  r2 defined @ 0x013d -> used at: 0x0145
+  r3 defined @ 0x0141 -> used at: 0x0145
+  r4 defined @ 0x0145 -> used at: 0x0148, 0x014c
+  r2 defined @ 0x014c -> used at: 0x014e, 0x0152
+  r2 defined @ 0x0152 -> used at: 0x0154, 0x015d
+  r3 defined @ 0x0158 -> used at: 0x015d
+  r4 defined @ 0x015d -> used at: 0x0160, 0x0164
+  r2 defined @ 0x0164 -> used at: 0x0166, 0x016a
+  r2 defined @ 0x016a -> used at: 0x016c, 0x0175
+  r3 defined @ 0x0170 -> used at: 0x0175
+  r4 defined @ 0x0175 -> used at: 0x0178, 0x017c
+  r2 defined @ 0x017c -> used at: 0x017e, 0x0182
+  r2 defined @ 0x0182 -> used at: 0x0184, 0x018b
+  r3 defined @ 0x0188 -> used at: 0x018b
+  r4 defined @ 0x018b -> used at: 0x018e, 0x0192
+  r2 defined @ 0x0192 -> used at: 0x0194
+  r2 defined @ 0x0198 -> used at: 0x019b
+  r2 defined @ 0x019b -> used at: 0x019d
+  r2 defined @ 0x01a1 -> used at: 0x01a5
+  r2 defined @ 0x01a5 -> used at: 0x01a7
+  r2 defined @ 0x01ab -> used at: 0x01b3
+  r3 defined @ 0x01af -> used at: 0x01b3
+  r4 defined @ 0x01b3 -> used at: 0x01b6, 0x01ba
+  r2 defined @ 0x01ba -> used at: 0x01bc, 0x01c0
+  r2 defined @ 0x01c0 -> used at: 0x01c2, 0x01c8
+  r3 defined @ 0x01c6 -> used at: 0x01c8
+  r4 defined @ 0x01c8 -> used at: 0x01cd
+  r8 defined @ 0x01cb -> used at: 0x01cd
+  r4 defined @ 0x01cd -> used at: 0x01d0
+  r4 defined @ 0x01d4 -> used at: 0x01d8
+  r2 defined @ 0x01dc -> used at: 0x01e0
+  r4 defined @ 0x01e6 -> used at: 0x01e9
+  r5 defined @ 0x01ee -> used at: 0x01f9
+  r2 defined @ 0x01f2 -> used at: 0x01f7
+  r4 defined @ 0x01f7 -> used at: 0x01f9, 0x01fc, 0x0213, 0x0227, 0x022b
+  r6 defined @ 0x01f9 -> used at: 0x01fc, 0x0206, 0x0211, 0x0213
+  r5 defined @ 0x0202 -> used at: 0x0206
+  r5 defined @ 0x020c -> used at: 0x0211
+  r5 defined @ 0x0213 -> used at: 0x0219
+  r6 defined @ 0x0216 -> used at: 0x0219
+  r5 defined @ 0x0219 -> used at: 0x021c
+  r5 defined @ 0x021c -> used at: (no uses - dead definition?)
+  r4 defined @ 0x0223 -> used at: 0x0227, 0x022b
+  r2 defined @ 0x022b -> used at: 0x022d
+  r2 defined @ 0x022d -> used at: 0x022f, 0x0235
+  r3 defined @ 0x0233 -> used at: 0x0235
+  r4 defined @ 0x0235 -> used at: 0x0238, 0x023c
+  r2 defined @ 0x023c -> used at: 0x023e, 0x0242
+  r2 defined @ 0x0242 -> used at: 0x0244, 0x024a
+  r3 defined @ 0x0248 -> used at: 0x024a
+  r4 defined @ 0x024a -> used at: 0x024f
+  r8 defined @ 0x024d -> used at: 0x024f
+  r4 defined @ 0x024f -> used at: 0x0252, 0x0256
+  r2 defined @ 0x0256 -> used at: 0x0258
+  r2 defined @ 0x0268 -> used at: 0x0270
+  r3 defined @ 0x026b -> used at: 0x0270
+  r2 defined @ 0x0272 -> used at: 0x0279
+  r3 defined @ 0x0275 -> used at: 0x0279
+  r2 defined @ 0x027e -> used at: 0x0286
+  r3 defined @ 0x0281 -> used at: 0x0286
+  r2 defined @ 0x0288 -> used at: 0x028b
+  r4 defined @ 0x028b -> used at: 0x0290, 0x0294
+  r2 defined @ 0x0294 -> used at: 0x0296
+  r2 defined @ 0x0296 -> used at: 0x0298, 0x029f
+  r3 defined @ 0x029c -> used at: 0x029f
+  r4 defined @ 0x029f -> used at: 0x02a2, 0x02a6
+  r2 defined @ 0x02a6 -> used at: 0x02a8, 0x02ac
+  r2 defined @ 0x02ac -> used at: 0x02ae, 0x02b4
+  r3 defined @ 0x02b2 -> used at: 0x02b4
+  r4 defined @ 0x02b4 -> used at: 0x02b9
+  r8 defined @ 0x02b7 -> used at: 0x02b9
+  r4 defined @ 0x02b9 -> used at: 0x02bc
+  r4 defined @ 0x02c0 -> used at: 0x02c3
+  r2 defined @ 0x02c7 -> used at: 0x02cb
+  r4 defined @ 0x02d1 -> used at: 0x02d4
+  r2 defined @ 0x02d9 -> used at: 0x02df
+  r3 defined @ 0x02db -> used at: 0x02e3
+  r5 defined @ 0x02ec -> used at: 0x02f7
+  r2 defined @ 0x02f0 -> used at: 0x02f5
+  r4 defined @ 0x02f5 -> used at: 0x02f7, 0x02fa, 0x0311, 0x0325, 0x0329
+  r6 defined @ 0x02f7 -> used at: 0x02fa, 0x0304, 0x030f, 0x0311
+  r5 defined @ 0x0300 -> used at: 0x0304
+  r5 defined @ 0x030a -> used at: 0x030f
+  r5 defined @ 0x0311 -> used at: 0x0317
+  r6 defined @ 0x0314 -> used at: 0x0317
+  r5 defined @ 0x0317 -> used at: 0x031a
+  r5 defined @ 0x031a -> used at: (no uses - dead definition?)
+  r4 defined @ 0x0321 -> used at: 0x0325, 0x0329
+  r2 defined @ 0x0329 -> used at: 0x032b
+  r2 defined @ 0x032b -> used at: 0x032d, 0x0333
+  r3 defined @ 0x0331 -> used at: 0x0333
+  r4 defined @ 0x0333 -> used at: 0x0336, 0x033a
+  r2 defined @ 0x033a -> used at: 0x033c, 0x0340
+  r2 defined @ 0x0340 -> used at: 0x0342, 0x0348
+  r3 defined @ 0x0346 -> used at: 0x0348
+  r4 defined @ 0x0348 -> used at: 0x034d
+  r8 defined @ 0x034b -> used at: 0x034d
+  r4 defined @ 0x034d -> used at: 0x0350, 0x0354
+  r2 defined @ 0x0354 -> used at: 0x0356
+  r2 defined @ 0x0376 -> used at: 0x037a
+  r2 defined @ 0x037a -> used at: 0x037c
+  r2 defined @ 0x0380 -> used at: 0x0384
+  r2 defined @ 0x0384 -> used at: 0x0386
+  r2 defined @ 0x038a -> used at: 0x0392
+  r3 defined @ 0x038e -> used at: 0x0392
+  r4 defined @ 0x0392 -> used at: 0x0395, 0x0399
+  r2 defined @ 0x0399 -> used at: 0x039b, 0x039f
+  r2 defined @ 0x039f -> used at: 0x03a1, 0x03a7
+  r3 defined @ 0x03a5 -> used at: 0x03a7
+  r4 defined @ 0x03a7 -> used at: 0x03ac
+  r8 defined @ 0x03aa -> used at: 0x03ac
+  r4 defined @ 0x03ac -> used at: 0x03af, 0x03b3
+  r2 defined @ 0x03b3 -> used at: 0x03b5
+  r2 defined @ 0x03c0 -> used at: 0x03c6
+  r3 defined @ 0x03c2 -> used at: 0x03ca
+  r2 defined @ 0x03d3 -> used at: 0x03d7
+  r2 defined @ 0x03d7 -> used at: 0x03d9, 0x03e0
+  r3 defined @ 0x03dd -> used at: 0x03e0
+  r4 defined @ 0x03e0 -> used at: 0x03e3, 0x03e7
+  r2 defined @ 0x03e7 -> used at: 0x03e9
+  r2 defined @ 0x03ed -> used at: 0x03f1
+  r2 defined @ 0x03f1 -> used at: 0x03f3, 0x03fa
+  r3 defined @ 0x03f7 -> used at: 0x03fa
+  r4 defined @ 0x03fa -> used at: 0x03fd, 0x0401
+  r2 defined @ 0x0401 -> used at: 0x0403, 0x040b
+  r3 defined @ 0x0407 -> used at: 0x040f
+  r2 defined @ 0x0422 -> used at: 0x0426
+  r2 defined @ 0x0426 -> used at: 0x0428, 0x042f
+  r3 defined @ 0x042c -> used at: 0x042f
+  r4 defined @ 0x042f -> used at: 0x0432, 0x0436
+  r2 defined @ 0x0436 -> used at: 0x0438, 0x043c
+  r2 defined @ 0x043c -> used at: 0x043e, 0x0444
+  r3 defined @ 0x0442 -> used at: 0x0444
+  r4 defined @ 0x0444 -> used at: 0x0449
+  r8 defined @ 0x0447 -> used at: 0x0449
+  r4 defined @ 0x0449 -> used at: 0x044c, 0x0450
+  r2 defined @ 0x0450 -> used at: 0x0452
+  r2 defined @ 0x045d -> used at: 0x0462
+  r4 defined @ 0x0462 -> used at: 0x0464, 0x0468
+  r2 defined @ 0x0468 -> used at: 0x046e
+  r3 defined @ 0x046a -> used at: 0x046e
+  r2 defined @ 0x0473 -> used at: 0x0478
+  r4 defined @ 0x0478 -> used at: 0x047a, 0x047e
+  r2 defined @ 0x047e -> used at: 0x0485
+  r3 defined @ 0x0480 -> used at: 0x0485
+  r2 defined @ 0x0487 -> used at: 0x048f
+  r3 defined @ 0x048a -> used at: 0x048f
+  r2 defined @ 0x0496 -> used at: 0x049c
+  r3 defined @ 0x0498 -> used at: 0x04a0
+  r2 defined @ 0x04b3 -> used at: 0x04b7
+  r2 defined @ 0x04b7 -> used at: 0x04b9, 0x04c0
+  r3 defined @ 0x04bd -> used at: 0x04c0
+  r4 defined @ 0x04c0 -> used at: 0x04c3, 0x04c7
+  r2 defined @ 0x04c7 -> used at: 0x04c9
+  r2 defined @ 0x04cd -> used at: 0x04d1
+  r2 defined @ 0x04d1 -> used at: 0x04d3, 0x04da
+  r3 defined @ 0x04d7 -> used at: 0x04da
+  r4 defined @ 0x04da -> used at: 0x04dd
+  r4 defined @ 0x04dd -> used at: 0x04e0, 0x04e4
+  r2 defined @ 0x04e4 -> used at: 0x04e6
+  r2 defined @ 0x04ea -> used at: 0x04ee
+  r2 defined @ 0x04ee -> used at: 0x04f0
+  r2 defined @ 0x04f4 -> used at: 0x04f8
+  r2 defined @ 0x04f8 -> used at: 0x04fa
+  r2 defined @ 0x04fe -> used at: 0x0506
+  r3 defined @ 0x0502 -> used at: 0x0506
+  r4 defined @ 0x0506 -> used at: 0x0509, 0x050d
+  r2 defined @ 0x050d -> used at: 0x050f, 0x0513
+  r2 defined @ 0x0513 -> used at: 0x0515, 0x051b
+  r3 defined @ 0x0519 -> used at: 0x051b
+  r4 defined @ 0x051b -> used at: 0x0520
+  r8 defined @ 0x051e -> used at: 0x0520
+  r4 defined @ 0x0520 -> used at: 0x0523, 0x0527
+  r2 defined @ 0x0527 -> used at: 0x0529
+  r2 defined @ 0x0534 -> used at: 0x0538
+  r2 defined @ 0x0538 -> used at: 0x053a, 0x0541
+  r3 defined @ 0x053e -> used at: 0x0541
+  r4 defined @ 0x0541 -> used at: 0x0544, 0x0548
+  r2 defined @ 0x0548 -> used at: 0x054a, 0x0552
+  r3 defined @ 0x054e -> used at: 0x0556
+  r2 defined @ 0x055f -> used at: 0x0563
+  r2 defined @ 0x0563 -> used at: 0x0565, 0x056c
+  r3 defined @ 0x0569 -> used at: 0x056c
+  r4 defined @ 0x056c -> used at: 0x056f, 0x0573
+  r2 defined @ 0x0573 -> used at: 0x0575
+  r2 defined @ 0x0579 -> used at: 0x057d
+  r2 defined @ 0x057d -> used at: 0x057f, 0x0586
+  r3 defined @ 0x0583 -> used at: 0x0586
+  r4 defined @ 0x0586 -> used at: 0x0589, 0x058d
+  r2 defined @ 0x058d -> used at: 0x058f, 0x0597
+  r3 defined @ 0x0593 -> used at: 0x059b
+  r2 defined @ 0x05ae -> used at: 0x05bb
+  r3 defined @ 0x05b8 -> used at: 0x05bb
+  r1 defined @ 0x05c2 -> used at: 0x05c5, 0x05c7, 0x05ca, 0x05cd, 0x05d0, 0x05e4, 0x05e7, 0x05ea, 0x05ed, 0x05f0, 0x05f2
+  r2 defined @ 0x05d4 -> used at: 0x05dd
+  r3 defined @ 0x05d8 -> used at: 0x05dd
+  r9 defined @ 0x05e4 -> used at: (no uses - dead definition?)
+  r10 defined @ 0x05e7 -> used at: (no uses - dead definition?)
+  r11 defined @ 0x05ea -> used at: (no uses - dead definition?)
+  r12 defined @ 0x05ed -> used at: (no uses - dead definition?)
+  r0 defined @ 0x05f0 -> used at: 0x05f5
+  r1 defined @ 0x05f2 -> used at: (no uses - dead definition?)
+
+=== Register Lifting ===
+
+Variables: 262, Eliminated instructions: 333
+  ptr_0 : ptr (r1 @ 0x000a)
+  var_0 : int (r0 @ 0x0012)
+  var_1 : int (r7 @ 0x0021)
+  var_2 : int (r8 @ 0x0023)
+  var_3 : int (r1 @ 0x0026)
+  ptr_1 : ptr (r1 @ 0x0029)
+  var_4 : int (r7 @ 0x002d)
+  ptr_2 : ptr (r2 @ 0x0039)
+  var_5 : int (r4 @ 0x003e)
+  ptr_3 : ptr (r2 @ 0x0043)
+  var_6 : int (r4 @ 0x0048)
+  var_7 : int (r2 @ 0x004d)
+  var_8 : int (r2 @ 0x004f)
+  var_9 : int (r3 @ 0x0054)
+  var_10 : int (r4 @ 0x0057)
+  var_11 : int (r2 @ 0x005d)
+  var_12 : int (r2 @ 0x0062)
+  var_13 : int (r3 @ 0x0067)
+  var_14 : int (r4 @ 0x006b)
+  var_15 : int (r2 @ 0x0071)
+  ptr_4 : ptr (r2 @ 0x0076)
+  var_16 : int (r4 @ 0x007b)
+  var_17 : int (r2 @ 0x0080)
+  var_18 : int (r2 @ 0x0082)
+  var_19 : int (r3 @ 0x0088)
+  var_20 : int (r4 @ 0x008b)
+  var_21 : int (r2 @ 0x0092)
+  var_22 : int (r2 @ 0x0098)
+  var_23 : int (r3 @ 0x009e)
+  var_24 : int (r4 @ 0x00a1)
+  var_25 : int (r2 @ 0x00a8)
+  var_26 : int (r2 @ 0x00ae)
+  var_27 : int (r3 @ 0x00b4)
+  var_28 : int (r4 @ 0x00b7)
+  var_29 : int (r2 @ 0x00be)
+  var_30 : int (r2 @ 0x00c4)
+  var_31 : int (r2 @ 0x00c7)
+  var_32 : int (r2 @ 0x00cd)
+  var_33 : int (r2 @ 0x00d1)
+  var_34 : int (r2 @ 0x00d7)
+  var_35 : int (r3 @ 0x00db)
+  cond_0 : bool (r4 @ 0x00df)
+  var_36 : int (r2 @ 0x00e6)
+  var_37 : int (r2 @ 0x00ec)
+  var_38 : int (r3 @ 0x00f2)
+  var_39 : int (r4 @ 0x00f4)
+  var_40 : int (r8 @ 0x00f7)
+  cond_1 : bool (r4 @ 0x00f9)
+  var_41 : int (r2 @ 0x0100)
+  ptr_5 : ptr (r2 @ 0x010d)
+  var_42 : int (r2 @ 0x0112)
+  ptr_6 : ptr (r3 @ 0x0114)
+  var_43 : int (r3 @ 0x0119)
+  var_44 : int (r7 @ 0x011b)
+  var_45 : int (r8 @ 0x0120)
+  var_46 : int (r2 @ 0x0123)
+  var_47 : int (r2 @ 0x012a)
+  var_48 : int (r2 @ 0x012d)
+  var_49 : int (r2 @ 0x0133)
+  var_50 : int (r2 @ 0x0137)
+  var_51 : int (r2 @ 0x013d)
+  var_52 : int (r3 @ 0x0141)
+  var_53 : int (r4 @ 0x0145)
+  var_54 : int (r2 @ 0x014c)
+  var_55 : int (r2 @ 0x0152)
+  var_56 : int (r3 @ 0x0158)
+  var_57 : int (r4 @ 0x015d)
+  var_58 : int (r2 @ 0x0164)
+  var_59 : int (r2 @ 0x016a)
+  var_60 : int (r3 @ 0x0170)
+  var_61 : int (r4 @ 0x0175)
+  var_62 : int (r2 @ 0x017c)
+  var_63 : int (r2 @ 0x0182)
+  var_64 : int (r3 @ 0x0188)
+  var_65 : int (r4 @ 0x018b)
+  var_66 : int (r2 @ 0x0192)
+  var_67 : int (r2 @ 0x0198)
+  var_68 : int (r2 @ 0x019b)
+  var_69 : int (r2 @ 0x01a1)
+  var_70 : int (r2 @ 0x01a5)
+  var_71 : int (r2 @ 0x01ab)
+  var_72 : int (r3 @ 0x01af)
+  cond_2 : bool (r4 @ 0x01b3)
+  var_73 : int (r2 @ 0x01ba)
+  var_74 : int (r2 @ 0x01c0)
+  var_75 : int (r3 @ 0x01c6)
+  var_76 : int (r4 @ 0x01c8)
+  var_77 : int (r8 @ 0x01cb)
+  cond_3 : bool (r4 @ 0x01cd)
+  var_78 : int (r4 @ 0x01d4)
+  var_79 : int (r2 @ 0x01dc)
+  var_80 : int (r4 @ 0x01e6)
+  var_81 : int (r5 @ 0x01ee)
+  ptr_7 : ptr (r2 @ 0x01f2)
+  var_82 : int (r4 @ 0x01f7)
+  var_83 : int (r6 @ 0x01f9)
+  var_84 : int (r5 @ 0x0202)
+  ptr_8 : ptr (r5 @ 0x020c)
+  var_85 : int (r5 @ 0x0213)
+  var_86 : int (r6 @ 0x0216)
+  var_87 : int (r5 @ 0x0219)
+  ptr_9 : ptr (r5 @ 0x021c)
+  var_88 : int (r4 @ 0x0223)
+  var_89 : int (r2 @ 0x022b)
+  var_90 : int (r2 @ 0x022d)
+  var_91 : int (r3 @ 0x0233)
+  cond_4 : bool (r4 @ 0x0235)
+  var_92 : int (r2 @ 0x023c)
+  var_93 : int (r2 @ 0x0242)
+  var_94 : int (r3 @ 0x0248)
+  var_95 : int (r4 @ 0x024a)
+  var_96 : int (r8 @ 0x024d)
+  cond_5 : bool (r4 @ 0x024f)
+  var_97 : int (r2 @ 0x0256)
+  var_98 : int (r2 @ 0x0268)
+  ptr_10 : ptr (r3 @ 0x026b)
+  ptr_11 : ptr (r2 @ 0x0272)
+  var_99 : int (r3 @ 0x0275)
+  var_100 : int (r2 @ 0x027e)
+  ptr_12 : ptr (r3 @ 0x0281)
+  ptr_13 : ptr (r2 @ 0x0288)
+  var_101 : int (r4 @ 0x028b)
+  var_102 : int (r2 @ 0x0294)
+  var_103 : int (r2 @ 0x0296)
+  var_104 : int (r3 @ 0x029c)
+  cond_6 : bool (r4 @ 0x029f)
+  var_105 : int (r2 @ 0x02a6)
+  var_106 : int (r2 @ 0x02ac)
+  var_107 : int (r3 @ 0x02b2)
+  var_108 : int (r4 @ 0x02b4)
+  var_109 : int (r8 @ 0x02b7)
+  cond_7 : bool (r4 @ 0x02b9)
+  var_110 : int (r4 @ 0x02c0)
+  var_111 : int (r2 @ 0x02c7)
+  var_112 : int (r4 @ 0x02d1)
+  var_113 : int (r2 @ 0x02d9)
+  var_114 : int (r3 @ 0x02db)
+  var_115 : int (r5 @ 0x02ec)
+  ptr_14 : ptr (r2 @ 0x02f0)
+  var_116 : int (r4 @ 0x02f5)
+  var_117 : int (r6 @ 0x02f7)
+  var_118 : int (r5 @ 0x0300)
+  ptr_15 : ptr (r5 @ 0x030a)
+  var_119 : int (r5 @ 0x0311)
+  var_120 : int (r6 @ 0x0314)
+  var_121 : int (r5 @ 0x0317)
+  ptr_16 : ptr (r5 @ 0x031a)
+  var_122 : int (r4 @ 0x0321)
+  var_123 : int (r2 @ 0x0329)
+  var_124 : int (r2 @ 0x032b)
+  var_125 : int (r3 @ 0x0331)
+  cond_8 : bool (r4 @ 0x0333)
+  var_126 : int (r2 @ 0x033a)
+  var_127 : int (r2 @ 0x0340)
+  var_128 : int (r3 @ 0x0346)
+  var_129 : int (r4 @ 0x0348)
+  var_130 : int (r8 @ 0x034b)
+  cond_9 : bool (r4 @ 0x034d)
+  var_131 : int (r2 @ 0x0354)
+  var_132 : int (r2 @ 0x0376)
+  var_133 : int (r2 @ 0x037a)
+  var_134 : int (r2 @ 0x0380)
+  var_135 : int (r2 @ 0x0384)
+  var_136 : int (r2 @ 0x038a)
+  var_137 : int (r3 @ 0x038e)
+  cond_10 : bool (r4 @ 0x0392)
+  var_138 : int (r2 @ 0x0399)
+  var_139 : int (r2 @ 0x039f)
+  var_140 : int (r3 @ 0x03a5)
+  var_141 : int (r4 @ 0x03a7)
+  var_142 : int (r8 @ 0x03aa)
+  cond_11 : bool (r4 @ 0x03ac)
+  var_143 : int (r2 @ 0x03b3)
+  var_144 : int (r2 @ 0x03c0)
+  var_145 : int (r3 @ 0x03c2)
+  var_146 : int (r2 @ 0x03d3)
+  var_147 : int (r2 @ 0x03d7)
+  var_148 : int (r3 @ 0x03dd)
+  var_149 : int (r4 @ 0x03e0)
+  var_150 : int (r2 @ 0x03e7)
+  var_151 : int (r2 @ 0x03ed)
+  var_152 : int (r2 @ 0x03f1)
+  var_153 : int (r3 @ 0x03f7)
+  var_154 : int (r4 @ 0x03fa)
+  var_155 : int (r2 @ 0x0401)
+  var_156 : int (r3 @ 0x0407)
+  var_157 : int (r2 @ 0x0422)
+  var_158 : int (r2 @ 0x0426)
+  var_159 : int (r3 @ 0x042c)
+  cond_12 : bool (r4 @ 0x042f)
+  var_160 : int (r2 @ 0x0436)
+  var_161 : int (r2 @ 0x043c)
+  var_162 : int (r3 @ 0x0442)
+  var_163 : int (r4 @ 0x0444)
+  var_164 : int (r8 @ 0x0447)
+  cond_13 : bool (r4 @ 0x0449)
+  var_165 : int (r2 @ 0x0450)
+  ptr_17 : ptr (r2 @ 0x045d)
+  var_166 : int (r4 @ 0x0462)
+  ptr_18 : ptr (r2 @ 0x0468)
+  var_167 : int (r3 @ 0x046a)
+  ptr_19 : ptr (r2 @ 0x0473)
+  var_168 : int (r4 @ 0x0478)
+  var_169 : int (r2 @ 0x047e)
+  ptr_20 : ptr (r3 @ 0x0480)
+  var_170 : int (r2 @ 0x0487)
+  ptr_21 : ptr (r3 @ 0x048a)
+  var_171 : int (r2 @ 0x0496)
+  var_172 : int (r3 @ 0x0498)
+  var_173 : int (r2 @ 0x04b3)
+  var_174 : int (r2 @ 0x04b7)
+  var_175 : int (r3 @ 0x04bd)
+  cond_14 : bool (r4 @ 0x04c0)
+  var_176 : int (r2 @ 0x04c7)
+  var_177 : int (r2 @ 0x04cd)
+  var_178 : int (r2 @ 0x04d1)
+  var_179 : int (r3 @ 0x04d7)
+  cond_15 : bool (r4 @ 0x04da)
+  cond_16 : bool (r4 @ 0x04dd)
+  var_180 : int (r2 @ 0x04e4)
+  var_181 : int (r2 @ 0x04ea)
+  var_182 : int (r2 @ 0x04ee)
+  var_183 : int (r2 @ 0x04f4)
+  var_184 : int (r2 @ 0x04f8)
+  var_185 : int (r2 @ 0x04fe)
+  var_186 : int (r3 @ 0x0502)
+  var_187 : int (r4 @ 0x0506)
+  var_188 : int (r2 @ 0x050d)
+  var_189 : int (r2 @ 0x0513)
+  var_190 : int (r3 @ 0x0519)
+  var_191 : int (r4 @ 0x051b)
+  var_192 : int (r8 @ 0x051e)
+  cond_17 : bool (r4 @ 0x0520)
+  var_193 : int (r2 @ 0x0527)
+  var_194 : int (r2 @ 0x0534)
+  var_195 : int (r2 @ 0x0538)
+  var_196 : int (r3 @ 0x053e)
+  var_197 : int (r4 @ 0x0541)
+  var_198 : int (r2 @ 0x0548)
+  var_199 : int (r3 @ 0x054e)
+  var_200 : int (r2 @ 0x055f)
+  var_201 : int (r2 @ 0x0563)
+  var_202 : int (r3 @ 0x0569)
+  var_203 : int (r4 @ 0x056c)
+  var_204 : int (r2 @ 0x0573)
+  var_205 : int (r2 @ 0x0579)
+  var_206 : int (r2 @ 0x057d)
+  var_207 : int (r3 @ 0x0583)
+  var_208 : int (r4 @ 0x0586)
+  var_209 : int (r2 @ 0x058d)
+  var_210 : int (r3 @ 0x0593)
+  var_211 : int (r2 @ 0x05ae)
+  var_212 : int (r3 @ 0x05b8)
+  ptr_22 : ptr (r1 @ 0x05c2)
+  var_213 : int (r2 @ 0x05d4)
+  ptr_23 : ptr (r3 @ 0x05d8)
+  var_214 : int (r9 @ 0x05e4)
+  var_215 : int (r10 @ 0x05e7)
+  var_216 : int (r11 @ 0x05ea)
+  var_217 : int (r12 @ 0x05ed)
+  var_218 : int (r0 @ 0x05f0)
+  var_219 : int (r1 @ 0x05f2)
+
+=== Structural Analysis ===
+
+Loops detected: 0
+If-then-else detected: 1
+Switch/case detected: 2
+
+  if-then-else: header=0x05ae, then=[0x05c2], else=[0x05c1], condition=r2 >=u r3
+
+  Switch: header=0x010d, reg=r2, cases=3
+
+  Switch: header=0x05e4, reg=r0, cases=3
+
+=== Pseudo-Code ===
+
+block_0000:
+block_000a:
+let ptr_0: ptr;
+ptr_0 = r1 - 16
+
+block_05ae:
+let var_212: u64;
+var_212 = ptr_0 - 40
+
+let var_211: u64;
+if (var_211 >=u var_212) {
+    let ptr_22: ptr;
+    let ptr_22_0: u64;
+    let ptr_22_8: u64;
+    let ptr_22_16: u64;
+    let ptr_22_24: u64;
+    let ptr_22_32: u64;
+    ptr_22 = ptr_0 - 40
+    ptr_22_0 = 2
+    ptr_22_8 = r9
+    ptr_22_16 = r10
+    ptr_22_24 = r11
+    ptr_22_32 = r12
+    u32[196620] = 1036
+} else {
+    trap
+}
+
+let var_219: u64;
+var_219 = ptr_22 + 40
+
+switch (ptr_22_0) {
+    case 1: goto block_000a;
+    case 0: goto block_0021;
+    case 2: goto block_05ae;
+}
+
+block_0021:
+let var_2: u64;
+let ptr_1: ptr;
+let ptr_1_40: u64;
+let ptr_1_56: u64;
+let var_10: u64;
+let ptr_1_88: u64;
+let ptr_1_112: u64;
+let var_16: u64;
+let ptr_1_120: u64;
+let ptr_1_192: u64;
+let cond_1: bool;
+let var_28: u64;
+let var_14: u64;
+var_2 = u64[r1 + 8]
+ptr_1 = r1 - 928
+ptr_1_40 = u64[r1] - 327680
+ptr_1_56 = u32[196620]
+var_10 = u32[196620] + 4
+ptr_1_88 = var_10
+ptr_1_112 = var_10 + 268
+var_16 = u32[196624]
+ptr_1_120 = var_16
+ptr_1_192 = (var_16 << 16) + 15 & -16
+cond_1 = 0 <u var_28 <u var_14
+if (var_41 != 0) jump 40
+
+let var_65: u64;
+let ptr_1_344: u64;
+let cond_3: bool;
+let ptr_1_400: u64;
+var_65 = (ptr_1_112 - ptr_1_192 + 65535 & -65536) >>u 16
+ptr_1_344 = var_65
+cond_3 = 0 <u var_65 <s ptr_1_120
+ptr_1_400 = var_65
+if (var_79 == 0) jump 14
+
+let var_82: u64;
+let var_83: u64;
+var_82 = u32[196624]
+var_83 = var_82 + ptr_1_400
+if (var_82 <u var_83) jump 39
+
+ptr_1_400 = ptr_1_120
+
+let var_88: u64;
+var_88 = -1
+
+let var_84: u64;
+if (var_83 <u var_84) jump 29
+
+let var_101: u64;
+let ptr_1_464: u64;
+let cond_7: bool;
+let ptr_1_512: u64;
+u32[196620] = ptr_1_112
+u32[196608] = ptr_1_88
+var_101 = u32[ptr_1_40 + 327680]
+ptr_1_464 = var_101
+cond_7 = 0 <u 10 <s var_101
+ptr_1_512 = 2
+if (var_111 == 0) jump 14
+
+let cond_5: bool;
+cond_5 = 0 <u var_82 <s 0
+if (var_97 != 0) jump 148
+
+let ptr_9: ptr;
+u32[196624] = var_83
+ptr_9 = sbrk(var_83 - var_82 << 16)
+
+let ptr_1_568: u64;
+let ptr_1_576: u64;
+ptr_1_568 = 0
+ptr_1_576 = ptr_1_512
+
+ptr_1_512 = 1
+
+let var_116: u64;
+let var_117: u64;
+var_116 = u32[196624]
+var_117 = var_116 + ptr_1_344
+if (var_116 <u var_117) jump 39
+
+let cond_11: bool;
+cond_11 = 0 <u ptr_1_568 <s ptr_1_464
+if (var_143 != 0) jump 30
+
+let var_122: u64;
+var_122 = -1
+
+let var_118: u64;
+if (var_117 <u var_118) jump 29
+
+ptr_1_568 = ptr_1_568 + 1
+ptr_1_576 = ptr_1_576 + 1
+
+let cond_9: bool;
+cond_9 = 0 <u var_116 <s 0
+if (var_131 != 0) jump 21
+
+let ptr_16: ptr;
+u32[196624] = var_117
+ptr_16 = sbrk(var_117 - var_116 << 16)
+
+trap
+
+let ptr_1_680: u64;
+let ptr_1_688: u64;
+ptr_1_680 = 0
+ptr_1_688 = ptr_1_576
+
+let cond_13: bool;
+cond_13 = 0 <u ptr_1_680 <s 5
+if (var_165 != 0) jump 68
+
+let ptr_1_760: u64;
+let ptr_1_768: u64;
+ptr_1_760 = 0
+ptr_1_768 = ptr_1_688
+
+let cond_17: bool;
+cond_17 = 0 <u (ptr_1_760 <s 5 & !(2 <s ptr_1_760))
+if (var_193 != 0) jump 54
+
+ptr_1_760 = ptr_1_760 + 1
+ptr_1_768 = ptr_1_768 + 1
+
+u32[u32[196608] + 327680] = ptr_1_688
+u32[196612] = u32[196608]
+u32[196616] = 4
+
+let var_45: u64;
+let var_46: u64;
+var_45 = u32[196612] + 327680 + u32[196616]
+halt()
+
+ptr_1_680 = ptr_1_680 + 1
+ptr_1_688 = ptr_1_768
+
+

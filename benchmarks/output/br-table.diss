@@ -208,3 +208,140 @@ Block @ 0x00d5 - 0x00ee:
     0x00ed: Jump { offset: -163 }
   Successors: 0x004a
   Predecessors: 0x00bc, 0x00c9
+
+=== Data Flow Analysis ===
+
+Total definitions: 33
+Total uses: 65
+
+Def-Use Chains:
+  r1 defined @ 0x000a -> used at: 0x0013, 0x0016, 0x001a, 0x0022, 0x0029, 0x0042, 0x0062, 0x0067, 0x0072, 0x0077, 0x007c, 0x0089, 0x00c9, 0x00cc, 0x00d7, 0x00ea, 0x004a, 0x00c0, 0x009d, 0x00a9, 0x00b4
+  r7 defined @ 0x000e -> used at: 0x0013
+  r2 defined @ 0x001a -> used at: 0x001d
+  r4 defined @ 0x001d -> used at: 0x0022, 0x0025
+  r2 defined @ 0x0025 -> used at: 0x0027
+  r2 defined @ 0x0027 -> used at: 0x0029, 0x002c, 0x0032, 0x0039
+  r2 defined @ 0x0040 -> used at: 0x0042
+  r2 defined @ 0x004a -> used at: 0x0050, 0x0053
+  r3 defined @ 0x004d -> used at: 0x0050
+  r3 defined @ 0x0050 -> used at: 0x0058
+  r7 defined @ 0x0053 -> used at: 0x0058
+  r8 defined @ 0x0058 -> used at: (no uses - dead definition?)
+  r2 defined @ 0x005b -> used at: 0x0060
+  r2 defined @ 0x0062 -> used at: 0x0065
+  r2 defined @ 0x0065 -> used at: 0x0067, 0x006c
+  r3 defined @ 0x006a -> used at: 0x006c
+  r4 defined @ 0x006c -> used at: 0x006f
+  r4 defined @ 0x006f -> used at: 0x0072, 0x0075
+  r2 defined @ 0x0075 -> used at: 0x0077, 0x007a
+  r2 defined @ 0x007a -> used at: 0x007c, 0x0081
+  r3 defined @ 0x007f -> used at: 0x0081
+  r4 defined @ 0x0081 -> used at: 0x0086
+  r8 defined @ 0x0084 -> used at: 0x0086
+  r4 defined @ 0x0086 -> used at: 0x0089, 0x008c
+  r2 defined @ 0x008c -> used at: 0x008e
+  r2 defined @ 0x0099 -> used at: 0x009d
+  r2 defined @ 0x00a5 -> used at: 0x00a9
+  r2 defined @ 0x00b1 -> used at: 0x00b4
+  r2 defined @ 0x00bc -> used at: 0x00c0
+  r2 defined @ 0x00c9 -> used at: 0x00cc
+  r2 defined @ 0x00d5 -> used at: 0x00db
+  r3 defined @ 0x00d7 -> used at: 0x00db
+  r2 defined @ 0x00e0 -> used at: 0x00ea
+
+=== Register Lifting ===
+
+Variables: 33, Eliminated instructions: 38
+  ptr_0 : ptr (r1 @ 0x000a)
+  var_0 : int (r7 @ 0x000e)
+  ptr_1 : ptr (r2 @ 0x001a)
+  var_1 : int (r4 @ 0x001d)
+  var_2 : int (r2 @ 0x0025)
+  var_3 : int (r2 @ 0x0027)
+  var_4 : int (r2 @ 0x0040)
+  var_5 : int (r2 @ 0x004a)
+  var_6 : int (r3 @ 0x004d)
+  var_7 : int (r3 @ 0x0050)
+  var_8 : int (r7 @ 0x0053)
+  var_9 : int (r8 @ 0x0058)
+  var_10 : int (r2 @ 0x005b)
+  var_11 : int (r2 @ 0x0062)
+  var_12 : int (r2 @ 0x0065)
+  var_13 : int (r3 @ 0x006a)
+  var_14 : int (r4 @ 0x006c)
+  cond_0 : bool (r4 @ 0x006f)
+  var_15 : int (r2 @ 0x0075)
+  var_16 : int (r2 @ 0x007a)
+  var_17 : int (r3 @ 0x007f)
+  var_18 : int (r4 @ 0x0081)
+  var_19 : int (r8 @ 0x0084)
+  cond_1 : bool (r4 @ 0x0086)
+  var_20 : int (r2 @ 0x008c)
+  var_21 : int (r2 @ 0x0099)
+  var_22 : int (r2 @ 0x00a5)
+  var_23 : int (r2 @ 0x00b1)
+  var_24 : int (r2 @ 0x00bc)
+  var_25 : int (r2 @ 0x00c9)
+  ptr_2 : ptr (r2 @ 0x00d5)
+  var_26 : int (r3 @ 0x00d7)
+  var_27 : int (r2 @ 0x00e0)
+
+=== Structural Analysis ===
+
+Loops detected: 1
+If-then-else detected: 3
+Switch/case detected: 1
+
+  Loop: header=0x0062, latch=0x004a, body_size=6, condition=r2 != 0
+
+  if-then-else: header=0x000a, then=[0x00b1], else=[0x0032], join=0x0062, condition=r2 == 0
+
+  if-then-else: header=0x0032, then=[0x00a5], else=[0x0039], join=0x0062, condition=r2 == 1
+
+  if-then-else: header=0x0039, then=[0x0099], else=[0x0040], join=0x0062, condition=r2 == 2
+
+  Switch: header=0x004a, reg=r2, cases=1
+
+=== Pseudo-Code ===
+
+block_0000:
+block_000a:
+let ptr_0: ptr;
+let var_1: u64;
+ptr_0 = r1 - 144
+var_1 = u32[r7]
+
+if (var_1 == 0) {
+    let ptr_0_80: u64;
+    ptr_0_80 = 100
+} else {
+    if (var_3 == 1) jump 115
+}
+
+if (var_1 == 2) {
+    ptr_0_80 = 300
+} else {
+    ptr_0_80 = 0
+}
+
+ptr_0_80 = 200
+
+let cond_1: bool;
+while (cond_1 != 0) {
+    cond_1 = 0 <u !(ptr_0_80)
+
+    let var_9: u64;
+    let ptr_0_72: u64;
+    let var_10: u64;
+    var_9 = ptr_0_72 + 327680 + (ptr_0_72 >>u 32)
+    halt()
+
+    let ptr_0_128: u64;
+    ptr_0_128 = 999
+
+    ptr_0_128 = ptr_0_80
+
+    u32[327680] = ptr_0_128
+    ptr_0_72 = 17179869184
+}
+
