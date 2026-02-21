@@ -1428,9 +1428,9 @@ fn format_condition_lifted(cond: &Condition, branch_pc: usize, lifted: &LiftedPr
         && let Some(name) = lifted.var_at_use.get(&(branch_pc, *reg))
         && let Some(expr) = lifted.expression_for_var(name)
     {
-        // Check if the expression is a comparison (LtU, LtS)
+        // Check if the expression is a comparison (LtU, LtS, GeU, GeS)
         if let crate::lifting::Expression::BinOp { op, .. } = expr
-            && matches!(op, BinOp::LtU | BinOp::LtS)
+            && matches!(op, BinOp::LtU | BinOp::LtS | BinOp::GeU | BinOp::GeS)
         {
             let inner = format_expression(expr);
             return if cond.op == CondOp::Eq {

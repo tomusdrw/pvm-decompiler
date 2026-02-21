@@ -1255,8 +1255,8 @@ fn simplify_expression(expr: Expression) -> Expression {
                     op: UnaryOp::Not,
                     operand: Box::new(lhs),
                 },
-                // 0 <u expr → expr when expr is already boolean (Not, LtU, LtS)
-                // This eliminates truthy checks like `0 <u !(x <u y)` → `!(x <u y)`
+                // 0 <u expr → expr when expr is already boolean (comparison or negation)
+                // This eliminates truthy checks like `0 <u (x >=u y)` → `x >=u y`
                 (BinOp::LtU, Expression::Const(0), _)
                     if matches!(
                         &rhs,
@@ -1264,7 +1264,7 @@ fn simplify_expression(expr: Expression) -> Expression {
                             op: UnaryOp::Not,
                             ..
                         } | Expression::BinOp {
-                            op: BinOp::LtU | BinOp::LtS,
+                            op: BinOp::LtU | BinOp::LtS | BinOp::GeU | BinOp::GeS,
                             ..
                         }
                     ) =>
@@ -1280,14 +1280,33 @@ fn simplify_expression(expr: Expression) -> Expression {
         }
         Expression::UnaryOp { op, operand } => {
             let operand = simplify_expression(*operand);
-            // Double negation elimination: !!x → x
-            if op == UnaryOp::Not
-                && let Expression::UnaryOp {
+            if op == UnaryOp::Not {
+                // Double negation elimination: !!x → x
+                if let Expression::UnaryOp {
                     op: UnaryOp::Not,
                     operand: inner,
                 } = operand
-            {
-                return *inner;
+                {
+                    return *inner;
+                }
+                // Comparison inversion: !(x <u y) → x >=u y, !(x <s y) → x >=s y
+                if let Expression::BinOp {
+                    op: cmp_op @ (BinOp::LtU | BinOp::LtS),
+                    lhs,
+                    rhs,
+                } = operand
+                {
+                    let inverted = match cmp_op {
+                        BinOp::LtU => BinOp::GeU,
+                        BinOp::LtS => BinOp::GeS,
+                        _ => unreachable!(),
+                    };
+                    return Expression::BinOp {
+                        op: inverted,
+                        lhs,
+                        rhs,
+                    };
+                }
             }
             Expression::UnaryOp {
                 op,
@@ -1849,7 +1868,7 @@ fn op_precedence(op: BinOp) -> u8 {
         BinOp::Or => 1,
         BinOp::Xor => 2,
         BinOp::And => 3,
-        BinOp::LtU | BinOp::LtS => 4,
+        BinOp::LtU | BinOp::LtS | BinOp::GeU | BinOp::GeS => 4,
         BinOp::Shl | BinOp::ShrU | BinOp::ShrS => 5,
         BinOp::Add | BinOp::Sub => 6,
         BinOp::Mul | BinOp::DivU | BinOp::DivS | BinOp::RemU | BinOp::RemS => 7,
@@ -2210,8 +2229,36 @@ mod tests {
     }
 
     #[test]
+    fn test_simplify_comparison_inversion() {
+        // !(x <u y) → x >=u y
+        let expr = Expression::UnaryOp {
+            op: UnaryOp::Not,
+            operand: Box::new(Expression::BinOp {
+                op: BinOp::LtU,
+                lhs: Box::new(Expression::Var("x".to_string())),
+                rhs: Box::new(Expression::Var("y".to_string())),
+            }),
+        };
+        let simplified = simplify_expression(expr);
+        assert_eq!(format_expression(&simplified), "x >=u y");
+
+        // !(a <s b) → a >=s b
+        let expr_signed = Expression::UnaryOp {
+            op: UnaryOp::Not,
+            operand: Box::new(Expression::BinOp {
+                op: BinOp::LtS,
+                lhs: Box::new(Expression::Var("a".to_string())),
+                rhs: Box::new(Expression::Var("b".to_string())),
+            }),
+        };
+        let simplified_signed = simplify_expression(expr_signed);
+        assert_eq!(format_expression(&simplified_signed), "a >=s b");
+    }
+
+    #[test]
     fn test_simplify_0_ltu_boolean() {
-        // 0 <u !(x <u y) → !(x <u y) (truthy check on boolean)
+        // 0 <u !(x <u y) → x >=u y
+        // Chain: !(x <u y) → x >=u y, then 0 <u (x >=u y) → x >=u y
         let expr = Expression::BinOp {
             op: BinOp::LtU,
             lhs: Box::new(Expression::Const(0)),
@@ -2225,7 +2272,7 @@ mod tests {
             }),
         };
         let simplified = simplify_expression(expr);
-        assert_eq!(format_expression(&simplified), "!(x <u y)");
+        assert_eq!(format_expression(&simplified), "x >=u y");
     }
 
     #[test]

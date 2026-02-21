@@ -30,6 +30,10 @@ pub enum BinOp {
     Xor,
     LtU,
     LtS,
+    /// Greater-than-or-equal unsigned — produced by simplification of `!(x <u y)`.
+    GeU,
+    /// Greater-than-or-equal signed — produced by simplification of `!(x <s y)`.
+    GeS,
 }
 
 impl fmt::Display for BinOp {
@@ -50,6 +54,8 @@ impl fmt::Display for BinOp {
             BinOp::Xor => "^",
             BinOp::LtU => "<u",
             BinOp::LtS => "<s",
+            BinOp::GeU => ">=u",
+            BinOp::GeS => ">=s",
         };
         write!(f, "{}", s)
     }
