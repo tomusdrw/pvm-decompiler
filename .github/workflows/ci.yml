@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  LLVM_SYS_181_PREFIX: /usr/lib/llvm-18
 
 jobs:
   test:
@@ -16,6 +17,13 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
+    - name: Install LLVM 18
+      run: |
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+        sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-18 main"
+        sudo apt-get update
+        sudo apt-get install -y llvm-18-dev libpolly-18-dev
 
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
