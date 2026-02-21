@@ -495,16 +495,10 @@ impl LiftedProgram {
     /// Check if a JumpInd target register holds a known halt address constant.
     /// The PVM halt address is typically -65536 (0xFFFF_FFFF_FFFF_0000).
     fn is_halt_target(&self, use_pc: usize, reg: u8) -> bool {
-        // Look up the variable name for this register at this PC.
-        if let Some(var_name) = self.var_at_use.get(&(use_pc, reg)) {
-            // Find the definition of this variable and check if it's a halt constant.
-            for (&(def_pc, _), var) in &self.variables {
-                if var.name == *var_name
-                    && let Some(Expression::Const(val)) = self.expressions.get(&def_pc)
-                {
-                    return *val == -65536;
-                }
-            }
+        if let Some(var_name) = self.var_at_use.get(&(use_pc, reg))
+            && let Some(Expression::Const(val)) = self.expression_for_var(var_name)
+        {
+            return *val == -65536;
         }
         false
     }
