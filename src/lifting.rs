@@ -1727,16 +1727,14 @@ fn format_array_access(base: &Expression, offset: i32, width: MemWidth) -> Optio
             lhs: index,
             rhs: multiplier,
         } = index_expr.as_ref()
+            && let Expression::Const(m) = multiplier.as_ref()
+            && *m == elem_size
         {
-            if let Expression::Const(m) = multiplier.as_ref() {
-                if *m == elem_size {
-                    return Some(format!(
-                        "{}[{}]",
-                        format_expression(ptr),
-                        format_expression(index)
-                    ));
-                }
-            }
+            return Some(format!(
+                "{}[{}]",
+                format_expression(ptr),
+                format_expression(index)
+            ));
         }
         // Also match: lhs = index * element_size, rhs = ptr (commutative Add)
         if let Expression::BinOp {
@@ -1744,16 +1742,14 @@ fn format_array_access(base: &Expression, offset: i32, width: MemWidth) -> Optio
             lhs: index,
             rhs: multiplier,
         } = ptr.as_ref()
+            && let Expression::Const(m) = multiplier.as_ref()
+            && *m == elem_size
         {
-            if let Expression::Const(m) = multiplier.as_ref() {
-                if *m == elem_size {
-                    return Some(format!(
-                        "{}[{}]",
-                        format_expression(index_expr),
-                        format_expression(index)
-                    ));
-                }
-            }
+            return Some(format!(
+                "{}[{}]",
+                format_expression(index_expr),
+                format_expression(index)
+            ));
         }
     }
 
@@ -1763,12 +1759,10 @@ fn format_array_access(base: &Expression, offset: i32, width: MemWidth) -> Optio
         lhs: index,
         rhs: multiplier,
     } = base
+        && let Expression::Const(m) = multiplier.as_ref()
+        && *m == elem_size
     {
-        if let Expression::Const(m) = multiplier.as_ref() {
-            if *m == elem_size {
-                return Some(format!("(({width}*)0)[{}]", format_expression(index)));
-            }
-        }
+        return Some(format!("(({width}*)0)[{}]", format_expression(index)));
     }
 
     None
