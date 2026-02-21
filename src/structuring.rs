@@ -761,6 +761,7 @@ impl StructuralAnalysis {
                             &mut emitted,
                             lifted.as_deref_mut(),
                             &labels,
+                            Some((body, block_pc)),
                         );
                         continue;
                     }
@@ -776,14 +777,17 @@ impl StructuralAnalysis {
                             lifted.as_deref_mut(),
                         );
                     } else {
-                        self.emit_block_body(
+                        let ctrl = self.emit_block_with_loop_control(
                             cfg,
                             body_pc,
                             &mut output,
                             1,
-                            false,
                             lifted.as_deref_mut(),
+                            Some((body, block_pc)),
                         );
+                        if let Some(keyword) = ctrl {
+                            let _ = writeln!(output, "    {}", keyword);
+                        }
                     }
                     emitted.insert(body_pc);
                 }
@@ -808,6 +812,7 @@ impl StructuralAnalysis {
                     &mut emitted,
                     lifted.as_deref_mut(),
                     &labels,
+                    None,
                 );
             } else if let Some(Structure::Switch { reg, cases, .. }) = switch_map.get(&block_pc) {
                 // Emit preceding instructions
@@ -919,6 +924,7 @@ impl StructuralAnalysis {
                         &mut emitted,
                         lifted.as_deref_mut(),
                         &labels,
+                        None,
                     );
                 } else {
                     self.emit_block_body(
@@ -968,8 +974,10 @@ impl StructuralAnalysis {
         emitted: &mut HashSet<usize>,
         mut lifted: Option<&mut LiftedProgram>,
         _labels: &HashMap<usize, String>,
+        loop_context: Option<(&HashSet<usize>, usize)>, // (loop_body, loop_header)
     ) {
         let prefix = "    ".repeat(indent);
+        let inner_prefix = "    ".repeat(indent + 1);
 
         // Emit header block instructions (before the branch)
         self.emit_block_body(cfg, header, output, indent, true, lifted.as_deref_mut());
@@ -980,20 +988,77 @@ impl StructuralAnalysis {
         let _ = writeln!(output, "{}if ({}) {{", prefix, cond_str);
 
         for &tb in then_blocks {
-            self.emit_block_body(cfg, tb, output, indent + 1, false, lifted.as_deref_mut());
+            let ctrl = self.emit_block_with_loop_control(
+                cfg,
+                tb,
+                output,
+                indent + 1,
+                lifted.as_deref_mut(),
+                loop_context,
+            );
+            if let Some(keyword) = ctrl {
+                let _ = writeln!(output, "{}{}", inner_prefix, keyword);
+            }
             emitted.insert(tb);
         }
 
         if !else_blocks.is_empty() {
             let _ = writeln!(output, "{}}} else {{", prefix);
             for &eb in else_blocks {
-                self.emit_block_body(cfg, eb, output, indent + 1, false, lifted.as_deref_mut());
+                let ctrl = self.emit_block_with_loop_control(
+                    cfg,
+                    eb,
+                    output,
+                    indent + 1,
+                    lifted.as_deref_mut(),
+                    loop_context,
+                );
+                if let Some(keyword) = ctrl {
+                    let _ = writeln!(output, "{}{}", inner_prefix, keyword);
+                }
                 emitted.insert(eb);
             }
         }
 
         let _ = writeln!(output, "{}}}", prefix);
         emitted.insert(header);
+    }
+
+    /// Emit a block body, detecting break/continue when inside a loop.
+    /// Returns `Some("break")` or `Some("continue")` if the block exits/continues the loop.
+    fn emit_block_with_loop_control(
+        &self,
+        cfg: &ControlFlowGraph,
+        block_pc: usize,
+        output: &mut String,
+        indent: usize,
+        lifted: Option<&mut LiftedProgram>,
+        loop_context: Option<(&HashSet<usize>, usize)>, // (loop_body, loop_header)
+    ) -> Option<&'static str> {
+        if let Some((loop_body, loop_header)) = loop_context
+            && let Some(block) = cfg.blocks.get(&block_pc)
+        {
+            let exits_loop = block
+                .successors
+                .iter()
+                .any(|s| !loop_body.contains(s) && *s != loop_header);
+            let continues_loop = block.successors.len() == 1 && block.successors[0] == loop_header;
+            let is_trap = block
+                .instructions
+                .last()
+                .is_some_and(|(_, instr)| matches!(instr, Instruction::Trap));
+
+            if !is_trap && (exits_loop || continues_loop) {
+                self.emit_block_body(cfg, block_pc, output, indent, true, lifted);
+                if exits_loop {
+                    return Some("break");
+                } else {
+                    return Some("continue");
+                }
+            }
+        }
+        self.emit_block_body(cfg, block_pc, output, indent, false, lifted);
+        None
     }
 
     /// Emit the instructions in a block as pseudo-code lines.
@@ -2406,6 +2471,159 @@ mod tests {
         assert!(
             pseudo.trim_end().ends_with('}'),
             "Should end with closing brace: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_break_in_loop_body() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // Loop with a body block that unconditionally exits:
+        // block 0: r0 = 0, jump to 8 (header)
+        // block 8 (header): branch_ne r0 10 → exit (20), fallthrough to 12
+        // block 12 (body): r0 = r0 + 1, jump to exit (20) → should be "break"
+        // block 20: trap (exit)
+        //
+        // But block 12 is also the latch with back-edge to 8.
+        // Better test: body block that exits, separate latch.
+        //
+        // block 0: jump to 4 (header)
+        // block 4 (header): branch_ne r0 10 → exit (16), fallthrough to 8
+        // block 8 (body): jump to exit (16) → should be "break"
+        // block 16: trap (exit)
+        // back-edge: block 8 also connects to header (4) to form a loop
+        //
+        // Actually, if block 8 only goes to 16, it exits the loop → break.
+        // We need at least body→header for a loop. Let's make body→header the
+        // normal path, with a conditional branch to exit.
+        //
+        // block 0: jump to 4
+        // block 4 (header): branch_ne r0 0 → 12 (exit), fallthrough to 8 (body)
+        // block 8 (body): jump to 4 (back-edge, latch) → but also has exit path
+        //
+        // For a simple break test, let's use:
+        // block 0 (header): branch_eq r0 0 → 8 (body), otherwise → 12 (exit)
+        // block 8 (body): jump to 12 (exit) → should be "break"
+        // block 12: trap
+        // back-edge from body to header makes the loop
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 12,
+                        },
+                    )],
+                    vec![12, 4],
+                ),
+                (
+                    4,
+                    vec![
+                        (
+                            4,
+                            Instruction::Add32 {
+                                dst: 0,
+                                src1: 0,
+                                src2: 1,
+                            },
+                        ),
+                        (8, Instruction::Jump { offset: -8 }),
+                    ],
+                    vec![0],
+                ),
+                (12, vec![(12, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+
+        // The body block jumps back to header (latch), no break here.
+        // This is a normal while loop pattern.
+        assert!(
+            pseudo.contains("while"),
+            "Should contain while loop: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_break_via_if_in_loop() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // Loop with conditional break:
+        // block 0 (header): branch_ne r0 0 → 12 (exit), fallthrough to 4 (body)
+        //   (condition: r0 != 0 → exit, so loop while r0 == 0... but body modifies r0)
+        // block 4 (body1): r1 = r0, jump → 8
+        // block 8 (body2/latch): back-edge to 0
+        // block 12 (exit): trap
+        //
+        // In this structure, body1 has an if-then-else that targets exit → break.
+        // Actually we need a structure where the structural analysis detects an if
+        // inside the loop that branches to exit.
+        //
+        // Simpler: A body block that has 2 successors, one inside loop, one outside.
+        // block 0 (header): branch r0 → 8 (exit), fallthrough to 4 (body)
+        // block 4 (body): branch r1 → 8 (exit=break), fallthrough to 0 (header=continue)
+        // block 8 (exit): trap
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 8,
+                        },
+                    )],
+                    vec![8, 4],
+                ),
+                (
+                    4,
+                    vec![(
+                        4,
+                        Instruction::BranchNeImm {
+                            reg: 1,
+                            value: 0,
+                            offset: 4,
+                        },
+                    )],
+                    vec![8, 0],
+                ),
+                (8, vec![(8, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+
+        // Block 4 is inside the loop and has a conditional branch to exit (8).
+        // The structural analysis should detect this as an if inside the loop,
+        // or at minimum, the block should show break when it exits.
+        assert!(
+            pseudo.contains("while") || pseudo.contains("for"),
+            "Should contain loop: {}",
+            pseudo
+        );
+        // The pseudo-code should show "break" somewhere for the exit path
+        assert!(
+            pseudo.contains("break"),
+            "Should contain break for loop exit: {}",
             pseudo
         );
     }
