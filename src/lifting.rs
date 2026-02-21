@@ -152,6 +152,38 @@ impl LiftedProgram {
         lifted
     }
 
+    /// Coalesce two variable names: rename all occurrences of `old_name` to `new_name`.
+    /// Used to unify loop induction variable names across init/step definitions.
+    pub fn coalesce_variable(&mut self, old_name: &str, new_name: &str) {
+        if old_name == new_name {
+            return;
+        }
+
+        // Rename in variables map
+        for var in self.variables.values_mut() {
+            if var.name == old_name {
+                var.name = new_name.to_string();
+            }
+        }
+
+        // Rename in var_at_use map
+        for name in self.var_at_use.values_mut() {
+            if *name == old_name {
+                *name = new_name.to_string();
+            }
+        }
+
+        // Rename in expressions (Var references)
+        for expr in self.expressions.values_mut() {
+            rename_var_in_expression(expr, old_name, new_name);
+        }
+
+        // Update declared_vars
+        if self.declared_vars.remove(old_name) {
+            self.declared_vars.insert(new_name.to_string());
+        }
+    }
+
     /// Assign variable names to each register definition based on type inference.
     fn assign_variables(&mut self, cfg: &ControlFlowGraph, dataflow: &DataFlowAnalysis) {
         let mut var_counter: usize = 0;
@@ -1267,6 +1299,33 @@ fn substitute_var(expr: &Expression, name: &str, replacement: &Expression) -> Ex
                 .map(|a| substitute_var(a, name, replacement))
                 .collect(),
         },
+    }
+}
+
+/// Rename all occurrences of `Var(old_name)` to `Var(new_name)` in-place.
+fn rename_var_in_expression(expr: &mut Expression, old_name: &str, new_name: &str) {
+    match expr {
+        Expression::Var(n) if n == old_name => *n = new_name.to_string(),
+        Expression::Var(_) | Expression::Const(_) | Expression::Raw(_) => {}
+        Expression::BinOp { lhs, rhs, .. } => {
+            rename_var_in_expression(lhs, old_name, new_name);
+            rename_var_in_expression(rhs, old_name, new_name);
+        }
+        Expression::UnaryOp { operand, .. } => {
+            rename_var_in_expression(operand, old_name, new_name);
+        }
+        Expression::Load { base, .. } => {
+            rename_var_in_expression(base, old_name, new_name);
+        }
+        Expression::Store { base, value, .. } => {
+            rename_var_in_expression(base, old_name, new_name);
+            rename_var_in_expression(value, old_name, new_name);
+        }
+        Expression::Call { args, .. } => {
+            for arg in args {
+                rename_var_in_expression(arg, old_name, new_name);
+            }
+        }
     }
 }
 
@@ -2453,5 +2512,68 @@ mod tests {
             "ecalli(0) should render as gas_remaining(): {:?}",
             line
         );
+    }
+
+    #[test]
+    fn test_coalesce_variable() {
+        let mut lifted = LiftedProgram {
+            variables: HashMap::new(),
+            expressions: HashMap::new(),
+            eliminated_pcs: HashSet::new(),
+            var_at_use: HashMap::new(),
+            declared_vars: HashSet::new(),
+            stack_vars: HashMap::new(),
+        };
+
+        // Set up two variables for the same register at different PCs
+        lifted.variables.insert(
+            (0, 0),
+            Variable {
+                name: "var_0".to_string(),
+                var_type: VarType::Integer,
+            },
+        );
+        lifted.variables.insert(
+            (30, 0),
+            Variable {
+                name: "var_2".to_string(),
+                var_type: VarType::Integer,
+            },
+        );
+
+        // Set up var_at_use references
+        lifted.var_at_use.insert((10, 0), "var_0".to_string()); // condition uses var_0
+        lifted.var_at_use.insert((30, 0), "var_0".to_string()); // step uses var_0 as source
+        lifted.var_at_use.insert((20, 0), "var_2".to_string()); // body uses var_2
+
+        // Set up an expression that references var_2
+        lifted.expressions.insert(
+            30,
+            Expression::BinOp {
+                op: BinOp::Add,
+                lhs: Box::new(Expression::Var("var_2".to_string())),
+                rhs: Box::new(Expression::Const(1)),
+            },
+        );
+
+        // Coalesce: rename var_2 → var_0
+        lifted.coalesce_variable("var_2", "var_0");
+
+        // Variable definition should be renamed
+        assert_eq!(lifted.variables[&(30, 0)].name, "var_0");
+
+        // var_at_use should be updated
+        assert_eq!(lifted.var_at_use[&(20, 0)], "var_0");
+
+        // Expression should have var_0 instead of var_2
+        if let Expression::BinOp { lhs, .. } = &lifted.expressions[&30] {
+            if let Expression::Var(name) = lhs.as_ref() {
+                assert_eq!(name, "var_0", "Expression var should be coalesced");
+            } else {
+                panic!("Expected Var in lhs");
+            }
+        } else {
+            panic!("Expected BinOp expression");
+        }
     }
 }

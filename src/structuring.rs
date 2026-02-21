@@ -673,9 +673,36 @@ impl StructuralAnalysis {
                     lifted.as_deref(),
                 )
             {
+                let mut info = info;
                 // Suppress the init instruction from its block's normal emission
                 if let Some(ref mut lifted) = lifted {
                     lifted.eliminated_pcs.insert(info.init_pc);
+
+                    // Coalesce init and step variable names so the loop uses
+                    // a single name for the induction variable.
+                    let init_name = lifted
+                        .variables
+                        .get(&(info.init_pc, info.cond_reg))
+                        .map(|v| v.name.clone());
+                    let step_name = lifted
+                        .variables
+                        .get(&(info.step_pc, info.cond_reg))
+                        .map(|v| v.name.clone());
+                    if let (Some(init_name), Some(step_name)) = (&init_name, &step_name)
+                        && init_name != step_name
+                    {
+                        lifted.coalesce_variable(step_name, init_name);
+                        // Re-format the step string with the coalesced name
+                        if let Some(block) = cfg.blocks.get(&info.step_pc)
+                            && let Some((_, instr)) = block
+                                .instructions
+                                .iter()
+                                .find(|(pc, _)| *pc == info.step_pc)
+                            && let Some((raw, _)) = lifted.format_pc_raw(info.step_pc, instr)
+                        {
+                            info.step_str = raw;
+                        }
+                    }
                 }
                 for_loop_map.insert(*header, info);
             }
@@ -1176,6 +1203,8 @@ struct ForLoopInfo {
     init_pc: usize,
     /// PC of the step instruction (to suppress from latch block emission)
     step_pc: usize,
+    /// The condition register (induction variable register)
+    cond_reg: u8,
 }
 
 /// Try to detect a for-loop pattern from a while loop.
@@ -1268,6 +1297,7 @@ fn detect_for_loop_pattern(
         step_str,
         init_pc,
         step_pc,
+        cond_reg,
     })
 }
 
@@ -2220,6 +2250,12 @@ mod tests {
         assert!(
             pseudo.contains("var_0 != 10"),
             "For-header should contain condition 'var_0 != 10': {}",
+            pseudo
+        );
+        // After coalescing, the step should also use var_0 (not var_2 or similar)
+        assert!(
+            pseudo.contains("var_0 = var_0 + 1"),
+            "For-header step should use coalesced name 'var_0 = var_0 + 1': {}",
             pseudo
         );
     }
