@@ -3237,6 +3237,88 @@ mod tests {
     }
 
     #[test]
+    fn test_topological_body_order_latch_before_inner_blocks() {
+        // Regression test for #37: latch block at a lower PC than other body blocks.
+        // Without topological ordering, the latch (PC 20) would be emitted before
+        // the inner body block (PC 50), causing `continue` to appear mid-body.
+        //
+        //   Block 100 (header): branch → 50 or 200 (exit)
+        //   Block 50: body logic, falls through to 20
+        //   Block 20 (latch): jumps back to header (100) → emits `continue`
+        //   Block 200: exit (trap)
+        //
+        // PC-sorted order: 20, 50 — would emit latch (with `continue`) before body
+        // Topological order: 50, 20 — body first, then latch
+        let cfg = build_test_cfg(
+            100,
+            vec![
+                (
+                    100,
+                    vec![(
+                        100,
+                        Instruction::BranchLtU {
+                            reg1: 0,
+                            reg2: 1,
+                            offset: 50_i32 - 100,
+                        },
+                    )],
+                    vec![50, 200],
+                ),
+                (
+                    50,
+                    vec![
+                        (50, Instruction::LoadImm { reg: 3, value: 42 }),
+                        (54, Instruction::Fallthrough),
+                    ],
+                    vec![20],
+                ),
+                (
+                    20,
+                    vec![
+                        (20, Instruction::LoadImm { reg: 4, value: 99 }),
+                        (
+                            24,
+                            Instruction::Jump {
+                                offset: 100_i32 - 24,
+                            },
+                        ),
+                    ],
+                    vec![100],
+                ),
+                (200, vec![(200, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, None, None);
+
+        // Body block (r3 = 42) should appear BEFORE latch (r4 = 99 + continue)
+        let body_pos = pseudo.find("r3 = 42").expect("body block should appear");
+        let latch_pos = pseudo.find("r4 = 99").expect("latch block should appear");
+        assert!(
+            body_pos < latch_pos,
+            "Body block should appear before latch block in output.\n\
+             body_pos={}, latch_pos={}\nOutput:\n{}",
+            body_pos,
+            latch_pos,
+            pseudo
+        );
+
+        // `continue` should appear after both body and latch assignments
+        assert!(
+            pseudo.contains("continue"),
+            "Should contain continue: {}",
+            pseudo
+        );
+        let continue_pos = pseudo.find("continue").expect("should have continue");
+        assert!(
+            continue_pos > body_pos,
+            "continue should appear after body block: {}",
+            pseudo
+        );
+    }
+
+    #[test]
     fn test_suppress_empty_else_block() {
         use crate::dataflow::DataFlowAnalysis;
         use crate::lifting::LiftedProgram;
