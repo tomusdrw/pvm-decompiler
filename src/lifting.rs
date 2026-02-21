@@ -929,13 +929,26 @@ impl LiftedProgram {
             return None;
         }
 
-        let expr = self.expressions.get(&pc)?;
+        // Format the expression without `let` prefix first, then add `let` if needed.
+        let (raw_line, declare_var) = self.format_pc_raw(pc, instr)?;
 
-        // Determine if this instruction defines a register.
-        let dst_info = self.def_var_name_with_type(pc, instr);
+        // Add `let` prefix on first declaration of a variable.
+        if let Some(var_name) = declare_var
+            && self.declared_vars.insert(var_name)
+        {
+            return Some(format!("let {}", raw_line));
+        }
+        Some(raw_line)
+    }
+
+    /// Format an instruction without declaration tracking.
+    /// Returns the formatted line and optionally the variable name to declare.
+    fn format_pc_raw(&self, pc: usize, instr: &Instruction) -> Option<(String, Option<String>)> {
+        let expr = self.expressions.get(&pc)?;
+        let dst_name = self.def_var_name_with_type(pc, instr).map(|(name, _)| name);
 
         match expr {
-            Expression::Raw(s) => Some(s.clone()),
+            Expression::Raw(s) => Some((s.clone(), None)),
             Expression::Store {
                 width,
                 base,
@@ -946,68 +959,35 @@ impl LiftedProgram {
                 if let Expression::Var(base_name) = base.as_ref()
                     && let Some(slot_name) = self.stack_vars.get(&(base_name.clone(), *offset))
                 {
-                    let slot_name = slot_name.clone();
-                    let value = value.clone();
-                    let let_prefix = if self.declared_vars.insert(slot_name.clone()) {
-                        "let "
-                    } else {
-                        ""
-                    };
-                    return Some(format!(
-                        "{}{} = {}",
-                        let_prefix,
-                        slot_name,
-                        format_expression(&value)
+                    return Some((
+                        format!("{} = {}", slot_name, format_expression(value)),
+                        Some(slot_name.clone()),
                     ));
                 }
-                let width = *width;
-                let base = base.clone();
-                let offset = *offset;
-                let value = value.clone();
-                Some(format!(
-                    "{}[{}] = {}",
-                    width,
-                    format_mem_address(&base, offset),
-                    format_expression(&value)
+                Some((
+                    format!(
+                        "{}[{}] = {}",
+                        width,
+                        format_mem_address(base, *offset),
+                        format_expression(value)
+                    ),
+                    None,
                 ))
             }
             Expression::Call { name, args } => {
-                let name = name.clone();
-                let args = args.clone();
                 let arg_strs: Vec<String> = args.iter().map(format_expression).collect();
-                if let Some((dst, _)) = dst_info {
-                    let let_prefix = if self.declared_vars.insert(dst.clone()) {
-                        "let "
-                    } else {
-                        ""
-                    };
-                    Some(format!(
-                        "{}{} = {}({})",
-                        let_prefix,
-                        dst,
-                        name,
-                        arg_strs.join(", ")
-                    ))
+                let call = format!("{}({})", name, arg_strs.join(", "));
+                if let Some(dst) = dst_name {
+                    Some((format!("{} = {}", dst, call), Some(dst)))
                 } else {
-                    Some(format!("{}({})", name, arg_strs.join(", ")))
+                    Some((call, None))
                 }
             }
             _ => {
-                let expr = expr.clone();
-                if let Some((dst, _)) = dst_info {
-                    let let_prefix = if self.declared_vars.insert(dst.clone()) {
-                        "let "
-                    } else {
-                        ""
-                    };
-                    Some(format!(
-                        "{}{} = {}",
-                        let_prefix,
-                        dst,
-                        format_expression(&expr)
-                    ))
+                if let Some(dst) = dst_name {
+                    Some((format!("{} = {}", dst, format_expression(expr)), Some(dst)))
                 } else {
-                    Some(format_expression(&expr))
+                    Some((format_expression(expr), None))
                 }
             }
         }
@@ -2318,6 +2298,77 @@ mod tests {
         assert!(
             lifted.eliminated_pcs.contains(&8),
             "Store at PC 8 should be a dead store after forwarding"
+        );
+    }
+
+    #[test]
+    fn test_inline_let_declaration() {
+        // r0 = 42; trap → should produce "let var_0 = 42"
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (0, Instruction::LoadImm { reg: 0, value: 42 }),
+                    (4, Instruction::Trap),
+                ],
+                vec![],
+            )],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        let line = lifted.format_pc(0, &Instruction::LoadImm { reg: 0, value: 42 });
+        assert!(
+            line.as_deref() == Some("let var_0 = 42"),
+            "First use should have 'let' prefix: {:?}",
+            line
+        );
+    }
+
+    #[test]
+    fn test_no_let_on_reassignment() {
+        // r0 = 42; r0 = 99; trap → second assignment should NOT have 'let'
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (0, Instruction::LoadImm { reg: 0, value: 42 }),
+                    (4, Instruction::LoadImm { reg: 0, value: 99 }),
+                    (8, Instruction::Trap),
+                ],
+                vec![],
+            )],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        // First use: should have let
+        let _ = lifted.format_pc(0, &Instruction::LoadImm { reg: 0, value: 42 });
+        // Second use: should NOT have let (different def_pc creates a new variable)
+        let line = lifted.format_pc(4, &Instruction::LoadImm { reg: 0, value: 99 });
+        let line_str = line.as_deref().unwrap_or("");
+        // The second definition creates a new variable (var_1), so it gets its own `let`
+        assert!(
+            line_str.starts_with("let "),
+            "Second definition of r0 creates a new variable and should get 'let': {:?}",
+            line_str
+        );
+    }
+
+    #[test]
+    fn test_trap_renders_as_return() {
+        let cfg = build_test_cfg(0, vec![(0, vec![(0, Instruction::Trap)], vec![])]);
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        let line = lifted.format_pc(0, &Instruction::Trap);
+        assert_eq!(
+            line.as_deref(),
+            Some("return"),
+            "Trap should be rendered as 'return': {:?}",
+            line
         );
     }
 }
