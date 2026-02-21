@@ -45,7 +45,7 @@ pub struct Condition {
     pub rhs: Operand,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CondOp {
     Eq,
     Ne,
@@ -1127,7 +1127,59 @@ fn format_condition(cond: &Condition) -> String {
 }
 
 /// Format a condition using lifted variable names when available.
+/// When the condition is `cond_var != 0` and cond_var was defined by a comparison
+/// expression (e.g. `x <u y`), inline the comparison directly.
 fn format_condition_lifted(cond: &Condition, branch_pc: usize, lifted: &LiftedProgram) -> String {
+    use crate::instruction::BinOp;
+    use crate::lifting::format_expression;
+
+    // Try to inline boolean variable definitions into conditions.
+    // Pattern: `cond_var != 0` where cond_var = (x <u y) → inline as `x <u y`
+    // Pattern: `cond_var == 0` where cond_var = (x <u y) → inline as `!(x <u y)`
+    if let Operand::Reg(reg) = &cond.lhs
+        && let Operand::Imm(0) = &cond.rhs
+        && matches!(cond.op, CondOp::Ne | CondOp::Eq)
+    {
+        let var_name = lifted
+            .var_at_use
+            .get(&(branch_pc, *reg))
+            .cloned();
+        if let Some(ref name) = var_name {
+            if let Some(expr) = lifted.expression_for_var(name) {
+                // Check if the expression is a comparison (LtU, LtS)
+                if let crate::lifting::Expression::BinOp { op, .. } = expr
+                    && matches!(op, BinOp::LtU | BinOp::LtS)
+                {
+                    let inner = format_expression(expr);
+                    return if cond.op == CondOp::Eq {
+                        // == 0 means negation
+                        format!("!({})", inner)
+                    } else {
+                        inner
+                    };
+                }
+                // Check if it's a negation: !bool
+                if let crate::lifting::Expression::UnaryOp {
+                    op: crate::instruction::UnaryOp::Not,
+                    ..
+                } = expr
+                {
+                    let inner = format_expression(expr);
+                    return if cond.op == CondOp::Eq {
+                        // == 0 on already-negated → double negation, use inner operand
+                        if let crate::lifting::Expression::UnaryOp { operand, .. } = expr {
+                            format_expression(operand)
+                        } else {
+                            format!("!({})", inner)
+                        }
+                    } else {
+                        inner
+                    };
+                }
+            }
+        }
+    }
+
     let lhs = format_operand_lifted(&cond.lhs, branch_pc, lifted);
     let rhs = format_operand_lifted(&cond.rhs, branch_pc, lifted);
     let op = match cond.op {
@@ -1717,6 +1769,125 @@ mod tests {
         assert!(
             pseudo.contains("r1 != 5"),
             "Should contain condition: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_pseudo_code_lifted_conditions() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // r0 = 42, branch on r0 != 5 → if-else
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 0, value: 42 }),
+                        (
+                            4,
+                            Instruction::BranchNeImm {
+                                reg: 0,
+                                value: 5,
+                                offset: 10,
+                            },
+                        ),
+                    ],
+                    vec![10, 20],
+                ),
+                (
+                    10,
+                    vec![(10, Instruction::LoadImm { reg: 4, value: 99 })],
+                    vec![30],
+                ),
+                (
+                    20,
+                    vec![(20, Instruction::LoadImm { reg: 4, value: 0 })],
+                    vec![30],
+                ),
+                (30, vec![(30, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted));
+
+        // The condition should use the lifted variable name, not raw register
+        assert!(
+            !pseudo.contains("r0 != 5"),
+            "Should NOT contain raw register in condition: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("var_0 != 5") || pseudo.contains("42 != 5"),
+            "Should contain lifted variable or constant in condition: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_lifted_condition_inlines_comparison() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // r2 = r0 <u r1 (SetLtU), then branch on r2 != 0 → should inline to "r0 <u r1"
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (
+                            0,
+                            Instruction::SetLtU {
+                                dst: 2,
+                                src1: 0,
+                                src2: 1,
+                            },
+                        ),
+                        (
+                            4,
+                            Instruction::BranchNeImm {
+                                reg: 2,
+                                value: 0,
+                                offset: 10,
+                            },
+                        ),
+                    ],
+                    vec![10, 20],
+                ),
+                (
+                    10,
+                    vec![(10, Instruction::LoadImm { reg: 4, value: 99 })],
+                    vec![30],
+                ),
+                (
+                    20,
+                    vec![(20, Instruction::LoadImm { reg: 4, value: 0 })],
+                    vec![30],
+                ),
+                (30, vec![(30, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted));
+
+        // Should inline the comparison, not show "cond_0 != 0"
+        assert!(
+            !pseudo.contains("!= 0"),
+            "Should NOT contain 'cond != 0', should inline comparison: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("<u"),
+            "Should contain inlined comparison operator: {}",
             pseudo
         );
     }

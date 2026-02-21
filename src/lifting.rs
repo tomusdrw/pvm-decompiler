@@ -1070,6 +1070,18 @@ impl LiftedProgram {
     fn def_reg(instr: &Instruction) -> Option<u8> {
         InstructionShape::classify(instr).def_reg()
     }
+
+    /// Look up the definition expression for a variable by name.
+    /// Returns the expression if found and not eliminated.
+    pub fn expression_for_var(&self, var_name: &str) -> Option<&Expression> {
+        // Find the (def_pc, reg) that produced this variable name
+        let (def_pc, _) = self
+            .variables
+            .iter()
+            .find(|(_, v)| v.name == var_name)?
+            .0;
+        self.expressions.get(def_pc)
+    }
 }
 
 /// Recursively simplify an expression by folding identity operations.
