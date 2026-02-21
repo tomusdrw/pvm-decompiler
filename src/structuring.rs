@@ -813,23 +813,9 @@ impl<'a> Emitter<'a> {
         let prefix = "    ".repeat(indent);
         let inner_prefix = "    ".repeat(indent + 1);
 
-        // Suppress the branch instruction and its inlined condition variable definition.
-        // The condition is shown in the `if` header, so the definition is redundant.
-        if let Some(cond) = condition
-            && let Some(header_block) = self.cfg.blocks.get(&header)
-            && let Some((branch_pc, _)) = header_block.instructions.last()
-            && let Some(ref mut lifted) = self.lifted
-        {
-            lifted.eliminated_pcs.insert(*branch_pc);
-
-            if let Operand::Reg(reg) = &cond.lhs
-                && let Operand::Imm(0) = &cond.rhs
-                && matches!(cond.op, CondOp::Ne | CondOp::Eq)
-                && let Some(var_name) = lifted.var_at_use.get(&(*branch_pc, *reg)).cloned()
-                && let Some(def_pc) = lifted.var_name_to_def_pc.get(&var_name).copied()
-            {
-                lifted.eliminated_pcs.insert(def_pc);
-            }
+        // Suppress the branch and its inlined condition variable definition.
+        if let Some(cond) = condition {
+            self.eliminate_condition_def(header, cond);
         }
 
         // Emit header block instructions (before the branch)
@@ -878,6 +864,27 @@ impl<'a> Emitter<'a> {
 
         let _ = writeln!(self.output, "{}}}", prefix);
         self.emitted.insert(header);
+    }
+
+    /// Suppress the branch instruction and its inlined condition variable definition
+    /// for a block header. The condition is shown in the if/while/for header, so the
+    /// standalone definition is redundant.
+    fn eliminate_condition_def(&mut self, header_pc: usize, cond: &Condition) {
+        if let Some(header_block) = self.cfg.blocks.get(&header_pc)
+            && let Some((branch_pc, _)) = header_block.instructions.last()
+            && let Some(ref mut lifted) = self.lifted
+        {
+            lifted.eliminated_pcs.insert(*branch_pc);
+
+            if let Operand::Reg(reg) = &cond.lhs
+                && let Operand::Imm(0) = &cond.rhs
+                && matches!(cond.op, CondOp::Ne | CondOp::Eq)
+                && let Some(var_name) = lifted.var_at_use.get(&(*branch_pc, *reg)).cloned()
+                && let Some(def_pc) = lifted.var_name_to_def_pc.get(&var_name).copied()
+            {
+                lifted.eliminated_pcs.insert(def_pc);
+            }
+        }
     }
 
     /// Check if a block would emit break or continue when inside a loop.
@@ -1186,25 +1193,9 @@ impl<'a> Emitter<'a> {
             let _ = writeln!(self.output, "while ({}) {{", cond_str);
         }
 
-        // Suppress the branch instruction and its inlined condition variable definition.
-        // The condition is already shown in the while/for header.
-        if let Some(cond) = condition.as_ref()
-            && let Some(header_block) = self.cfg.blocks.get(&header_pc)
-            && let Some((branch_pc, _)) = header_block.instructions.last()
-            && let Some(ref mut lifted) = self.lifted
-        {
-            lifted.eliminated_pcs.insert(*branch_pc);
-
-            // Also suppress the instruction that defined the condition variable,
-            // since it was inlined into the while/for condition header.
-            if let Operand::Reg(reg) = &cond.lhs
-                && let Operand::Imm(0) = &cond.rhs
-                && matches!(cond.op, CondOp::Ne | CondOp::Eq)
-                && let Some(var_name) = lifted.var_at_use.get(&(*branch_pc, *reg)).cloned()
-                && let Some(def_pc) = lifted.var_name_to_def_pc.get(&var_name).copied()
-            {
-                lifted.eliminated_pcs.insert(def_pc);
-            }
+        // Suppress the branch and its inlined condition variable definition.
+        if let Some(cond) = condition.as_ref() {
+            self.eliminate_condition_def(header_pc, cond);
         }
 
         // Emit header block body (before the condition branch)
