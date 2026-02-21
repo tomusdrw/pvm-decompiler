@@ -17,7 +17,7 @@ use cfg::ControlFlowGraph;
 use dataflow::DataFlowAnalysis;
 use functions::{build_function_cfg, detect_functions};
 use lifting::LiftedProgram;
-use structuring::{DominatorTree, StructuralAnalysis};
+use structuring::{DominatorTree, FunctionSignature, StructuralAnalysis};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Verbosity {
@@ -155,6 +155,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut lifted = LiftedProgram::analyze_with_dom_tree(&func_cfg, &dataflow, &dom_tree);
         let structural = StructuralAnalysis::analyze_with_dom_tree(&func_cfg, &program, dom_tree);
 
+        // Compute function signature from live-in registers at entry block
+        let mut params: Vec<u8> = dataflow
+            .live_in
+            .get(&func.entry_pc)
+            .cloned()
+            .unwrap_or_default()
+            .into_iter()
+            .collect();
+        params.sort();
+        let sig = FunctionSignature {
+            name: func.name.clone(),
+            params,
+        };
+
         if verbosity >= Verbosity::Verbose {
             println!("\n{}", "=".repeat(60));
             println!(
@@ -166,7 +180,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", structural.summarize());
         }
 
-        println!("{}", structural.pseudo_code(&func_cfg, Some(&mut lifted)));
+        println!(
+            "{}",
+            structural.pseudo_code(&func_cfg, Some(&mut lifted), Some(&sig))
+        );
     }
 
     Ok(())

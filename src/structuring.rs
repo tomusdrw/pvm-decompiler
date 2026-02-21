@@ -11,6 +11,15 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::Write;
 use wasm_pvm::pvm::Instruction;
 
+/// Function signature information for pseudo-code emission.
+#[derive(Debug, Clone)]
+pub struct FunctionSignature {
+    /// Function name (e.g., "func_0", "main").
+    pub name: String,
+    /// Parameter register numbers, sorted.
+    pub params: Vec<u8>,
+}
+
 /// A recovered high-level control structure.
 #[derive(Debug, Clone)]
 pub enum Structure {
@@ -588,13 +597,40 @@ impl StructuralAnalysis {
 
     /// Generate pseudo-code representation of the program.
     /// When `lifted` is provided, uses variable names and folded expressions.
+    /// When `sig` is provided, wraps the output in a function declaration.
     pub fn pseudo_code(
         &self,
         cfg: &ControlFlowGraph,
         mut lifted: Option<&mut LiftedProgram>,
+        sig: Option<&FunctionSignature>,
     ) -> String {
         let mut output = String::new();
-        output.push_str("=== Pseudo-Code ===\n\n");
+
+        // Emit function header
+        if let Some(sig) = sig {
+            let params_str: Vec<String> = sig
+                .params
+                .iter()
+                .map(|&reg| {
+                    if let Some(ref lifted) = lifted {
+                        // Use the variable name for this parameter if available
+                        if let Some(name) = lifted.var_at_use.get(&(cfg.entry_pc, reg)) {
+                            let type_str = lifted
+                                .variables
+                                .values()
+                                .find(|v| v.name == *name)
+                                .map(|v| format!("{}", v.var_type))
+                                .unwrap_or_else(|| "u64".to_string());
+                            return format!("{}: {}", name, type_str);
+                        }
+                    }
+                    format!("r{}: u64", reg)
+                })
+                .collect();
+            let _ = writeln!(output, "fn {}({}) {{", sig.name, params_str.join(", "));
+        } else {
+            output.push_str("=== Pseudo-Code ===\n\n");
+        }
 
         // Build block labels for readable goto targets.
         let labels = build_block_labels(cfg, &self.structures);
@@ -895,6 +931,25 @@ impl StructuralAnalysis {
                     );
                 }
             }
+        }
+
+        // If we have a function signature, indent the body
+        if sig.is_some() {
+            // Split off the first line (fn header) from the rest (body)
+            let lines: Vec<&str> = output.lines().collect();
+            let mut result = String::new();
+            if let Some(header_line) = lines.first() {
+                let _ = writeln!(result, "{}", header_line);
+                for line in &lines[1..] {
+                    if line.is_empty() {
+                        result.push('\n');
+                    } else {
+                        let _ = writeln!(result, "    {}", line);
+                    }
+                }
+            }
+            result.push_str("}\n");
+            return fix_blank_lines(&result);
         }
 
         fix_blank_lines(&output)
@@ -1823,7 +1878,7 @@ mod tests {
         );
 
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, None);
+        let pseudo = result.pseudo_code(&cfg, None, None);
 
         assert!(
             pseudo.contains("while"),
@@ -1877,7 +1932,7 @@ mod tests {
         );
 
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, None);
+        let pseudo = result.pseudo_code(&cfg, None, None);
 
         assert!(pseudo.contains("if"), "Should contain 'if': {}", pseudo);
         assert!(
@@ -1928,7 +1983,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted));
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
 
         // The condition should use the lifted variable name, not raw register
         assert!(
@@ -1991,7 +2046,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted));
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
 
         // Should inline the comparison, not show "cond_0 != 0"
         assert!(
@@ -2077,7 +2132,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted));
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
 
         assert!(
             pseudo.contains("for ("),
@@ -2162,7 +2217,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted));
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
 
         assert!(
             pseudo.contains("while"),
@@ -2172,6 +2227,78 @@ mod tests {
         assert!(
             !pseudo.contains("for ("),
             "Should NOT contain 'for (' without init/step pattern: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_function_signature_in_pseudo_code() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // Function that uses r0 and r1 as parameters (live-in at entry):
+        // block 0: r2 = r0 + r1, trap
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (
+                        0,
+                        Instruction::Add32 {
+                            dst: 2,
+                            src1: 0,
+                            src2: 1,
+                        },
+                    ),
+                    (4, Instruction::Trap),
+                ],
+                vec![],
+            )],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        // Compute params from live_in
+        let mut params: Vec<u8> = dataflow
+            .live_in
+            .get(&0)
+            .cloned()
+            .unwrap_or_default()
+            .into_iter()
+            .collect();
+        params.sort();
+
+        let sig = FunctionSignature {
+            name: "test_func".to_string(),
+            params,
+        };
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), Some(&sig));
+
+        assert!(
+            pseudo.contains("fn test_func("),
+            "Should contain function declaration: {}",
+            pseudo
+        );
+        // Body should be indented
+        assert!(
+            pseudo.contains("    "),
+            "Body should be indented: {}",
+            pseudo
+        );
+        // Should end with closing brace
+        assert!(
+            pseudo.trim_end().ends_with('}'),
+            "Should end with closing brace: {}",
+            pseudo
+        );
+        // r0 and r1 should be listed as parameters
+        assert!(
+            pseudo.contains("r0") || pseudo.contains("var_"),
+            "Should list parameters: {}",
             pseudo
         );
     }
