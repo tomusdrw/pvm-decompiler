@@ -1,4 +1,4 @@
-use super::{extract_condition, Structure, StructuralAnalysis};
+use super::{StructuralAnalysis, Structure, extract_condition};
 use crate::cfg::ControlFlowGraph;
 use crate::decoder::DecodedProgram;
 use std::collections::{HashMap, HashSet, VecDeque};

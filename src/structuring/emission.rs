@@ -1,4 +1,4 @@
-use super::{extract_condition, CondOp, Condition, Operand, Structure, StructuralAnalysis};
+use super::{CondOp, Condition, Operand, StructuralAnalysis, Structure, extract_condition};
 use crate::cfg::ControlFlowGraph;
 use crate::instruction::InstructionShape;
 use crate::lifting::LiftedProgram;
