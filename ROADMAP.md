@@ -42,7 +42,7 @@ Create a tool to reverse engineer PVM (Polkadot Virtual Machine) bytecode into r
 - Comparison inlining (`x <u y` instead of `cond != 0`)
 - `trap` → `return` rendering
 
-### Phase 4: Output Quality — IN PROGRESS
+### Phase 4: Output Quality — COMPLETE
 Completed:
 - For-loop pattern detection (#20) — detects init/cond/step and emits `for` syntax
 - Named ecalli host functions (#17) — maps indices to JAM Graypaper names (gas_remaining, read, write, etc.)
@@ -56,9 +56,10 @@ Completed:
 
 - Call graph construction (#21) — cross-function jumps detected and rendered as `func_name()` calls
 
-See open GitHub issues for planned improvements:
-- Emission method refactoring (#27)
-- Reverse index for variable name → definition lookup (#23)
+- Emission method refactoring (#27) — Emitter struct groups mutable state, cleaner method signatures
+- Reverse index for variable lookups (#23) — O(1) var_name → def_pc via HashMap
+
+All Phase 4 issues are complete.
 
 ### Phase 5: LLM Refinement (Future)
 - Prompt engineering for function-level polishing
