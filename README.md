@@ -36,6 +36,7 @@ The decompiler produces pseudo-code with:
 - Bitwise boolean pattern simplification (`0 <u (a | b)` → `(a | b) != 0`)
 - Empty else block suppression for cleaner output
 - Goto labels for unstructured branches (`if (cond) goto block_XXXX;` instead of raw jump offsets)
+- Duplicate dispatch switch suppression (identical state machine dispatchers shown only once)
 
 ## Architecture
 

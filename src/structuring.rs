@@ -3549,4 +3549,41 @@ mod tests {
             output
         );
     }
+
+    #[test]
+    fn test_duplicate_dispatch_switch_suppression() {
+        // fix_blank_lines should deduplicate switch blocks that dispatch
+        // to the same set of goto targets.
+        let input = r#"some code
+switch (var_a) {
+    case 0: goto block_0;
+    case 1: goto block_1;
+}
+let var_b = something
+switch (var_b) {
+    case 1: goto block_1;
+    case 0: goto block_0;
+}
+more code
+"#;
+        let output = fix_blank_lines(input);
+        // First switch should be kept
+        assert!(
+            output.contains("switch (var_a)"),
+            "First switch should remain: {}",
+            output
+        );
+        // Second switch (same targets, different variable) should be suppressed
+        assert!(
+            !output.contains("switch (var_b)"),
+            "Duplicate switch should be suppressed: {}",
+            output
+        );
+        // The `let var_b` setup line should also be removed
+        assert!(
+            !output.contains("var_b"),
+            "Setup line for duplicate switch should be removed: {}",
+            output
+        );
+    }
 }
