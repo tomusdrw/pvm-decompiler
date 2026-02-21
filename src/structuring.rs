@@ -994,7 +994,7 @@ fn fix_blank_lines(input: &str) -> String {
 }
 
 /// Build human-readable labels for blocks that are targets of goto/switch statements.
-fn build_block_labels(cfg: &ControlFlowGraph, structures: &[Structure]) -> HashMap<usize, String> {
+fn build_block_labels(_cfg: &ControlFlowGraph, structures: &[Structure]) -> HashMap<usize, String> {
     let mut labels = HashMap::new();
 
     // Collect all goto targets: switch case targets and blocks not covered by structures.
@@ -1008,10 +1008,7 @@ fn build_block_labels(cfg: &ControlFlowGraph, structures: &[Structure]) -> HashM
         }
     }
 
-    // Also label the entry block.
-    goto_targets.insert(cfg.entry_pc);
-
-    // Assign labels to all goto targets.
+    // Assign labels only to actual goto/switch targets.
     let mut sorted_targets: Vec<usize> = goto_targets.into_iter().collect();
     sorted_targets.sort();
 
