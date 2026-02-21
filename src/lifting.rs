@@ -1631,7 +1631,11 @@ pub fn format_expression(expr: &Expression) -> String {
             base,
             offset,
         } => {
-            format!("{}[{}]", width, format_mem_address(base, *offset))
+            if let Some(field) = format_struct_field(base, *offset) {
+                field
+            } else {
+                format!("{}[{}]", width, format_mem_address(base, *offset))
+            }
         }
         Expression::Store {
             width,
@@ -1639,18 +1643,34 @@ pub fn format_expression(expr: &Expression) -> String {
             offset,
             value,
         } => {
-            format!(
-                "{}[{}] = {}",
-                width,
-                format_mem_address(base, *offset),
-                format_expression(value)
-            )
+            if let Some(field) = format_struct_field(base, *offset) {
+                format!("{} = {}", field, format_expression(value))
+            } else {
+                format!(
+                    "{}[{}] = {}",
+                    width,
+                    format_mem_address(base, *offset),
+                    format_expression(value)
+                )
+            }
         }
         Expression::Call { name, args } => {
             let arg_strs: Vec<String> = args.iter().map(format_expression).collect();
             format!("{}({})", name, arg_strs.join(", "))
         }
     }
+}
+
+/// Format a pointer dereference as a struct field access if the base is a pointer variable.
+/// Returns `Some("ptr->field_N")` for pointer bases, `None` otherwise.
+fn format_struct_field(base: &Expression, offset: i32) -> Option<String> {
+    if let Expression::Var(name) = base
+        && name.starts_with("ptr_")
+        && offset >= 0
+    {
+        return Some(format!("{}->field_{}", name, offset));
+    }
+    None
 }
 
 /// Format a memory address `base + offset` with clean output.
@@ -2695,5 +2715,49 @@ mod tests {
         } else {
             panic!("Expected BinOp expression");
         }
+    }
+
+    #[test]
+    fn test_struct_field_access_formatting() {
+        // Load from ptr_0 + 8 → ptr_0->field_8
+        let load = Expression::Load {
+            width: MemWidth::U64,
+            base: Box::new(Expression::Var("ptr_0".to_string())),
+            offset: 8,
+        };
+        assert_eq!(format_expression(&load), "ptr_0->field_8");
+
+        // Load from ptr_0 + 0 → ptr_0->field_0
+        let load_zero = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::Var("ptr_0".to_string())),
+            offset: 0,
+        };
+        assert_eq!(format_expression(&load_zero), "ptr_0->field_0");
+
+        // Store to ptr_1 + 12 → ptr_1->field_12 = value
+        let store = Expression::Store {
+            width: MemWidth::U32,
+            base: Box::new(Expression::Var("ptr_1".to_string())),
+            offset: 12,
+            value: Box::new(Expression::Var("var_0".to_string())),
+        };
+        assert_eq!(format_expression(&store), "ptr_1->field_12 = var_0");
+
+        // Non-pointer base should NOT use struct notation
+        let load_var = Expression::Load {
+            width: MemWidth::U64,
+            base: Box::new(Expression::Var("var_0".to_string())),
+            offset: 8,
+        };
+        assert_eq!(format_expression(&load_var), "u64[var_0 + 8]");
+
+        // Negative offset should NOT use struct notation
+        let load_neg = Expression::Load {
+            width: MemWidth::U64,
+            base: Box::new(Expression::Var("ptr_0".to_string())),
+            offset: -4,
+        };
+        assert_eq!(format_expression(&load_neg), "u64[ptr_0 - 4]");
     }
 }
