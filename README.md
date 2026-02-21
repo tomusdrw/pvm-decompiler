@@ -18,12 +18,17 @@ cargo run -- --debug path/to/file.pvm
 ### Output
 
 The decompiler produces pseudo-code with:
-- Named variables (`var_0`, `ptr_1`, `cond_2`) replacing register references
-- Inline `let` declarations at first assignment (`let var_0 = 42`)
+- Function signatures with typed parameters (`fn func_0(var_0: u32, ptr_1: ptr) { ... }`)
+- Named variables (`var_0`, `ptr_1`, `cond_2`) with width/signedness types (`u32`, `i64`, `bool`)
+- Inline `let` declarations at first assignment (`let var_0: u32 = 42`)
 - High-level control structures: `for`, `while`, `if/else`, `switch/case`
+- `break`/`continue` in loop bodies
 - Comparison inlining in conditions (e.g. `x <u y` instead of `cond_0 != 0`)
+- Struct field access recovery (`ptr_0->field_8` instead of `u64[ptr_0 + 8]`)
 - Stack variable recovery (`local_0` instead of `u64[sp - 8]`)
+- Named JAM host calls (`gas_remaining()`, `read()`, `write()` instead of `ecalli(0)`)
 - `return` instead of `trap` at function exits
+- SSA variable coalescing for loop induction variables
 
 ## Architecture
 
