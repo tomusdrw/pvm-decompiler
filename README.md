@@ -24,7 +24,7 @@ The decompiler produces pseudo-code with:
 - High-level control structures: `for`, `while`, `if/else`, `switch/case`
 - `break`/`continue` in loop bodies, with unreachable code suppressed, redundant trailing `continue` elided, and condition variable definitions eliminated when inlined
 - Comparison inlining in conditions (e.g. `x <u y` instead of `cond_0 != 0`)
-- Comparison inversion (`!(x <u y)` → `x >=u y`) and flipping (`0 <s x` → `x >s 0`)
+- Full comparison inversion (`!(x <u y)` → `x >=u y`, `!(x >s y)` → `x <=s y`) and flipping (`0 <s x` → `x >s 0`)
 - Struct field access recovery (`ptr_0->field_8` instead of `u64[ptr_0 + 8]`)
 - Stack variable recovery (`local_0` instead of `u64[sp - 8]`)
 - Named JAM host calls (`gas_remaining()`, `read()`, `write()` instead of `ecalli(0)`)
