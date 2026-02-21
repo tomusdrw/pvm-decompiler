@@ -37,6 +37,8 @@ The decompiler produces pseudo-code with:
 - Empty else block suppression for cleaner output
 - Goto labels for unstructured branches (`if (cond) goto block_XXXX;` instead of raw jump offsets)
 - Duplicate dispatch switch suppression (identical state machine dispatchers shown only once)
+- Compound boolean condition inlining (`while (x <s 5 & x <=s 2)` instead of `while (cond != 0)`)
+- Unreachable code suppression after `return` (dispatch infrastructure removed)
 
 ## Architecture
 

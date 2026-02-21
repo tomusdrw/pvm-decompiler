@@ -87,6 +87,8 @@ Completed:
 - Emit nested loops inside loop bodies with proper indentation (#39 partial) — `loop_map` passed to Emitter, `emit_loop` accepts indent parameter
 - Conditional branch goto labels (#39) — unstructured branches render as `if (cond) goto block_XXXX;` instead of raw `if (...) jump <offset>`
 - Duplicate dispatch switch suppression (#40 partial) — identical switch-goto blocks deduplicated in post-processing
+- Boolean AND/OR condition inlining — `while (cond_17 != 0)` where cond is `(x <s 5 & x <=s 2)` renders as `while (x <s 5 & x <=s 2)`
+- Unreachable code suppression after top-level `return` — dispatch variables/switches after return removed
 
 ### Phase 4e: Structural Improvements (Future)
 - Improve top-level block label rendering (#40) — detect dispatch loops and structure as `loop { switch { ... } }`
