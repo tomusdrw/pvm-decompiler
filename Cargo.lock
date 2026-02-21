@@ -343,6 +343,8 @@ dependencies = [
 [[package]]
 name = "wasm-pvm"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c62915db57e94a2b1485f72c02f0a581c41124729cd85e30f733cd4d3aeb4a43"
 dependencies = [
  "inkwell",
  "thiserror",

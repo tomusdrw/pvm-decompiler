@@ -14,16 +14,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout pvm-diss
+    - name: Checkout
       uses: actions/checkout@v4
-      with:
-        path: pvm-diss
-
-    - name: Checkout wasm-pvm dependency
-      uses: actions/checkout@v4
-      with:
-        repository: tomusdrw/wasm-pvm
-        path: wasm-pvm
 
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
@@ -31,13 +23,10 @@ jobs:
         components: clippy, rustfmt
 
     - name: Check Formatting
-      working-directory: pvm-diss
       run: cargo fmt -- --check
 
     - name: Clippy
-      working-directory: pvm-diss
       run: cargo clippy -- -D warnings
 
     - name: Run Tests
-      working-directory: pvm-diss
       run: cargo test

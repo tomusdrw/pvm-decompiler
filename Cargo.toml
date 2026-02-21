@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-wasm-pvm = { path = "../wasm-pvm/crates/wasm-pvm" }
+wasm-pvm = "0.1.0"
