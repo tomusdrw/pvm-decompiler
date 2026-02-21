@@ -1702,6 +1702,13 @@ fn format_struct_field(base: &Expression, offset: i32) -> Option<String> {
 
 /// Detect array access patterns: `base + index * element_size` where element_size
 /// matches the load/store width. Returns `Some("base[index]")` on match.
+///
+/// Recognized patterns (with offset == 0):
+/// - `ptr + index * N` where N == width.byte_size() → `ptr[index]`
+/// - `index * N + ptr` (commutative) → `ptr[index]`
+///
+/// Byte-width accesses (u8/i8) are excluded because `base + index * 1` doesn't
+/// clearly indicate array semantics.
 fn format_array_access(base: &Expression, offset: i32, width: MemWidth) -> Option<String> {
     // Only match when the constant offset is zero (the index handles all addressing)
     if offset != 0 {
@@ -1751,18 +1758,6 @@ fn format_array_access(base: &Expression, offset: i32, width: MemWidth) -> Optio
                 format_expression(index)
             ));
         }
-    }
-
-    // Pattern: base = index * element_size (base pointer is implicit zero / constant)
-    if let Expression::BinOp {
-        op: BinOp::Mul,
-        lhs: index,
-        rhs: multiplier,
-    } = base
-        && let Expression::Const(m) = multiplier.as_ref()
-        && *m == elem_size
-    {
-        return Some(format!("(({width}*)0)[{}]", format_expression(index)));
     }
 
     None
@@ -3071,6 +3066,27 @@ mod tests {
             offset: 0,
         };
         assert_eq!(format_expression(&load_comm), "ptr_0[var_1]");
+
+        // Byte-width (u8) should NOT trigger array pattern even with * 1
+        let load_u8 = Expression::Load {
+            width: MemWidth::U8,
+            base: Box::new(Expression::BinOp {
+                op: BinOp::Add,
+                lhs: Box::new(Expression::Var("buf".to_string())),
+                rhs: Box::new(Expression::Var("i".to_string())),
+            }),
+            offset: 0,
+        };
+        assert_eq!(format_expression(&load_u8), "u8[buf + i]");
+
+        // Struct field access should take priority: ptr_ base with non-zero offset
+        // is struct, not array (even if the base contains a multiply)
+        let struct_load = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::Var("ptr_0".to_string())),
+            offset: 8,
+        };
+        assert_eq!(format_expression(&struct_load), "ptr_0->field_8");
     }
 
     #[test]
