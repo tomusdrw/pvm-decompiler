@@ -76,12 +76,9 @@ Completed:
 - Simplify `0 <u (a | b)` bitwise boolean patterns (#36) — renders as `(a | b) != 0` for non-boolean expressions, with correct parenthesization
 - Suppress empty else blocks — `} else {}` omitted when else block produces no visible output
 
-### Phase 4d: Advanced Output (In Progress)
-Completed:
+### Phase 4d: Advanced Output — COMPLETE
 - Render `0 <s x` as `x >s 0` and similar comparisons (#38) — flip `const <u/s expr` to `expr >u/s const`, with `0 <u` kept for `!= 0` rendering
-
-Open:
-- Improve block emission order in loop bodies (#37) — use topological ordering instead of PC-sorted to avoid `continue` appearing mid-body
+- Improve block emission order in loop bodies (#37) — reverse post-order DFS instead of PC-sorted, prevents `continue` appearing mid-body in nested loops
 
 ### Phase 5: LLM Refinement (Future)
 - Prompt engineering for function-level polishing

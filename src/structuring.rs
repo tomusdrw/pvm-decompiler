@@ -885,6 +885,85 @@ impl<'a> Emitter<'a> {
         }
     }
 
+    /// Compute a topological ordering of body blocks using reverse post-order DFS.
+    /// This ensures blocks are emitted in control-flow order rather than PC order,
+    /// preventing issues like the latch block (with `continue`) appearing before
+    /// inner loop blocks that have higher PCs.
+    fn compute_body_order(&self, body: &HashSet<usize>, header_pc: usize) -> Vec<usize> {
+        let mut visited = HashSet::new();
+        let mut post_order = Vec::new();
+
+        // DFS from header's successors within the body
+        if let Some(header_block) = self.cfg.blocks.get(&header_pc) {
+            // Sort successors by PC for deterministic tie-breaking
+            let mut succs: Vec<usize> = header_block
+                .successors
+                .iter()
+                .copied()
+                .filter(|s| body.contains(s) && *s != header_pc)
+                .collect();
+            succs.sort();
+
+            for succ in succs {
+                self.dfs_body_order(succ, body, header_pc, &mut visited, &mut post_order);
+            }
+        }
+
+        // Reverse post-order gives topological order
+        post_order.reverse();
+        post_order
+    }
+
+    fn dfs_body_order(
+        &self,
+        pc: usize,
+        body: &HashSet<usize>,
+        header_pc: usize,
+        visited: &mut HashSet<usize>,
+        post_order: &mut Vec<usize>,
+    ) {
+        if !visited.insert(pc) {
+            return;
+        }
+
+        // Follow successors within the body (skip header = back-edge)
+        if let Some(block) = self.cfg.blocks.get(&pc) {
+            let mut succs: Vec<usize> = block
+                .successors
+                .iter()
+                .copied()
+                .filter(|s| body.contains(s) && *s != header_pc)
+                .collect();
+            succs.sort();
+
+            for succ in succs {
+                self.dfs_body_order(succ, body, header_pc, visited, post_order);
+            }
+        }
+
+        // Also follow if-then-else branches (they may not be in block.successors)
+        if let Some(Structure::IfThenElse {
+            then_blocks,
+            else_blocks,
+            ..
+        }) = self.if_map.get(&pc)
+        {
+            let mut branches: Vec<usize> = then_blocks
+                .iter()
+                .chain(else_blocks.iter())
+                .copied()
+                .filter(|b| body.contains(b) && *b != header_pc)
+                .collect();
+            branches.sort();
+
+            for b in branches {
+                self.dfs_body_order(b, body, header_pc, visited, post_order);
+            }
+        }
+
+        post_order.push(pc);
+    }
+
     /// Compute which blocks in a loop body are reachable from the header
     /// through non-terminal paths (i.e., not through break/continue blocks).
     /// A block that would emit break or continue is itself reachable, but
@@ -1112,15 +1191,16 @@ impl<'a> Emitter<'a> {
         // Emit header block body (before the condition branch)
         self.emit_block_body(header_pc, 1, true);
 
-        let mut body_sorted: Vec<usize> = body.iter().copied().collect();
-        body_sorted.sort();
+        // Compute topological ordering (RPO) of body blocks for control-flow-order emission.
+        // This prevents the latch block (with `continue`) from appearing before inner loop blocks.
+        let body_ordered = self.compute_body_order(body, header_pc);
 
         // Pre-compute which blocks are reachable from the header through the loop body,
         // stopping traversal at blocks that would emit break or continue (terminal blocks).
         // Blocks not reachable this way are unreachable after break/continue and should be suppressed.
         let reachable = self.compute_reachable_in_loop(body, header_pc);
 
-        for &body_pc in &body_sorted {
+        for &body_pc in &body_ordered {
             if body_pc == header_pc || self.emitted.contains(&body_pc) {
                 continue;
             }
