@@ -1411,4 +1411,61 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn test_detect_direct_call_pattern() {
+        // Build a program with:
+        // Block 0: LoadImm64 r0, 2 + Jump to block 100 (callee entry)
+        // Block 50: callee's body (this is where jump_table[0] points = return point)
+        // Block 100: callee stack guard
+        // Jump table: [50] (so address 2 → index (2/2-1) = 0 → jump_table[0] = 50)
+        let program = DecodedProgram {
+            instructions: vec![
+                (0, Instruction::LoadImm64 { reg: 0, value: 2 }),
+                (10, Instruction::Jump { offset: 90 }),
+                (50, Instruction::Trap),
+                (100, Instruction::Trap),
+            ],
+            jump_table: vec![50],
+            code_len: 101,
+            memory_base: None,
+        };
+
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm64 { reg: 0, value: 2 }),
+                        (10, Instruction::Jump { offset: 90 }),
+                    ],
+                    vec![100],
+                ),
+                (50, vec![(50, Instruction::Trap)], vec![]),
+                (100, vec![(100, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let functions = vec![
+            Function {
+                entry_pc: 0,
+                block_pcs: [0, 100].into_iter().collect(),
+                name: "main".to_string(),
+            },
+            Function {
+                entry_pc: 50,
+                block_pcs: [50].into_iter().collect(),
+                name: "func_1".to_string(),
+            },
+        ];
+
+        let patterns = detect_direct_call_patterns(&cfg, &functions, &program);
+        assert_eq!(patterns.len(), 1, "Should detect one call pattern");
+        assert_eq!(patterns[0].caller_block_pc, 0);
+        assert_eq!(patterns[0].jump_target_pc, 100);
+        assert_eq!(patterns[0].return_pc, 50);
+        assert_eq!(patterns[0].callee_name, "func_1");
+        assert_eq!(patterns[0].load_imm_pc, 0);
+    }
 }

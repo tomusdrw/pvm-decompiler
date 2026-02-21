@@ -329,6 +329,25 @@ impl<'a> Emitter<'a> {
             self.eliminate_condition_def(header, cond);
         }
 
+        // If all body blocks are suppressed, skip the entire if-structure.
+        if let Some(ref lifted) = self.lifted {
+            let all_suppressed = then_blocks
+                .iter()
+                .chain(else_blocks.iter())
+                .all(|bp| lifted.suppressed_blocks.contains(bp));
+            if all_suppressed && !then_blocks.is_empty() {
+                // Still emit the header body (non-branch instructions)
+                self.emit_block_body(header, indent, true);
+                for &tb in then_blocks {
+                    self.emitted.insert(tb);
+                }
+                for &eb in else_blocks {
+                    self.emitted.insert(eb);
+                }
+                return;
+            }
+        }
+
         // Emit header block instructions (before the branch)
         self.emit_block_body(header, indent, true);
 

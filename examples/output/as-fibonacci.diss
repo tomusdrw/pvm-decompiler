@@ -1,8 +1,5 @@
 fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     func_1()
-
-    if (var_1 >=u var_2) {
-    }
 }
 
 fn func_0() {
@@ -15,8 +12,7 @@ fn func_1(r1: u64) {
     let ptr_0_56 = HEAP_PTR
     let var_9 = HEAP_PTR + 4
     let ptr_0_88 = var_9
-    let var_13 = var_9 + 268
-    let ptr_0_112 = var_13
+    let ptr_0_112 = var_9 + 268
     let var_15 = HEAP_PAGES
     let ptr_0_120 = var_15
     let var_27 = (var_15 << 16) + 15 & -16

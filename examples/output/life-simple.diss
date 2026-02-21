@@ -7,25 +7,11 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     let var_292 = 4
     func_1()
 
-    if (var_134 >=u var_135) {
-    }
-
     while (ptr_2_64 >=s ptr_2_56) {
-        if (ptr_2_144 >=s ptr_2_56) {
-            continue
-        } else {
-            break
-        }
-    }
-
-    if (var_0 >=u var_1) {
     }
 
     while (ptr_0_88 >s 1) {
         while (ptr_0_168 >s 1) {
-            if ((ptr_0_168 | ptr_0_88) != 0) {
-                break
-            }
         }
     }
 }
