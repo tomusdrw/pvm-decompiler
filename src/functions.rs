@@ -212,22 +212,22 @@ fn split_at_prologues(cfg: &ControlFlowGraph, component: &HashSet<usize>) -> Vec
     functions
 }
 
-/// Find the "entry" of a component — the block with the smallest PC, or the one
-/// that has no predecessors within the component.
+/// Find the "entry" of a component — the block with no predecessors within the
+/// component (choosing the smallest PC if multiple exist), or the smallest PC as fallback.
 fn find_component_entry(cfg: &ControlFlowGraph, component: &HashSet<usize>) -> usize {
-    // Prefer blocks with no predecessors within the component.
+    // Collect all blocks with no internal predecessors.
+    let mut no_pred_entries: Vec<usize> = Vec::new();
     for &pc in component {
         if let Some(block) = cfg.blocks.get(&pc) {
-            let internal_preds: Vec<usize> = block
-                .predecessors
-                .iter()
-                .copied()
-                .filter(|p| component.contains(p))
-                .collect();
-            if internal_preds.is_empty() {
-                return pc;
+            let has_internal_pred = block.predecessors.iter().any(|p| component.contains(p));
+            if !has_internal_pred {
+                no_pred_entries.push(pc);
             }
         }
+    }
+    if !no_pred_entries.is_empty() {
+        // Deterministic: pick the smallest PC among candidates.
+        return *no_pred_entries.iter().min().unwrap();
     }
     // Fallback: smallest PC.
     *component.iter().min().unwrap()
