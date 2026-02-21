@@ -1148,6 +1148,29 @@ impl<'a> Emitter<'a> {
                     if matches!(instr, Instruction::Fallthrough | Instruction::Jump { .. }) {
                         continue;
                     }
+                    // Render conditional branches with goto labels instead of raw offsets.
+                    let shape = InstructionShape::classify(instr);
+                    if shape.is_conditional_branch()
+                        && let Some(offset) = shape.branch_offset()
+                    {
+                        let target = crate::cfg::ControlFlowGraph::compute_jump_target(*pc, offset);
+                        let target_label = self
+                            .labels
+                            .get(&target)
+                            .cloned()
+                            .unwrap_or_else(|| format!("block_{:04x}", target));
+                        let cond_str = if let Some(cond) = extract_condition(instr) {
+                            format_condition_maybe_lifted(&cond, self.cfg, block_pc, Some(lifted))
+                        } else {
+                            "...".to_string()
+                        };
+                        let _ = writeln!(
+                            self.output,
+                            "{}if ({}) goto {};",
+                            prefix, cond_str, target_label
+                        );
+                        continue;
+                    }
                     if let Some(line) = lifted.format_pc(*pc, instr) {
                         let _ = writeln!(self.output, "{}{}", prefix, line);
                     }
