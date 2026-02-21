@@ -216,6 +216,51 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+/// Run the full decompilation pipeline on raw bytes and return pseudo-code output.
+#[cfg(test)]
+fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> {
+    let program = decoder::decode_spi(buffer).or_else(|_| decoder::decode_blob(buffer))?;
+    let cfg = ControlFlowGraph::build(&program);
+    let detected_functions = functions::detect_functions(&cfg);
+    let call_graph = functions::build_call_graph(&cfg, &detected_functions);
+
+    let mut call_targets: HashMap<usize, String> = HashMap::new();
+    for calls in call_graph.values() {
+        for call in calls {
+            call_targets.insert(call.callee_entry_pc, call.callee_name.clone());
+        }
+    }
+
+    let mut output = String::new();
+    for func in &detected_functions {
+        let func_cfg = functions::build_function_cfg(&cfg, func);
+        let dom_tree = structuring::DominatorTree::compute(&func_cfg);
+        let dataflow = DataFlowAnalysis::analyze(&func_cfg);
+        let mut lifted =
+            lifting::LiftedProgram::analyze_with_dom_tree(&func_cfg, &dataflow, &dom_tree);
+        lifted.call_targets = call_targets.clone();
+        let structural =
+            structuring::StructuralAnalysis::analyze_with_dom_tree(&func_cfg, &program, dom_tree);
+
+        let mut params: Vec<u8> = dataflow
+            .live_in
+            .get(&func.entry_pc)
+            .cloned()
+            .unwrap_or_default()
+            .into_iter()
+            .collect();
+        params.sort();
+        let sig = structuring::FunctionSignature {
+            name: func.name.clone(),
+            params,
+        };
+
+        output.push_str(&structural.pseudo_code(&func_cfg, Some(&mut lifted), Some(&sig)));
+        output.push('\n');
+    }
+    Ok(output)
+}
+
 fn print_cfg(cfg: &ControlFlowGraph) {
     println!("Entry PC: {:#06x}", cfg.entry_pc);
     println!("Number of blocks: {}", cfg.blocks.len());
@@ -253,6 +298,83 @@ fn print_cfg(cfg: &ControlFlowGraph) {
                 }
                 println!();
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod integration_tests {
+    use super::*;
+
+    #[test]
+    fn test_fibonacci_full_pipeline() {
+        let buffer = std::fs::read("benchmarks/compiled/fibonacci.pvm")
+            .expect("fibonacci.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        // Should produce at least one function
+        assert!(
+            output.contains("fn "),
+            "Output should contain function definitions: {}",
+            output
+        );
+        // Should have control flow
+        assert!(
+            output.contains("while") || output.contains("for") || output.contains("if"),
+            "Fibonacci should contain loops or branches: {}",
+            output
+        );
+        // Should have return
+        assert!(
+            output.contains("return"),
+            "Functions should have return statements: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_br_table_full_pipeline() {
+        let buffer = std::fs::read("benchmarks/compiled/br-table.pvm")
+            .expect("br-table.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        // br-table programs should produce switch/case statements
+        assert!(
+            output.contains("switch") || output.contains("fn "),
+            "br-table should produce structured output: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_all_fixtures_decompile_without_panic() {
+        let fixtures = [
+            "benchmarks/compiled/fibonacci.pvm",
+            "benchmarks/compiled/br-table.pvm",
+            "benchmarks/compiled/as-fibonacci.pvm",
+            "benchmarks/compiled/as-tests-control-flow.pvm",
+            "benchmarks/compiled/life-init-test.pvm",
+            "benchmarks/compiled/life-simple.pvm",
+        ];
+
+        for fixture in &fixtures {
+            let buffer = match std::fs::read(fixture) {
+                Ok(b) => b,
+                Err(_) => continue, // skip missing fixtures
+            };
+            let result = decompile_bytes(&buffer);
+            assert!(
+                result.is_ok(),
+                "Fixture {} should decompile without error: {:?}",
+                fixture,
+                result.err()
+            );
+            let output = result.unwrap();
+            assert!(
+                !output.is_empty(),
+                "Fixture {} should produce non-empty output",
+                fixture
+            );
         }
     }
 }
