@@ -51,11 +51,12 @@ Completed:
 - Function parameter detection (#13) — live-in register analysis, typed fn signatures with indented body
 - break/continue detection (#26) — loop exit paths emit `break`, header jumps emit `continue`
 - SSA variable coalescing (#24) — loop induction variables use consistent names across init/step
+- Signedness tracking (#16) — U32/I32/U64/I64 type inference from instruction width and signed ops
 
 See open GitHub issues for planned improvements:
 - Struct field access recovery (#19)
-- Signedness tracking and type narrowing (#16)
 - Call graph and inter-procedural analysis (#21)
+- Emission method refactoring (#27)
 
 ### Phase 5: LLM Refinement (Future)
 - Prompt engineering for function-level polishing
