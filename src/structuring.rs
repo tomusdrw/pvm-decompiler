@@ -832,7 +832,12 @@ impl<'a> Emitter<'a> {
         }
 
         if !else_blocks.is_empty() {
-            let _ = writeln!(self.output, "{}}} else {{", prefix);
+            // Emit else blocks into a temporary buffer to check if any content is produced.
+            let mut else_output = String::new();
+            std::mem::swap(&mut self.output, &mut else_output);
+            let len_before = else_output.len();
+            std::mem::swap(&mut self.output, &mut else_output);
+
             for &eb in else_blocks {
                 let ctrl = self.emit_block_with_loop_control(eb, indent + 1, loop_context);
                 if let Some(keyword) = ctrl {
@@ -841,6 +846,14 @@ impl<'a> Emitter<'a> {
                     break; // Suppress unreachable blocks after break/continue
                 }
                 self.emitted.insert(eb);
+            }
+
+            // Only emit the `else` clause if the else blocks produced content.
+            let has_else_content = self.output.len() > len_before;
+            if has_else_content {
+                // Insert "} else {" before the else content
+                self.output
+                    .insert_str(len_before, &format!("{}}} else {{\n", prefix));
             }
         }
 
@@ -3136,6 +3149,62 @@ mod tests {
         assert!(
             !pseudo.contains("r5 = 77"),
             "Unreachable block after break/continue should be suppressed: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_suppress_empty_else_block() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // Diamond: header branches to then (10) or else (20), both join at 30.
+        // Then-block has real content, else-block has only a Fallthrough
+        // (which is skipped in lifted mode), so the `else` clause should be suppressed.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
+                    vec![10, 20],
+                ),
+                (
+                    10,
+                    vec![
+                        (10, Instruction::LoadImm { reg: 1, value: 42 }),
+                        (14, Instruction::Fallthrough),
+                    ],
+                    vec![30],
+                ),
+                (20, vec![(20, Instruction::Fallthrough)], vec![30]),
+                (30, vec![(30, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+
+        // Should contain if with then content
+        assert!(pseudo.contains("if"), "Should contain if: {}", pseudo);
+        assert!(
+            pseudo.contains("42"),
+            "Should contain then block content: {}",
+            pseudo
+        );
+        // Should NOT contain empty else clause
+        assert!(
+            !pseudo.contains("else"),
+            "Empty else block should be suppressed: {}",
             pseudo
         );
     }
