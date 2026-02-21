@@ -954,7 +954,11 @@ impl LiftedProgram {
 
     /// Format an instruction without declaration tracking.
     /// Returns the formatted line and optionally the variable name to declare.
-    fn format_pc_raw(&self, pc: usize, instr: &Instruction) -> Option<(String, Option<String>)> {
+    pub fn format_pc_raw(
+        &self,
+        pc: usize,
+        instr: &Instruction,
+    ) -> Option<(String, Option<String>)> {
         let expr = self.expressions.get(&pc)?;
         let dst_name = self.def_var_name_with_type(pc, instr).map(|(name, _)| name);
 

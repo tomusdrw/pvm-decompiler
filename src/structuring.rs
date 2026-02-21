@@ -618,6 +618,33 @@ impl StructuralAnalysis {
             }
         }
 
+        // Pre-pass: detect for-loops and suppress their init/step PCs from normal emission.
+        let mut for_loop_map: HashMap<usize, ForLoopInfo> = HashMap::new();
+        for s in &self.structures {
+            if let Structure::Loop {
+                header,
+                body,
+                latch,
+                condition,
+                ..
+            } = s
+                && let Some(info) = detect_for_loop_pattern(
+                    cfg,
+                    *header,
+                    *latch,
+                    body,
+                    condition.as_ref(),
+                    lifted.as_deref(),
+                )
+            {
+                // Suppress the init instruction from its block's normal emission
+                if let Some(ref mut lifted) = lifted {
+                    lifted.eliminated_pcs.insert(info.init_pc);
+                }
+                for_loop_map.insert(*header, info);
+            }
+        }
+
         // Track which blocks we've already emitted inside structures
         let mut emitted: HashSet<usize> = HashSet::new();
 
@@ -632,14 +659,28 @@ impl StructuralAnalysis {
             }
 
             if let Some(Structure::Loop {
-                body, condition, ..
+                body,
+                latch,
+                condition,
+                ..
             }) = loop_map.get(&block_pc)
             {
                 let cond_str = condition
                     .as_ref()
                     .map(|c| format_condition_maybe_lifted(c, cfg, block_pc, lifted.as_deref()))
                     .unwrap_or_else(|| "...".to_string());
-                let _ = writeln!(output, "while ({}) {{", cond_str);
+
+                let for_loop_info = for_loop_map.get(&block_pc);
+
+                if let Some(info) = for_loop_info {
+                    let _ = writeln!(
+                        output,
+                        "for ({}; {}; {}) {{",
+                        info.init_str, cond_str, info.step_str
+                    );
+                } else {
+                    let _ = writeln!(output, "while ({}) {{", cond_str);
+                }
 
                 // Emit body blocks (excluding header's own instructions which form the condition)
                 self.emit_block_body(cfg, block_pc, &mut output, 1, true, lifted.as_deref_mut());
@@ -652,6 +693,17 @@ impl StructuralAnalysis {
                     }
                     if emitted.contains(&body_pc) {
                         continue;
+                    }
+
+                    // Skip the latch block's step expression if it's a for-loop
+                    // (it will be shown in the for header).
+                    let is_latch = body_pc == *latch && for_loop_info.is_some();
+                    // Suppress step instruction in latch block for for-loops
+                    if is_latch
+                        && let Some(info) = for_loop_info
+                        && let Some(ref mut lifted) = lifted
+                    {
+                        lifted.eliminated_pcs.insert(info.step_pc);
                     }
 
                     // Check if this body block is an if-then-else
@@ -677,14 +729,26 @@ impl StructuralAnalysis {
                         continue;
                     }
 
-                    self.emit_block_body(
-                        cfg,
-                        body_pc,
-                        &mut output,
-                        1,
-                        false,
-                        lifted.as_deref_mut(),
-                    );
+                    if is_latch {
+                        // For for-loops, emit latch body but skip the step instruction
+                        self.emit_block_body(
+                            cfg,
+                            body_pc,
+                            &mut output,
+                            1,
+                            true,
+                            lifted.as_deref_mut(),
+                        );
+                    } else {
+                        self.emit_block_body(
+                            cfg,
+                            body_pc,
+                            &mut output,
+                            1,
+                            false,
+                            lifted.as_deref_mut(),
+                        );
+                    }
                     emitted.insert(body_pc);
                 }
 
@@ -982,6 +1046,111 @@ fn fix_blank_lines(input: &str) -> String {
 }
 
 /// Build human-readable labels for blocks that are targets of goto/switch statements.
+/// Information about a detected for-loop pattern.
+struct ForLoopInfo {
+    /// The initialization expression (e.g. "let var_0 = 0")
+    init_str: String,
+    /// The step expression (e.g. "var_0 = var_0 + 1")
+    step_str: String,
+    /// PC of the init instruction (to suppress from normal block emission)
+    init_pc: usize,
+    /// PC of the step instruction (to suppress from latch block emission)
+    step_pc: usize,
+}
+
+/// Try to detect a for-loop pattern from a while loop.
+///
+/// A for-loop has: init before the loop, condition in the header, step in the latch.
+/// Returns `Some(ForLoopInfo)` if the pattern matches.
+fn detect_for_loop_pattern(
+    cfg: &ControlFlowGraph,
+    header_pc: usize,
+    latch_pc: usize,
+    body: &HashSet<usize>,
+    condition: Option<&Condition>,
+    lifted: Option<&LiftedProgram>,
+) -> Option<ForLoopInfo> {
+    use crate::instruction::InstructionShape;
+
+    let lifted = lifted?;
+    let condition = condition?;
+
+    // Get the condition register (LHS of the branch condition)
+    let cond_reg = match &condition.lhs {
+        Operand::Reg(reg) => *reg,
+        _ => return None,
+    };
+
+    // Find the init: look at predecessors of the header that are NOT in the loop body.
+    let header_block = cfg.blocks.get(&header_pc)?;
+    let init_preds: Vec<usize> = header_block
+        .predecessors
+        .iter()
+        .filter(|p| !body.contains(p))
+        .copied()
+        .collect();
+
+    // Exactly one non-loop predecessor
+    if init_preds.len() != 1 {
+        return None;
+    }
+    let init_block_pc = init_preds[0];
+
+    // Find the last instruction in the init block that defines cond_reg.
+    // We deliberately check even eliminated PCs, since the init may have been
+    // constant-propagated away but we still want it in the for-header.
+    let init_block = cfg.blocks.get(&init_block_pc)?;
+    let mut init_result = None;
+    for (pc, instr) in init_block.instructions.iter().rev() {
+        if matches!(instr, Instruction::Fallthrough | Instruction::Jump { .. }) {
+            continue;
+        }
+        // Check if this instruction defines the condition register
+        let shape = InstructionShape::classify(instr);
+        if shape.def_reg() == Some(cond_reg) {
+            let (raw, declare_var) = lifted.format_pc_raw(*pc, instr)?;
+            let prefix = match declare_var {
+                Some(ref dv) if !lifted.declared_vars.contains(dv) => "let ",
+                _ => "",
+            };
+            init_result = Some((format!("{}{}", prefix, raw), *pc));
+            break;
+        }
+        break; // Only check the last meaningful instruction
+    }
+
+    let (init_str, init_pc) = init_result?;
+
+    // Find the step: the last non-eliminated instruction in the latch block
+    // that defines cond_reg (e.g., i = i + 1)
+    let latch_block = cfg.blocks.get(&latch_pc)?;
+    let mut step_result = None;
+    for (pc, instr) in latch_block.instructions.iter().rev() {
+        if lifted.eliminated_pcs.contains(pc) {
+            continue;
+        }
+        if matches!(instr, Instruction::Fallthrough | Instruction::Jump { .. }) {
+            continue;
+        }
+        let shape = InstructionShape::classify(instr);
+        if shape.def_reg() == Some(cond_reg) {
+            let (raw, _) = lifted.format_pc_raw(*pc, instr)?;
+            step_result = Some((raw, *pc));
+            break;
+        }
+        break;
+    }
+
+    let (step_str, step_pc) = step_result?;
+
+    Some(ForLoopInfo {
+        init_str,
+        step_str,
+        init_pc,
+        step_pc,
+    })
+}
+
 fn build_block_labels(_cfg: &ControlFlowGraph, structures: &[Structure]) -> HashMap<usize, String> {
     let mut labels = HashMap::new();
 
@@ -1833,6 +2002,91 @@ mod tests {
         assert!(
             pseudo.contains("<u"),
             "Should contain inlined comparison operator: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_for_loop_detection() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // For-loop pattern:
+        // block 0: r0 = 0 (init), fallthrough to header
+        // block 10 (header): branch r0 != 10 → body (20) | exit (40)
+        // block 20 (body): r1 = r1 + r0 (work), fallthrough to latch
+        // block 30 (latch): r0 = r0 + 1 (step), jump to header
+        // block 40: trap
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 0, value: 0 }),
+                        (4, Instruction::Fallthrough),
+                    ],
+                    vec![10],
+                ),
+                (
+                    10,
+                    vec![(
+                        10,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 10,
+                            offset: 10,
+                        },
+                    )],
+                    vec![20, 40],
+                ),
+                (
+                    20,
+                    vec![
+                        (
+                            20,
+                            Instruction::Add32 {
+                                dst: 1,
+                                src1: 1,
+                                src2: 0,
+                            },
+                        ),
+                        (24, Instruction::Fallthrough),
+                    ],
+                    vec![30],
+                ),
+                (
+                    30,
+                    vec![
+                        (
+                            30,
+                            Instruction::AddImm32 {
+                                dst: 0,
+                                src: 0,
+                                value: 1,
+                            },
+                        ),
+                        (34, Instruction::Jump { offset: -24 }),
+                    ],
+                    vec![10],
+                ),
+                (40, vec![(40, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted));
+
+        assert!(
+            pseudo.contains("for ("),
+            "Should contain 'for (' for detected for-loop: {}",
+            pseudo
+        );
+        assert!(
+            !pseudo.contains("while"),
+            "Should NOT contain 'while' when for-loop detected: {}",
             pseudo
         );
     }
