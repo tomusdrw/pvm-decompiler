@@ -1675,18 +1675,38 @@ fn format_condition_lifted(cond: &Condition, branch_pc: usize, lifted: &LiftedPr
         && let Some(expr) = lifted.expression_for_var(name)
     {
         // Check if the expression is a comparison (LtU, LtS, GeU, GeS, GtU, GtS)
-        if let crate::lifting::Expression::BinOp { op, .. } = expr
+        if let crate::lifting::Expression::BinOp {
+            op,
+            lhs: inner_lhs,
+            rhs: inner_rhs,
+        } = expr
             && matches!(
                 op,
-                BinOp::LtU | BinOp::LtS | BinOp::GeU | BinOp::GeS | BinOp::GtU | BinOp::GtS
+                BinOp::LtU
+                    | BinOp::LtS
+                    | BinOp::GeU
+                    | BinOp::GeS
+                    | BinOp::GtU
+                    | BinOp::GtS
+                    | BinOp::LeU
+                    | BinOp::LeS
             )
         {
-            let inner = format_expression(expr);
-            return if cond.op == CondOp::Eq {
-                format!("!({})", inner)
+            if cond.op == CondOp::Eq {
+                // Invert the comparison directly instead of wrapping with !(...)
+                use crate::lifting::simplify_expression;
+                let negated = crate::lifting::Expression::UnaryOp {
+                    op: crate::instruction::UnaryOp::Not,
+                    operand: Box::new(crate::lifting::Expression::BinOp {
+                        op: *op,
+                        lhs: Box::new(inner_lhs.as_ref().clone()),
+                        rhs: Box::new(inner_rhs.as_ref().clone()),
+                    }),
+                };
+                return format_expression(&simplify_expression(negated));
             } else {
-                inner
-            };
+                return format_expression(expr);
+            }
         }
         // Check if it's a negation: !bool
         if let crate::lifting::Expression::UnaryOp {

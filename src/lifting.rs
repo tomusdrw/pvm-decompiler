@@ -1186,7 +1186,7 @@ fn ecalli_name(index: u32) -> String {
 /// - `x * 1`, `x /u 1`, `x /s 1` → `x`
 /// - `x * 0`, `x & 0` → `0`
 /// - `bool <u 1` → `!bool` (common negation pattern)
-fn simplify_expression(expr: Expression) -> Expression {
+pub fn simplify_expression(expr: Expression) -> Expression {
     match expr {
         Expression::BinOp { op, lhs, rhs } => {
             let lhs = simplify_expression(*lhs);
@@ -1317,20 +1317,35 @@ fn simplify_expression(expr: Expression) -> Expression {
                 }
                 // Comparison inversion: !(x <u y) → x >=u y, !(x <s y) → x >=s y
                 if let Expression::BinOp {
-                    op: cmp_op @ (BinOp::LtU | BinOp::LtS),
+                    op:
+                        cmp_op @ (BinOp::LtU
+                        | BinOp::LtS
+                        | BinOp::GtU
+                        | BinOp::GtS
+                        | BinOp::GeU
+                        | BinOp::GeS
+                        | BinOp::LeU
+                        | BinOp::LeS),
                     lhs,
                     rhs,
                 } = operand
                 {
-                    let inverted = match cmp_op {
-                        BinOp::LtU => BinOp::GeU,
-                        BinOp::LtS => BinOp::GeS,
+                    // Invert comparison: !(a < b) → a >= b, !(a > b) → a <= b, !(a >= b) → a < b
+                    let (inverted, new_lhs, new_rhs) = match cmp_op {
+                        BinOp::LtU => (BinOp::GeU, lhs, rhs),
+                        BinOp::LtS => (BinOp::GeS, lhs, rhs),
+                        BinOp::GtU => (BinOp::LeU, lhs, rhs), // !(a >u b) → a <=u b
+                        BinOp::GtS => (BinOp::LeS, lhs, rhs), // !(a >s b) → a <=s b
+                        BinOp::GeU => (BinOp::LtU, lhs, rhs), // !(a >=u b) → a <u b
+                        BinOp::GeS => (BinOp::LtS, lhs, rhs), // !(a >=s b) → a <s b
+                        BinOp::LeU => (BinOp::GtU, lhs, rhs), // !(a <=u b) → a >u b
+                        BinOp::LeS => (BinOp::GtS, lhs, rhs), // !(a <=s b) → a >s b
                         _ => unreachable!(),
                     };
                     return Expression::BinOp {
                         op: inverted,
-                        lhs,
-                        rhs,
+                        lhs: new_lhs,
+                        rhs: new_rhs,
                     };
                 }
             }
@@ -1725,7 +1740,14 @@ pub fn format_expression(expr: &Expression) -> String {
                         op: UnaryOp::Not,
                         ..
                     } | Expression::BinOp {
-                        op: BinOp::LtU | BinOp::LtS | BinOp::GeU | BinOp::GeS,
+                        op: BinOp::LtU
+                            | BinOp::LtS
+                            | BinOp::GeU
+                            | BinOp::GeS
+                            | BinOp::GtU
+                            | BinOp::GtS
+                            | BinOp::LeU
+                            | BinOp::LeS,
                         ..
                     }
                 )
@@ -1918,7 +1940,14 @@ fn op_precedence(op: BinOp) -> u8 {
         BinOp::Or => 1,
         BinOp::Xor => 2,
         BinOp::And => 3,
-        BinOp::LtU | BinOp::LtS | BinOp::GeU | BinOp::GeS | BinOp::GtU | BinOp::GtS => 4,
+        BinOp::LtU
+        | BinOp::LtS
+        | BinOp::GeU
+        | BinOp::GeS
+        | BinOp::GtU
+        | BinOp::GtS
+        | BinOp::LeU
+        | BinOp::LeS => 4,
         BinOp::Shl | BinOp::ShrU | BinOp::ShrS => 5,
         BinOp::Add | BinOp::Sub => 6,
         BinOp::Mul | BinOp::DivU | BinOp::DivS | BinOp::RemU | BinOp::RemS => 7,
@@ -2303,6 +2332,30 @@ mod tests {
         };
         let simplified_signed = simplify_expression(expr_signed);
         assert_eq!(format_expression(&simplified_signed), "a >=s b");
+
+        // !(x >s y) → x <=s y
+        let expr_gt = Expression::UnaryOp {
+            op: UnaryOp::Not,
+            operand: Box::new(Expression::BinOp {
+                op: BinOp::GtS,
+                lhs: Box::new(Expression::Var("x".to_string())),
+                rhs: Box::new(Expression::Var("y".to_string())),
+            }),
+        };
+        let simplified_gt = simplify_expression(expr_gt);
+        assert_eq!(format_expression(&simplified_gt), "x <=s y");
+
+        // !(x >=u y) → x <u y
+        let expr_ge = Expression::UnaryOp {
+            op: UnaryOp::Not,
+            operand: Box::new(Expression::BinOp {
+                op: BinOp::GeU,
+                lhs: Box::new(Expression::Var("a".to_string())),
+                rhs: Box::new(Expression::Var("b".to_string())),
+            }),
+        };
+        let simplified_ge = simplify_expression(expr_ge);
+        assert_eq!(format_expression(&simplified_ge), "a <u b");
     }
 
     #[test]
