@@ -1200,6 +1200,14 @@ impl<'a> Emitter<'a> {
         // Blocks not reachable this way are unreachable after break/continue and should be suppressed.
         let reachable = self.compute_reachable_in_loop(body, header_pc);
 
+        // Pre-compute which blocks will actually be emitted, to detect the last one.
+        let emittable: Vec<usize> = body_ordered
+            .iter()
+            .copied()
+            .filter(|&pc| pc != header_pc && reachable.contains(&pc))
+            .collect();
+        let last_emittable = emittable.last().copied();
+
         for &body_pc in &body_ordered {
             if body_pc == header_pc || self.emitted.contains(&body_pc) {
                 continue;
@@ -1244,7 +1252,11 @@ impl<'a> Emitter<'a> {
             } else {
                 let ctrl = self.emit_block_with_loop_control(body_pc, 1, Some((body, header_pc)));
                 if let Some(keyword) = ctrl {
-                    let _ = writeln!(self.output, "    {}", keyword);
+                    // Suppress `continue` at the very end of the loop body — it's implicit.
+                    let is_last = last_emittable == Some(body_pc);
+                    if !(keyword == "continue" && is_last) {
+                        let _ = writeln!(self.output, "    {}", keyword);
+                    }
                 }
             }
             self.emitted.insert(body_pc);
@@ -3304,16 +3316,10 @@ mod tests {
             pseudo
         );
 
-        // `continue` should appear after both body and latch assignments
+        // Redundant `continue` at end of loop body should be suppressed
         assert!(
-            pseudo.contains("continue"),
-            "Should contain continue: {}",
-            pseudo
-        );
-        let continue_pos = pseudo.find("continue").expect("should have continue");
-        assert!(
-            continue_pos > body_pos,
-            "continue should appear after body block: {}",
+            !pseudo.contains("continue"),
+            "Redundant continue at end of loop body should be suppressed: {}",
             pseudo
         );
     }
