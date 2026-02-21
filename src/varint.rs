@@ -1,3 +1,8 @@
+//! Variable-Length Integer Decoding
+//!
+//! Decodes LEB128-style variable-length unsigned 32-bit integers used in
+//! PVM bytecode for immediate operands, jump offsets, and section sizes.
+
 #[allow(dead_code)]
 pub fn decode_var_u32(data: &[u8]) -> Option<(u32, usize)> {
     if data.is_empty() {

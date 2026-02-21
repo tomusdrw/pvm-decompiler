@@ -1,3 +1,10 @@
+//! Control Flow Graph Construction
+//!
+//! Builds a CFG from decoded PVM instructions. Each basic block contains a
+//! contiguous sequence of instructions ending at a branch, jump, trap, or
+//! fallthrough to another block. The CFG tracks successor/predecessor edges
+//! and provides `compute_jump_target` for resolving PC-relative offsets.
+
 use crate::decoder::DecodedProgram;
 use crate::instruction::InstructionShape;
 use std::collections::{HashMap, HashSet};

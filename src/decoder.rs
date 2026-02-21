@@ -1,3 +1,12 @@
+//! Binary Format Decoding
+//!
+//! Parses PVM bytecode from two formats:
+//! - **SPI format**: Header with code/data section offsets and jump table
+//! - **Raw ProgramBlob**: Bare code section with bitmask for instruction boundaries
+//!
+//! Both paths produce a `DecodedProgram` containing the instruction stream,
+//! jump table entries, and code length for downstream CFG construction.
+
 use crate::varint;
 use std::error::Error;
 use std::fmt;
