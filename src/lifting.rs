@@ -326,8 +326,8 @@ impl LiftedProgram {
                 offset,
             } => self.make_store(pc, width, base, offset, src),
             InstructionShape::Ecalli { index } => Expression::Call {
-                name: "ecalli".to_string(),
-                args: vec![Expression::Const(index as i64)],
+                name: ecalli_name(index),
+                args: vec![],
             },
             InstructionShape::NoOp { name } => {
                 let display_name = if name == "trap" { "return" } else { name };
@@ -1037,6 +1037,42 @@ impl LiftedProgram {
 }
 
 /// Recursively simplify an expression by folding identity operations.
+/// Map an ecalli index to a human-readable host function name.
+/// Based on the JAM Graypaper specification (Appendix B).
+fn ecalli_name(index: u32) -> String {
+    match index {
+        0 => "gas_remaining".into(),
+        1 => "fetch".into(),
+        2 => "lookup".into(),
+        3 => "read".into(),
+        4 => "write".into(),
+        5 => "info".into(),
+        6 => "historical_lookup".into(),
+        7 => "export".into(),
+        8 => "machine".into(),
+        9 => "peek".into(),
+        10 => "poke".into(),
+        11 => "pages".into(),
+        12 => "invoke".into(),
+        13 => "expunge".into(),
+        14 => "bless".into(),
+        15 => "assign".into(),
+        16 => "designate".into(),
+        17 => "checkpoint".into(),
+        18 => "new_service".into(),
+        19 => "upgrade".into(),
+        20 => "transfer".into(),
+        21 => "eject".into(),
+        22 => "query".into(),
+        23 => "solicit".into(),
+        24 => "forget".into(),
+        25 => "yield_".into(),
+        26 => "provide".into(),
+        100 => "log".into(),
+        _ => format!("ecalli({})", index),
+    }
+}
+
 /// - `x + 0`, `x - 0`, `x | 0`, `x ^ 0`, `x << 0`, `x >>u 0`, `x >>s 0` → `x`
 /// - `x * 1`, `x /u 1`, `x /s 1` → `x`
 /// - `x * 0`, `x & 0` → `0`
@@ -2389,6 +2425,32 @@ mod tests {
             line.as_deref(),
             Some("return"),
             "Trap should be rendered as 'return': {:?}",
+            line
+        );
+    }
+
+    #[test]
+    fn test_ecalli_named_host_functions() {
+        assert_eq!(ecalli_name(0), "gas_remaining");
+        assert_eq!(ecalli_name(3), "read");
+        assert_eq!(ecalli_name(4), "write");
+        assert_eq!(ecalli_name(17), "checkpoint");
+        assert_eq!(ecalli_name(100), "log");
+        assert_eq!(ecalli_name(999), "ecalli(999)");
+    }
+
+    #[test]
+    fn test_ecalli_renders_named() {
+        let instr = Instruction::Ecalli { index: 0 };
+        let cfg = build_test_cfg(0, vec![(0, vec![(0, instr.clone())], vec![])]);
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        let line = lifted.format_pc(0, &instr);
+        assert_eq!(
+            line.as_deref(),
+            Some("gas_remaining()"),
+            "ecalli(0) should render as gas_remaining(): {:?}",
             line
         );
     }
