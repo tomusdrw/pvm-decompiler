@@ -813,6 +813,25 @@ impl<'a> Emitter<'a> {
         let prefix = "    ".repeat(indent);
         let inner_prefix = "    ".repeat(indent + 1);
 
+        // Suppress the branch instruction and its inlined condition variable definition.
+        // The condition is shown in the `if` header, so the definition is redundant.
+        if let Some(cond) = condition
+            && let Some(header_block) = self.cfg.blocks.get(&header)
+            && let Some((branch_pc, _)) = header_block.instructions.last()
+            && let Some(ref mut lifted) = self.lifted
+        {
+            lifted.eliminated_pcs.insert(*branch_pc);
+
+            if let Operand::Reg(reg) = &cond.lhs
+                && let Operand::Imm(0) = &cond.rhs
+                && matches!(cond.op, CondOp::Ne | CondOp::Eq)
+                && let Some(var_name) = lifted.var_at_use.get(&(*branch_pc, *reg)).cloned()
+                && let Some(def_pc) = lifted.var_name_to_def_pc.get(&var_name).copied()
+            {
+                lifted.eliminated_pcs.insert(def_pc);
+            }
+        }
+
         // Emit header block instructions (before the branch)
         self.emit_block_body(header, indent, true);
 
