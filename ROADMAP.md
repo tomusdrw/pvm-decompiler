@@ -48,13 +48,13 @@ Completed:
 - Named ecalli host functions (#17) — maps indices to JAM Graypaper names (gas_remaining, read, write, etc.)
 - Deterministic variable naming (#25) — smallest-PC-wins policy for reaching definitions
 - trap → return rendering (#14 partial) — function exits show `return` instead of `trap`
+- Function parameter detection (#13) — live-in register analysis, typed fn signatures with indented body
 
 See open GitHub issues for planned improvements:
 - break/continue detection in loop bodies (#26)
 - SSA variable coalescing for loop variables (#24)
 - Struct field access recovery (#19)
 - Signedness tracking and type narrowing (#16)
-- Function parameter/return value detection (#13)
 - Call graph and inter-procedural analysis (#21)
 
 ### Phase 5: LLM Refinement (Future)

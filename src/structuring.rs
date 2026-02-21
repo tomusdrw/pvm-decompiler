@@ -2304,6 +2304,113 @@ mod tests {
     }
 
     #[test]
+    fn test_function_signature_no_params() {
+        // A function where no registers are live-in (self-contained)
+        // block 0: r0 = 42, trap
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (0, Instruction::LoadImm { reg: 0, value: 42 }),
+                    (4, Instruction::Trap),
+                ],
+                vec![],
+            )],
+        );
+
+        let sig = FunctionSignature {
+            name: "no_params".to_string(),
+            params: vec![],
+        };
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, None, Some(&sig));
+
+        assert!(
+            pseudo.starts_with("fn no_params() {"),
+            "Should have empty param list: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.trim_end().ends_with('}'),
+            "Should end with closing brace: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_function_signature_with_loop() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // Function with a loop: verify indentation stacks (body inside loop inside fn)
+        // block 0: r0 = 0 (init), branch to block 8
+        // block 8: branch_ne r0 1 → exit (12), fallthrough to block 8 (back-edge)
+        // block 12: trap
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 0, value: 0 }),
+                        (4, Instruction::Jump { offset: 4 }),
+                    ],
+                    vec![8],
+                ),
+                (
+                    8,
+                    vec![(
+                        8,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 1,
+                            offset: 4,
+                        },
+                    )],
+                    vec![12, 8],
+                ),
+                (12, vec![(12, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        let sig = FunctionSignature {
+            name: "loopy".to_string(),
+            params: vec![],
+        };
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), Some(&sig));
+
+        assert!(
+            pseudo.starts_with("fn loopy() {"),
+            "Should start with fn header: {}",
+            pseudo
+        );
+        // While loop should be indented inside fn body
+        assert!(
+            pseudo.contains("    while"),
+            "While should be indented inside fn: {}",
+            pseudo
+        );
+        // Return should be indented inside fn body
+        assert!(
+            pseudo.contains("    return"),
+            "Return should be indented inside fn: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.trim_end().ends_with('}'),
+            "Should end with closing brace: {}",
+            pseudo
+        );
+    }
+
+    #[test]
     fn test_empty_cfg() {
         let cfg = ControlFlowGraph::new(0);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
