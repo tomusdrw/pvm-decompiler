@@ -17,7 +17,7 @@ use cfg::ControlFlowGraph;
 use dataflow::DataFlowAnalysis;
 use functions::{build_function_cfg, detect_functions};
 use lifting::LiftedProgram;
-use structuring::StructuralAnalysis;
+use structuring::{DominatorTree, StructuralAnalysis};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Verbosity {
@@ -150,9 +150,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Process each function independently
     for func in &detected_functions {
         let func_cfg = build_function_cfg(&cfg, func);
+        let dom_tree = DominatorTree::compute(&func_cfg);
         let dataflow = DataFlowAnalysis::analyze(&func_cfg);
-        let mut lifted = LiftedProgram::analyze(&func_cfg, &dataflow);
-        let structural = StructuralAnalysis::analyze(&func_cfg, &program);
+        let mut lifted = LiftedProgram::analyze_with_dom_tree(&func_cfg, &dataflow, &dom_tree);
+        let structural = StructuralAnalysis::analyze_with_dom_tree(&func_cfg, &program, dom_tree);
 
         if verbosity >= Verbosity::Verbose {
             println!("\n{}", "=".repeat(60));

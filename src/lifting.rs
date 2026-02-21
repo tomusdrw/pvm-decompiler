@@ -92,7 +92,20 @@ pub struct LiftedProgram {
 /// A set of variable declarations collected for a block, to be emitted at its top.
 impl LiftedProgram {
     /// Run the full lifting pipeline on a CFG with dataflow information.
+    /// Convenience method that computes its own dominator tree.
+    /// Use `analyze_with_dom_tree` when sharing a pre-computed tree.
+    #[cfg(test)]
     pub fn analyze(cfg: &ControlFlowGraph, dataflow: &DataFlowAnalysis) -> Self {
+        let dom_tree = DominatorTree::compute(cfg);
+        Self::analyze_with_dom_tree(cfg, dataflow, &dom_tree)
+    }
+
+    /// Run the full lifting pipeline, reusing a pre-computed dominator tree.
+    pub fn analyze_with_dom_tree(
+        cfg: &ControlFlowGraph,
+        dataflow: &DataFlowAnalysis,
+        dom_tree: &DominatorTree,
+    ) -> Self {
         let mut lifted = LiftedProgram {
             variables: HashMap::new(),
             expressions: HashMap::new(),
@@ -122,7 +135,7 @@ impl LiftedProgram {
         lifted.fold_expressions(cfg);
         lifted.simplify_all_expressions();
         // Cross-block expression folding: inline SDSU values across block boundaries.
-        lifted.fold_expressions_cross_block(cfg);
+        lifted.fold_expressions_cross_block(cfg, dom_tree);
         lifted.simplify_all_expressions();
         // Name stack memory slots as local variables, replacing Load/Store patterns.
         lifted.recover_stack_variables();
@@ -561,12 +574,10 @@ impl LiftedProgram {
     ///    (prevents circular expressions from loop-carried dependencies).
     /// 3. The expression must not have side effects (no Load/Store — these can't be
     ///    safely moved across blocks).
-    fn fold_expressions_cross_block(&mut self, cfg: &ControlFlowGraph) {
+    fn fold_expressions_cross_block(&mut self, cfg: &ControlFlowGraph, dom_tree: &DominatorTree) {
         if cfg.blocks.len() <= 1 {
             return;
         }
-
-        let dom_tree = DominatorTree::compute(cfg);
 
         // Build a map of PC -> block_start_pc for each instruction.
         let mut pc_to_block: HashMap<usize, usize> = HashMap::new();
@@ -577,10 +588,10 @@ impl LiftedProgram {
         }
 
         // Detect loop headers: blocks that are targets of back-edges.
-        let loop_headers = detect_loop_headers(cfg, &dom_tree);
+        let loop_headers = detect_loop_headers(cfg, dom_tree);
 
         // Collect loop body blocks for each loop header.
-        let loop_bodies = collect_loop_bodies(cfg, &dom_tree, &loop_headers);
+        let loop_bodies = collect_loop_bodies(cfg, dom_tree, &loop_headers);
 
         let mut changed = true;
         while changed {

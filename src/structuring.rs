@@ -205,10 +205,11 @@ impl DominatorTree {
         if !visited.insert(node) {
             return;
         }
-        if let Some(block) = cfg.blocks.get(&node) {
-            for &succ in &block.successors {
-                Self::dfs_post_order(cfg, succ, visited, post_order);
-            }
+        let Some(block) = cfg.blocks.get(&node) else {
+            return;
+        };
+        for &succ in &block.successors {
+            Self::dfs_post_order(cfg, succ, visited, post_order);
         }
         post_order.push(node);
     }
@@ -223,21 +224,26 @@ pub struct StructuralAnalysis {
 
 impl StructuralAnalysis {
     /// Run structural analysis on a CFG.
+    /// Convenience method that computes its own dominator tree.
+    /// Use `analyze_with_dom_tree` when sharing a pre-computed tree.
+    #[cfg(test)]
     pub fn analyze(cfg: &ControlFlowGraph, program: &DecodedProgram) -> Self {
+        let dom_tree = DominatorTree::compute(cfg);
+        Self::analyze_with_dom_tree(cfg, program, dom_tree)
+    }
+
+    /// Run structural analysis reusing a pre-computed dominator tree.
+    pub fn analyze_with_dom_tree(
+        cfg: &ControlFlowGraph,
+        program: &DecodedProgram,
+        dom_tree: DominatorTree,
+    ) -> Self {
         if cfg.blocks.is_empty() {
             return StructuralAnalysis {
                 structures: Vec::new(),
-                dom_tree: DominatorTree {
-                    idom: HashMap::new(),
-                    children: HashMap::new(),
-                    rpo: Vec::new(),
-                    rpo_index: HashMap::new(),
-                    entry: 0,
-                },
+                dom_tree,
             };
         }
-
-        let dom_tree = DominatorTree::compute(cfg);
         let mut structures = Vec::new();
 
         // Detect loops (back-edges where target dominates source)
