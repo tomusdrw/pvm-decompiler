@@ -718,6 +718,7 @@ impl StructuralAnalysis {
             lifted,
             labels,
             if_map,
+            loop_map,
             for_loop_map,
         };
 
@@ -736,9 +737,9 @@ impl StructuralAnalysis {
                 latch,
                 condition,
                 ..
-            }) = loop_map.get(&block_pc)
+            }) = em.loop_map.get(&block_pc)
             {
-                em.emit_loop(block_pc, body, *latch, condition);
+                em.emit_loop(block_pc, body, *latch, condition, 0);
             } else if let Some(Structure::IfThenElse {
                 then_blocks,
                 else_blocks,
@@ -797,6 +798,7 @@ struct Emitter<'a> {
     lifted: Option<&'a mut LiftedProgram>,
     labels: HashMap<usize, String>,
     if_map: HashMap<usize, &'a Structure>,
+    loop_map: HashMap<usize, &'a Structure>,
     for_loop_map: HashMap<usize, ForLoopInfo>,
 }
 
@@ -1173,7 +1175,9 @@ impl<'a> Emitter<'a> {
         body: &HashSet<usize>,
         latch: usize,
         condition: &Option<Condition>,
+        indent: usize,
     ) {
+        let prefix = "    ".repeat(indent);
         let cond_str = condition
             .as_ref()
             .map(|c| format_condition_maybe_lifted(c, self.cfg, header_pc, self.lifted.as_deref()))
@@ -1186,11 +1190,11 @@ impl<'a> Emitter<'a> {
         if let Some(ref info) = for_loop_info {
             let _ = writeln!(
                 self.output,
-                "for ({}; {}; {}) {{",
-                info.init_str, cond_str, info.step_str
+                "{}for ({}; {}; {}) {{",
+                prefix, info.init_str, cond_str, info.step_str
             );
         } else {
-            let _ = writeln!(self.output, "while ({}) {{", cond_str);
+            let _ = writeln!(self.output, "{}while ({}) {{", prefix, cond_str);
         }
 
         // Suppress the branch and its inlined condition variable definition.
@@ -1199,7 +1203,7 @@ impl<'a> Emitter<'a> {
         }
 
         // Emit header block body (before the condition branch)
-        self.emit_block_body(header_pc, 1, true);
+        self.emit_block_body(header_pc, indent + 1, true);
 
         // Compute topological ordering (RPO) of body blocks for control-flow-order emission.
         // This prevents the latch block (with `continue`) from appearing before inner loop blocks.
@@ -1238,6 +1242,24 @@ impl<'a> Emitter<'a> {
                 lifted.eliminated_pcs.insert(info.step_pc);
             }
 
+            // Check if this body block is a nested loop header
+            if let Some(Structure::Loop {
+                body: inner_body,
+                latch: inner_latch,
+                condition: inner_condition,
+                ..
+            }) = self.loop_map.get(&body_pc)
+            {
+                self.emit_loop(
+                    body_pc,
+                    inner_body,
+                    *inner_latch,
+                    inner_condition,
+                    indent + 1,
+                );
+                continue;
+            }
+
             // Check if this body block is an if-then-else
             if let Some(Structure::IfThenElse {
                 then_blocks,
@@ -1251,28 +1273,30 @@ impl<'a> Emitter<'a> {
                     then_blocks,
                     else_blocks,
                     condition.as_ref(),
-                    1,
+                    indent + 1,
                     Some((body, header_pc)),
                 );
                 continue;
             }
 
+            let inner_prefix = "    ".repeat(indent + 1);
             if is_latch {
-                self.emit_block_body(body_pc, 1, true);
+                self.emit_block_body(body_pc, indent + 1, true);
             } else {
-                let ctrl = self.emit_block_with_loop_control(body_pc, 1, Some((body, header_pc)));
+                let ctrl =
+                    self.emit_block_with_loop_control(body_pc, indent + 1, Some((body, header_pc)));
                 if let Some(keyword) = ctrl {
                     // Suppress `continue` at the very end of the loop body — it's implicit.
                     let is_last = last_emittable == Some(body_pc);
                     if !(keyword == "continue" && is_last) {
-                        let _ = writeln!(self.output, "    {}", keyword);
+                        let _ = writeln!(self.output, "{}{}", inner_prefix, keyword);
                     }
                 }
             }
             self.emitted.insert(body_pc);
         }
 
-        self.output.push_str("}\n");
+        let _ = writeln!(self.output, "{}}}", prefix);
         self.emitted.extend(body.iter());
     }
 
