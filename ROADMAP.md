@@ -49,9 +49,9 @@ Completed:
 - Deterministic variable naming (#25) — smallest-PC-wins policy for reaching definitions
 - trap → return rendering (#14 partial) — function exits show `return` instead of `trap`
 - Function parameter detection (#13) — live-in register analysis, typed fn signatures with indented body
+- break/continue detection (#26) — loop exit paths emit `break`, header jumps emit `continue`
 
 See open GitHub issues for planned improvements:
-- break/continue detection in loop bodies (#26)
 - SSA variable coalescing for loop variables (#24)
 - Struct field access recovery (#19)
 - Signedness tracking and type narrowing (#16)

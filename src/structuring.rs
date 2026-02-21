@@ -2476,38 +2476,14 @@ mod tests {
     }
 
     #[test]
-    fn test_break_in_loop_body() {
+    fn test_loop_with_latch_back_edge() {
         use crate::dataflow::DataFlowAnalysis;
         use crate::lifting::LiftedProgram;
 
-        // Loop with a body block that unconditionally exits:
-        // block 0: r0 = 0, jump to 8 (header)
-        // block 8 (header): branch_ne r0 10 → exit (20), fallthrough to 12
-        // block 12 (body): r0 = r0 + 1, jump to exit (20) → should be "break"
-        // block 20: trap (exit)
-        //
-        // But block 12 is also the latch with back-edge to 8.
-        // Better test: body block that exits, separate latch.
-        //
-        // block 0: jump to 4 (header)
-        // block 4 (header): branch_ne r0 10 → exit (16), fallthrough to 8
-        // block 8 (body): jump to exit (16) → should be "break"
-        // block 16: trap (exit)
-        // back-edge: block 8 also connects to header (4) to form a loop
-        //
-        // Actually, if block 8 only goes to 16, it exits the loop → break.
-        // We need at least body→header for a loop. Let's make body→header the
-        // normal path, with a conditional branch to exit.
-        //
-        // block 0: jump to 4
-        // block 4 (header): branch_ne r0 0 → 12 (exit), fallthrough to 8 (body)
-        // block 8 (body): jump to 4 (back-edge, latch) → but also has exit path
-        //
-        // For a simple break test, let's use:
-        // block 0 (header): branch_eq r0 0 → 8 (body), otherwise → 12 (exit)
-        // block 8 (body): jump to 12 (exit) → should be "break"
+        // Simple loop: header branches to exit or body, body loops back to header.
+        // block 0 (header): branch_ne r0 0 → 12 (exit), fallthrough to 4 (body/latch)
+        // block 4 (body): r0 += r1, jump to 0 (back-edge)
         // block 12: trap
-        // back-edge from body to header makes the loop
         let cfg = build_test_cfg(
             0,
             vec![
