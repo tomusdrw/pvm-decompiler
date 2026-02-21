@@ -825,6 +825,8 @@ impl<'a> Emitter<'a> {
             let ctrl = self.emit_block_with_loop_control(tb, indent + 1, loop_context);
             if let Some(keyword) = ctrl {
                 let _ = writeln!(self.output, "{}{}", inner_prefix, keyword);
+                self.emitted.insert(tb);
+                break; // Suppress unreachable blocks after break/continue
             }
             self.emitted.insert(tb);
         }
@@ -835,6 +837,8 @@ impl<'a> Emitter<'a> {
                 let ctrl = self.emit_block_with_loop_control(eb, indent + 1, loop_context);
                 if let Some(keyword) = ctrl {
                     let _ = writeln!(self.output, "{}{}", inner_prefix, keyword);
+                    self.emitted.insert(eb);
+                    break; // Suppress unreachable blocks after break/continue
                 }
                 self.emitted.insert(eb);
             }
@@ -842,6 +846,128 @@ impl<'a> Emitter<'a> {
 
         let _ = writeln!(self.output, "{}}}", prefix);
         self.emitted.insert(header);
+    }
+
+    /// Compute which blocks in a loop body are reachable from the header
+    /// through non-terminal paths (i.e., not through break/continue blocks).
+    /// A block that would emit break or continue is itself reachable, but
+    /// its successors (within the loop body) are not traversed further.
+    fn compute_reachable_in_loop(
+        &self,
+        body: &HashSet<usize>,
+        header_pc: usize,
+    ) -> HashSet<usize> {
+        let mut reachable = HashSet::new();
+        let mut worklist = VecDeque::new();
+
+        // Start from the header's successors within the body
+        if let Some(header_block) = self.cfg.blocks.get(&header_pc) {
+            for &succ in &header_block.successors {
+                if body.contains(&succ) && succ != header_pc {
+                    worklist.push_back(succ);
+                }
+            }
+        }
+
+        while let Some(pc) = worklist.pop_front() {
+            if !reachable.insert(pc) {
+                continue;
+            }
+
+            // Check if this block would emit break or continue
+            if let Some(block) = self.cfg.blocks.get(&pc) {
+                let exits_loop = block
+                    .successors
+                    .iter()
+                    .any(|s| !body.contains(s) && *s != header_pc);
+                let continues_loop =
+                    block.successors.len() == 1 && block.successors[0] == header_pc;
+                let is_trap = block
+                    .instructions
+                    .last()
+                    .is_some_and(|(_, instr)| matches!(instr, Instruction::Trap));
+
+                let is_terminal = !is_trap && (exits_loop || continues_loop);
+
+                // If this block is an if-then-else header, check if ALL branches terminate
+                let if_terminates = if let Some(Structure::IfThenElse {
+                    then_blocks,
+                    else_blocks,
+                    ..
+                }) = self.if_map.get(&pc)
+                {
+                    let all_then_terminal = then_blocks.iter().all(|&tb| {
+                        self.cfg.blocks.get(&tb).is_some_and(|b| {
+                            let exits = b
+                                .successors
+                                .iter()
+                                .any(|s| !body.contains(s) && *s != header_pc);
+                            let cont =
+                                b.successors.len() == 1 && b.successors[0] == header_pc;
+                            let trap = b
+                                .instructions
+                                .last()
+                                .is_some_and(|(_, i)| matches!(i, Instruction::Trap));
+                            !trap && (exits || cont)
+                        })
+                    });
+                    let all_else_terminal = else_blocks.iter().all(|&eb| {
+                        self.cfg.blocks.get(&eb).is_some_and(|b| {
+                            let exits = b
+                                .successors
+                                .iter()
+                                .any(|s| !body.contains(s) && *s != header_pc);
+                            let cont =
+                                b.successors.len() == 1 && b.successors[0] == header_pc;
+                            let trap = b
+                                .instructions
+                                .last()
+                                .is_some_and(|(_, i)| matches!(i, Instruction::Trap));
+                            !trap && (exits || cont)
+                        })
+                    });
+                    !then_blocks.is_empty()
+                        && !else_blocks.is_empty()
+                        && all_then_terminal
+                        && all_else_terminal
+                } else {
+                    false
+                };
+
+                // Don't traverse past terminal blocks or if-then-else where all branches terminate
+                if is_terminal || if_terminates {
+                    continue;
+                }
+
+                // Follow successors within the loop body
+                for &succ in &block.successors {
+                    if body.contains(&succ) && succ != header_pc {
+                        worklist.push_back(succ);
+                    }
+                }
+
+                // Also follow if-then-else branches
+                if let Some(Structure::IfThenElse {
+                    then_blocks,
+                    else_blocks,
+                    ..
+                }) = self.if_map.get(&pc)
+                {
+                    for &tb in then_blocks {
+                        if body.contains(&tb) {
+                            worklist.push_back(tb);
+                        }
+                    }
+                    for &eb in else_blocks {
+                        if body.contains(&eb) {
+                            worklist.push_back(eb);
+                        }
+                    }
+                }
+            }
+        }
+
+        reachable
     }
 
     /// Emit a block body, detecting break/continue when inside a loop.
@@ -991,8 +1117,20 @@ impl<'a> Emitter<'a> {
 
         let mut body_sorted: Vec<usize> = body.iter().copied().collect();
         body_sorted.sort();
+
+        // Pre-compute which blocks are reachable from the header through the loop body,
+        // stopping traversal at blocks that would emit break or continue (terminal blocks).
+        // Blocks not reachable this way are unreachable after break/continue and should be suppressed.
+        let reachable = self.compute_reachable_in_loop(body, header_pc);
+
         for &body_pc in &body_sorted {
             if body_pc == header_pc || self.emitted.contains(&body_pc) {
+                continue;
+            }
+
+            // Skip blocks that are unreachable from the header through non-terminal paths.
+            if !reachable.contains(&body_pc) {
+                self.emitted.insert(body_pc);
                 continue;
             }
 
@@ -2920,5 +3058,100 @@ mod tests {
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
         assert!(result.structures.is_empty());
         assert!(result.dom_tree.rpo.is_empty());
+    }
+
+    #[test]
+    fn test_suppress_unreachable_after_break() {
+        // Loop with an if-then-else in the body where BOTH branches terminate:
+        //   Block 0 (header): condition → body (10) or exit (60)
+        //   Block 10: branch → 20 (continue) or 30 (break)
+        //   Block 20: continues loop → header (emits "continue")
+        //   Block 30: exits loop → 60 (emits "break")
+        //   Block 40: only reachable from 10 via if-then-else, but BOTH branches
+        //             terminate, so block 40 is unreachable — should be suppressed
+        //   Block 50: latch, jumps back to 0
+        //   Block 60: exit (trap)
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::BranchLtU {
+                            reg1: 0,
+                            reg2: 1,
+                            offset: 10,
+                        },
+                    )],
+                    vec![10, 60],
+                ),
+                (
+                    10,
+                    vec![(
+                        10,
+                        Instruction::BranchEqImm {
+                            reg: 2,
+                            value: 0,
+                            offset: 20,
+                        },
+                    )],
+                    vec![20, 30],
+                ),
+                (
+                    20,
+                    vec![
+                        (20, Instruction::LoadImm { reg: 3, value: 42 }),
+                        (24, Instruction::Jump { offset: 0_i32 - 24 }),
+                    ],
+                    vec![0],
+                ),
+                (
+                    30,
+                    vec![
+                        (30, Instruction::LoadImm { reg: 4, value: 99 }),
+                        (34, Instruction::Jump { offset: 60_i32 - 34 }),
+                    ],
+                    vec![60],
+                ),
+                (
+                    40,
+                    vec![
+                        (40, Instruction::LoadImm { reg: 5, value: 77 }),
+                        (44, Instruction::Fallthrough),
+                    ],
+                    vec![50],
+                ),
+                (
+                    50,
+                    vec![(50, Instruction::Jump { offset: 0_i32 - 50 })],
+                    vec![0],
+                ),
+                (60, vec![(60, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, None, None);
+
+        // Should contain both break and continue
+        assert!(
+            pseudo.contains("break"),
+            "Should contain break: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("continue"),
+            "Should contain continue: {}",
+            pseudo
+        );
+
+        // Block 40 loads r5=77 — this should be suppressed as unreachable
+        // since both branches of the if-then-else terminate (break/continue).
+        assert!(
+            !pseudo.contains("r5 = 77"),
+            "Unreachable block after break/continue should be suppressed: {}",
+            pseudo
+        );
     }
 }
