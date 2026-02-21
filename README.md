@@ -1,6 +1,6 @@
-# PVM Reverse Assembler (pvm-diss)
+# PVM Decompiler (pvm-decompiler)
 
-A tool to reverse engineer PVM (Polkadot Virtual Machine) bytecode into readable high-level pseudo-code.
+A tool to decompile PVM (Polkadot Virtual Machine) bytecode into readable high-level pseudo-code.
 
 ## Usage
 
@@ -73,7 +73,6 @@ Supporting modules:
 
 ### Prerequisites
 - Rust (stable, edition 2024)
-- `wasm-pvm` crate (expected in `../wasm-pvm`)
 
 ### Setup
 The project uses a local Git hook to ensure code quality before pushing.
@@ -95,4 +94,3 @@ cargo clippy
 
 ## CI/CD
 GitHub Actions are configured in `.github/workflows/ci.yml`.
-The workflow checks out the `wasm-pvm` dependency automatically.

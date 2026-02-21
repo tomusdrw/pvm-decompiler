@@ -1,20 +1,15 @@
 #!/bin/bash
+set -e
 
-# Compile the disassembler
+# Compile the decompiler
 cargo build --release
 
-TOOLS="./target/release/pvm-diss"
+TOOLS="./target/release/pvm-decompiler"
 
-mkdir -p benchmarks/output
-
-for file in benchmarks/compiled/*.pvm; do
+for file in examples/compiled/*.pvm; do
     filename=$(basename "$file" .pvm)
-    echo "Disassembling $filename..."
-    if $TOOLS "$file" > "benchmarks/output/$filename.diss"; then
-        echo "✅ $filename success"
-    else
-        echo "❌ $filename failed"
-    fi
+    echo "Decompiling $filename..."
+    $TOOLS "$file" > "examples/output/$filename.diss"
 done
 
-echo "Done! Check benchmarks/output/"
+echo "Done! Check examples/output/"

@@ -324,7 +324,7 @@ mod integration_tests {
 
     #[test]
     fn test_fibonacci_full_pipeline() {
-        let buffer = std::fs::read("benchmarks/compiled/fibonacci.pvm")
+        let buffer = std::fs::read("examples/compiled/fibonacci.pvm")
             .expect("fibonacci.pvm fixture should exist");
         let output = decompile_bytes(&buffer).expect("decompilation should succeed");
 
@@ -350,7 +350,7 @@ mod integration_tests {
 
     #[test]
     fn test_br_table_full_pipeline() {
-        let buffer = std::fs::read("benchmarks/compiled/br-table.pvm")
+        let buffer = std::fs::read("examples/compiled/br-table.pvm")
             .expect("br-table.pvm fixture should exist");
         let output = decompile_bytes(&buffer).expect("decompilation should succeed");
 
@@ -365,12 +365,12 @@ mod integration_tests {
     #[test]
     fn test_all_fixtures_decompile_without_panic() {
         let fixtures = [
-            "benchmarks/compiled/fibonacci.pvm",
-            "benchmarks/compiled/br-table.pvm",
-            "benchmarks/compiled/as-fibonacci.pvm",
-            "benchmarks/compiled/as-tests-control-flow.pvm",
-            "benchmarks/compiled/life-init-test.pvm",
-            "benchmarks/compiled/life-simple.pvm",
+            "examples/compiled/fibonacci.pvm",
+            "examples/compiled/br-table.pvm",
+            "examples/compiled/as-fibonacci.pvm",
+            "examples/compiled/as-tests-control-flow.pvm",
+            "examples/compiled/life-init-test.pvm",
+            "examples/compiled/life-simple.pvm",
         ];
 
         for fixture in &fixtures {

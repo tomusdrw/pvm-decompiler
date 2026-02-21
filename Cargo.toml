@@ -1,5 +1,6 @@
 [package]
-name = "pvm-diss"
+name = "pvm-decompiler"
+repository = "https://github.com/tomusdrw/pvm-decompiler"
 version = "0.1.0"
 edition = "2024"
 

@@ -2511,7 +2511,7 @@ mod tests {
     fn test_conditional_branch_goto_rendering() {
         // Verify that real binary output uses `goto` labels
         // instead of raw `jump <offset>` for unstructured conditional branches.
-        let bytes = std::fs::read("benchmarks/compiled/as-fibonacci.pvm")
+        let bytes = std::fs::read("examples/compiled/as-fibonacci.pvm")
             .expect("as-fibonacci.pvm fixture required");
         let output =
             crate::decompile_bytes(&bytes).expect("as-fibonacci should decompile successfully");
