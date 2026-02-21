@@ -212,15 +212,21 @@ impl LiftedProgram {
 
         // Build use-site mapping: for each use of a register at a PC, find which
         // definition's variable name to use.
+        // When multiple definitions reach the same use, prefer the one with the
+        // smallest definition PC for deterministic output.
+        let mut var_at_use_def_pc: HashMap<(usize, u8), usize> = HashMap::new();
         for chains in dataflow.chains.values() {
             for chain in chains {
-                if let Some(var) = self
-                    .variables
-                    .get(&(chain.definition.pc, chain.definition.reg))
-                {
+                let def_pc = chain.definition.pc;
+                if let Some(var) = self.variables.get(&(def_pc, chain.definition.reg)) {
                     let name = var.name.clone();
                     for u in &chain.uses {
-                        self.var_at_use.insert((u.pc, u.reg), name.clone());
+                        let key = (u.pc, u.reg);
+                        let prev_def = var_at_use_def_pc.get(&key).copied();
+                        if prev_def.is_none() || def_pc < prev_def.unwrap() {
+                            self.var_at_use.insert(key, name.clone());
+                            var_at_use_def_pc.insert(key, def_pc);
+                        }
                     }
                 }
             }

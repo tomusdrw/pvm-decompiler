@@ -2090,16 +2090,16 @@ mod tests {
             pseudo
         );
         // Check the for-header contains init and condition.
-        // Note: variable names may vary due to HashMap iteration order in
-        // reaching-definition resolution (var_0 vs var_2 for the same register).
+        // With deterministic var_at_use (smallest def PC wins), the init
+        // variable (var_0 at PC 0) should be used consistently.
         assert!(
-            pseudo.contains("= 0"),
-            "For-header should contain init assignment: {}",
+            pseudo.contains("var_0 = 0"),
+            "For-header should contain init 'var_0 = 0': {}",
             pseudo
         );
         assert!(
-            pseudo.contains("!= 10"),
-            "For-header should contain condition: {}",
+            pseudo.contains("var_0 != 10"),
+            "For-header should contain condition 'var_0 != 10': {}",
             pseudo
         );
     }
