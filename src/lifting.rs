@@ -1689,6 +1689,30 @@ pub fn format_expression(expr: &Expression) -> String {
                 let lhs_str = format_expression_maybe_parens(lhs, BinOp::Sub, true);
                 return format!("{} - {}", lhs_str, -v);
             }
+            // Convert `0 <u (a | b)` to `(a | b) != 0` for non-boolean expressions.
+            // This makes bitwise boolean patterns more readable.
+            if *op == BinOp::LtU
+                && matches!(lhs.as_ref(), Expression::Const(0))
+                && !matches!(
+                    rhs.as_ref(),
+                    Expression::UnaryOp {
+                        op: UnaryOp::Not,
+                        ..
+                    } | Expression::BinOp {
+                        op: BinOp::LtU | BinOp::LtS | BinOp::GeU | BinOp::GeS,
+                        ..
+                    }
+                )
+            {
+                let rhs_str = format_expression(rhs);
+                // Wrap in parens if the rhs is a binary operation to avoid precedence issues
+                let rhs_str = if matches!(rhs.as_ref(), Expression::BinOp { .. }) {
+                    format!("({})", rhs_str)
+                } else {
+                    rhs_str
+                };
+                return format!("{} != 0", rhs_str);
+            }
             let lhs_str = format_expression_maybe_parens(lhs, *op, true);
             let rhs_str = format_expression_maybe_parens(rhs, *op, false);
             format!("{} {} {}", lhs_str, op, rhs_str)
@@ -2289,6 +2313,29 @@ mod tests {
         };
         let simplified = simplify_expression(expr);
         assert_eq!(format_expression(&simplified), "x <u y");
+    }
+
+    #[test]
+    fn test_format_0_ltu_bitwise_or() {
+        // 0 <u (a | b) → (a | b) != 0
+        let expr = Expression::BinOp {
+            op: BinOp::LtU,
+            lhs: Box::new(Expression::Const(0)),
+            rhs: Box::new(Expression::BinOp {
+                op: BinOp::Or,
+                lhs: Box::new(Expression::Var("a".to_string())),
+                rhs: Box::new(Expression::Var("b".to_string())),
+            }),
+        };
+        assert_eq!(format_expression(&expr), "(a | b) != 0");
+
+        // 0 <u x → x != 0 (simple variable, no parens needed)
+        let expr2 = Expression::BinOp {
+            op: BinOp::LtU,
+            lhs: Box::new(Expression::Const(0)),
+            rhs: Box::new(Expression::Var("x".to_string())),
+        };
+        assert_eq!(format_expression(&expr2), "x != 0");
     }
 
     #[test]

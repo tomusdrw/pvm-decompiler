@@ -71,12 +71,9 @@ Completed:
 - Comparison inversion (#33) — `!(x <u y)` → `x >=u y`, `!(x <s y)` → `x >=s y` for cleaner conditions
 - Deterministic function ordering — fix HashSet iteration non-determinism in `find_component_entry`
 
-### Phase 4c: Polish (In Progress)
-Completed:
+### Phase 4c: Polish — COMPLETE
 - Suppress unreachable code after break/continue (#35) — pre-computed reachability in loop body, stops traversal at terminal blocks (break/continue/if where all branches terminate)
-
-Open:
-- Simplify `0 <u (a | b)` bitwise boolean patterns (#36)
+- Simplify `0 <u (a | b)` bitwise boolean patterns (#36) — renders as `(a | b) != 0` for non-boolean expressions, with correct parenthesization
 
 ### Phase 5: LLM Refinement (Future)
 - Prompt engineering for function-level polishing
