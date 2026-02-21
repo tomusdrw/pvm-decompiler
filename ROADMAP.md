@@ -50,9 +50,9 @@ Completed:
 - trap → return rendering (#14 partial) — function exits show `return` instead of `trap`
 - Function parameter detection (#13) — live-in register analysis, typed fn signatures with indented body
 - break/continue detection (#26) — loop exit paths emit `break`, header jumps emit `continue`
+- SSA variable coalescing (#24) — loop induction variables use consistent names across init/step
 
 See open GitHub issues for planned improvements:
-- SSA variable coalescing for loop variables (#24)
 - Struct field access recovery (#19)
 - Signedness tracking and type narrowing (#16)
 - Call graph and inter-procedural analysis (#21)

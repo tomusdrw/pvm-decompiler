@@ -17,15 +17,27 @@ use wasm_pvm::pvm::Instruction;
 /// Inferred variable type based on usage context.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VarType {
-    Integer,
+    /// Unsigned 64-bit integer (default).
+    U64,
+    /// Signed 64-bit integer (used in signed operations).
+    I64,
+    /// Unsigned 32-bit integer (produced by 32-bit operations).
+    U32,
+    /// Signed 32-bit integer (produced by signed 32-bit operations).
+    I32,
+    /// Pointer (used in memory address computations).
     Pointer,
+    /// Boolean (produced by comparisons).
     Boolean,
 }
 
 impl fmt::Display for VarType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            VarType::Integer => write!(f, "u64"),
+            VarType::U64 => write!(f, "u64"),
+            VarType::I64 => write!(f, "i64"),
+            VarType::U32 => write!(f, "u32"),
+            VarType::I32 => write!(f, "i32"),
             VarType::Pointer => write!(f, "ptr"),
             VarType::Boolean => write!(f, "bool"),
         }
@@ -265,7 +277,7 @@ impl LiftedProgram {
         }
     }
 
-    /// Infer the type of a variable from how it is used.
+    /// Infer the type of a variable from how it is defined and used.
     fn infer_type(
         &self,
         def_pc: usize,
@@ -273,10 +285,12 @@ impl LiftedProgram {
         instruction_at_pc: &HashMap<usize, &Instruction>,
         dataflow: &DataFlowAnalysis,
     ) -> VarType {
+        use crate::instruction::BitWidth;
+
         // Check the defining instruction itself.
         if let Some(instr) = instruction_at_pc.get(&def_pc) {
             let shape = InstructionShape::classify(instr);
-            match shape {
+            match &shape {
                 InstructionShape::BinReg {
                     op: BinOp::LtU | BinOp::LtS,
                     ..
@@ -290,9 +304,46 @@ impl LiftedProgram {
                 } => return VarType::Pointer,
                 _ => {}
             }
+
+            // Check for width and signedness from the defining operation.
+            let (width, signed) = match &shape {
+                InstructionShape::BinReg { op, width, .. }
+                | InstructionShape::BinImm { op, width, .. } => {
+                    let signed = matches!(op, BinOp::DivS | BinOp::RemS | BinOp::ShrS);
+                    (Some(*width), signed)
+                }
+                InstructionShape::Unary { op, .. } => {
+                    let signed = matches!(op, UnaryOp::Sext8 | UnaryOp::Sext16);
+                    (None, signed)
+                }
+                _ => (None, false),
+            };
+
+            // Check uses: if used as base in a load/store, it's a pointer.
+            for chains in dataflow.chains.values() {
+                for chain in chains {
+                    if chain.definition.pc == def_pc && chain.definition.reg == reg {
+                        for u in &chain.uses {
+                            if let Some(use_instr) = instruction_at_pc.get(&u.pc)
+                                && Self::is_used_as_base(use_instr, reg)
+                            {
+                                return VarType::Pointer;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Determine type from width and signedness.
+            return match (width, signed) {
+                (Some(BitWidth::W32), true) => VarType::I32,
+                (Some(BitWidth::W32), false) => VarType::U32,
+                (_, true) => VarType::I64,
+                _ => VarType::U64,
+            };
         }
 
-        // Check uses: if used as base in a load/store, it's a pointer.
+        // No defining instruction found — check uses for pointer context.
         for chains in dataflow.chains.values() {
             for chain in chains {
                 if chain.definition.pc == def_pc && chain.definition.reg == reg {
@@ -307,7 +358,7 @@ impl LiftedProgram {
             }
         }
 
-        VarType::Integer
+        VarType::U64
     }
 
     /// Check if a register is used as the base address in a load/store instruction.
@@ -956,7 +1007,10 @@ impl LiftedProgram {
 
         for &(&(pc, reg), var) in &vars {
             let type_str = match var.var_type {
-                VarType::Integer => "int",
+                VarType::U64 => "u64",
+                VarType::I64 => "i64",
+                VarType::U32 => "u32",
+                VarType::I32 => "i32",
                 VarType::Pointer => "ptr",
                 VarType::Boolean => "bool",
             };
@@ -1851,6 +1905,72 @@ mod tests {
     }
 
     #[test]
+    fn test_signedness_type_inference() {
+        // r2 = r0 /s r1 → r2 should be I64 (signed 64-bit)
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (
+                        0,
+                        Instruction::DivS64 {
+                            dst: 2,
+                            src1: 0,
+                            src2: 1,
+                        },
+                    ),
+                    (4, Instruction::Trap),
+                ],
+                vec![],
+            )],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        let var = lifted.variables.get(&(0, 2)).unwrap();
+        assert_eq!(
+            var.var_type,
+            VarType::I64,
+            "DivS64 result should be I64, got: {}",
+            var.var_type
+        );
+    }
+
+    #[test]
+    fn test_width_type_inference() {
+        // r2 = r0 + r1 (32-bit) → r2 should be U32
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (
+                        0,
+                        Instruction::Add32 {
+                            dst: 2,
+                            src1: 0,
+                            src2: 1,
+                        },
+                    ),
+                    (4, Instruction::Trap),
+                ],
+                vec![],
+            )],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        let var = lifted.variables.get(&(0, 2)).unwrap();
+        assert_eq!(
+            var.var_type,
+            VarType::U32,
+            "Add32 result should be U32, got: {}",
+            var.var_type
+        );
+    }
+
+    #[test]
     fn test_simplify_add_zero() {
         let expr = Expression::BinOp {
             op: BinOp::Add,
@@ -2530,14 +2650,14 @@ mod tests {
             (0, 0),
             Variable {
                 name: "var_0".to_string(),
-                var_type: VarType::Integer,
+                var_type: VarType::U64,
             },
         );
         lifted.variables.insert(
             (30, 0),
             Variable {
                 name: "var_2".to_string(),
-                var_type: VarType::Integer,
+                var_type: VarType::U64,
             },
         );
 
