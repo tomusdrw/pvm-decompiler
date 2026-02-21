@@ -101,6 +101,8 @@ pub struct LiftedProgram {
     pub stack_vars: HashMap<(String, i32), String>,
     /// Call targets: maps block_pc → callee function name (for cross-function jumps).
     pub call_targets: HashMap<usize, String>,
+    /// Reverse index: variable name → definition PC for O(1) lookups.
+    pub var_name_to_def_pc: HashMap<String, usize>,
 }
 
 /// A set of variable declarations collected for a block, to be emitted at its top.
@@ -128,6 +130,7 @@ impl LiftedProgram {
             declared_vars: HashSet::new(),
             stack_vars: HashMap::new(),
             call_targets: HashMap::new(),
+            var_name_to_def_pc: HashMap::new(),
         };
 
         lifted.assign_variables(cfg, dataflow);
@@ -197,6 +200,14 @@ impl LiftedProgram {
         if self.declared_vars.remove(old_name) {
             self.declared_vars.insert(new_name.to_string());
         }
+
+        // Update reverse index: remove old entry, only insert if new_name
+        // doesn't already have an entry (keep the earliest definition).
+        if let Some(def_pc) = self.var_name_to_def_pc.remove(old_name) {
+            self.var_name_to_def_pc
+                .entry(new_name.to_string())
+                .or_insert(def_pc);
+        }
     }
 
     /// Assign variable names to each register definition based on type inference.
@@ -254,6 +265,7 @@ impl LiftedProgram {
                 name: name.clone(),
                 var_type,
             };
+            self.var_name_to_def_pc.insert(name, def_pc);
             self.variables.insert((def_pc, reg), variable);
         }
 
@@ -1119,8 +1131,7 @@ impl LiftedProgram {
     /// Look up the definition expression for a variable by name.
     /// Returns the expression if found and not eliminated.
     pub fn expression_for_var(&self, var_name: &str) -> Option<&Expression> {
-        // Find the (def_pc, reg) that produced this variable name
-        let (def_pc, _) = self.variables.iter().find(|(_, v)| v.name == var_name)?.0;
+        let def_pc = self.var_name_to_def_pc.get(var_name)?;
         self.expressions.get(def_pc)
     }
 }
@@ -2667,6 +2678,7 @@ mod tests {
             declared_vars: HashSet::new(),
             stack_vars: HashMap::new(),
             call_targets: HashMap::new(),
+            var_name_to_def_pc: HashMap::new(),
         };
 
         // Set up two variables for the same register at different PCs
@@ -2677,6 +2689,7 @@ mod tests {
                 var_type: VarType::U64,
             },
         );
+        lifted.var_name_to_def_pc.insert("var_0".to_string(), 0);
         lifted.variables.insert(
             (30, 0),
             Variable {
@@ -2684,6 +2697,7 @@ mod tests {
                 var_type: VarType::U64,
             },
         );
+        lifted.var_name_to_def_pc.insert("var_2".to_string(), 30);
 
         // Set up var_at_use references
         lifted.var_at_use.insert((10, 0), "var_0".to_string()); // condition uses var_0
@@ -2719,6 +2733,49 @@ mod tests {
         } else {
             panic!("Expected BinOp expression");
         }
+
+        // Reverse index should map var_0 → 0 (old_name entry removed, new_name preserved)
+        assert!(
+            !lifted.var_name_to_def_pc.contains_key("var_2"),
+            "Old name should be removed from reverse index"
+        );
+        // var_0 should still map (it was already there for def_pc 0)
+        assert_eq!(lifted.var_name_to_def_pc["var_0"], 0);
+    }
+
+    #[test]
+    fn test_expression_for_var_uses_reverse_index() {
+        let mut lifted = LiftedProgram {
+            variables: HashMap::new(),
+            expressions: HashMap::new(),
+            eliminated_pcs: HashSet::new(),
+            var_at_use: HashMap::new(),
+            declared_vars: HashSet::new(),
+            stack_vars: HashMap::new(),
+            call_targets: HashMap::new(),
+            var_name_to_def_pc: HashMap::new(),
+        };
+
+        lifted.variables.insert(
+            (10, 0),
+            Variable {
+                name: "var_0".to_string(),
+                var_type: VarType::U64,
+            },
+        );
+        lifted.var_name_to_def_pc.insert("var_0".to_string(), 10);
+        lifted.expressions.insert(10, Expression::Const(42));
+
+        // Should find the expression via the reverse index
+        let expr = lifted.expression_for_var("var_0");
+        assert!(expr.is_some());
+        assert!(
+            matches!(expr.unwrap(), Expression::Const(42)),
+            "Should find expression via reverse index"
+        );
+
+        // Unknown variable should return None
+        assert!(lifted.expression_for_var("unknown").is_none());
     }
 
     #[test]
