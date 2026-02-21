@@ -5,78 +5,29 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     mem[6] = 1
     let var_290 = 0
     let var_292 = 4
-
-    let var_135 = ptr_5 - 616
+    func_1()
 
     if (var_134 >=u var_135) {
-        let ptr_2 = ptr_5 - 616
-        let ptr_2_0 = 4
-        let ptr_2_8 = var_290
-        let ptr_2_16 = 197120
-        let ptr_2_24 = var_292
-        let ptr_2_32 = r12
-        let ptr_2_40 = var_290
-        let ptr_2_56 = var_292
-        let ptr_2_64 = 0
     }
 
     while (ptr_2_64 >=s ptr_2_56) {
-        let ptr_2_144 = 0
-
         if (ptr_2_144 >=s ptr_2_56) {
-            ptr_2_64 = ptr_2_64 + 1
-
             continue
         } else {
             break
         }
     }
 
-    let var_1 = ptr_2 - 624
-
     if (var_0 >=u var_1) {
-        let ptr_0 = ptr_2 - 624
-        let ptr_0_0 = 2
-        let ptr_0_8 = ptr_2_40
-        let ptr_0_16 = ptr_2_144
-        let ptr_0_24 = ptr_2_64
-        let ptr_0_32 = ptr_2_56
-        let ptr_0_40 = ptr_2_40
-        let ptr_0_48 = ptr_2_144
-        let ptr_0_56 = ptr_2_64
-        let ptr_0_64 = ptr_2_56
-        let ptr_0_80 = 0
-        let ptr_0_88 = 4294967295
     }
 
     while (ptr_0_88 >s 1) {
-        let ptr_0_160 = ptr_0_80
-        let ptr_0_168 = 4294967295
-
         while (ptr_0_168 >s 1) {
             if ((ptr_0_168 | ptr_0_88) != 0) {
-                let var_65 = ptr_0_48 + ptr_0_168 + ptr_0_64
-
                 break
             }
-
-            let ptr_0_592 = ptr_0_160
-
-            ptr_0_160 = ptr_0_592
-            ptr_0_168 = ptr_0_168 + 1
         }
-
-        ptr_0_80 = ptr_0_160
-        ptr_0_88 = ptr_0_88 + 1
     }
-
-    return
-
-
-    let ptr_0_72 = ptr_0_80
-
-    return
-
 }
 
 fn func_0() {

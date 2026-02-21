@@ -16,7 +16,8 @@ mod varint;
 use cfg::ControlFlowGraph;
 use dataflow::DataFlowAnalysis;
 use functions::{
-    build_call_graph, build_function_cfg, detect_epilogues, detect_functions, detect_prologue,
+    build_call_graph, build_function_cfg, detect_direct_call_patterns, detect_epilogues,
+    detect_functions, detect_prologue,
 };
 use lifting::LiftedProgram;
 use structuring::{DominatorTree, FunctionSignature, StructuralAnalysis};
@@ -168,6 +169,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    // Detect direct call patterns: LoadImm64 r0 + Jump
+    let direct_call_patterns = detect_direct_call_patterns(&cfg, &detected_functions, &program);
+    if verbosity >= Verbosity::Verbose && !direct_call_patterns.is_empty() {
+        println!("\n=== Direct Call Patterns ===");
+        for pat in &direct_call_patterns {
+            println!(
+                "  block {:#06x}: call {} (jump to {:#06x}, return to {:#06x})",
+                pat.caller_block_pc, pat.callee_name, pat.jump_target_pc, pat.return_pc
+            );
+        }
+    }
+
     // Build a flat lookup from callee_entry_pc → callee_name for pseudo-code emission.
     // This lets the emitter recognize Jump targets that are function entries.
     let mut call_targets: std::collections::HashMap<usize, String> =
@@ -175,6 +188,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Build indirect call targets: caller_block_pc → callee_name (for JumpInd-based calls)
     let mut indirect_call_targets: std::collections::HashMap<usize, String> =
         std::collections::HashMap::new();
+    // PCs to eliminate from output (e.g., LoadImm64 setting return address in call patterns)
+    let mut call_pattern_eliminated_pcs: std::collections::HashSet<usize> =
+        std::collections::HashSet::new();
     for calls in call_graph.values() {
         for call in calls {
             call_targets.insert(call.callee_entry_pc, call.callee_name.clone());
@@ -186,6 +202,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 indirect_call_targets.insert(call.caller_block_pc, call.callee_name.clone());
             }
         }
+    }
+    // Add direct call pattern targets: map the Jump target PC to the callee name
+    for pat in &direct_call_patterns {
+        call_targets.insert(pat.jump_target_pc, pat.callee_name.clone());
+        call_pattern_eliminated_pcs.insert(pat.load_imm_pc);
     }
 
     // Compute function entry PCs for dispatch switch classification
@@ -221,6 +242,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         for &pc in &prologue_pcs {
             lifted.eliminated_pcs.insert(pc);
+        }
+        // Eliminate LoadImm64 instructions from call patterns (return address setup)
+        for &pc in &call_pattern_eliminated_pcs {
+            lifted.eliminated_pcs.insert(pc);
+        }
+        // Suppress callee blocks that were misassigned to this function.
+        // When a direct call pattern jumps to a target within this function,
+        // BFS from the target to find all reachable callee blocks to suppress.
+        for pat in &direct_call_patterns {
+            if func.block_pcs.contains(&pat.jump_target_pc) {
+                let mut queue = std::collections::VecDeque::new();
+                queue.push_back(pat.jump_target_pc);
+                while let Some(bp) = queue.pop_front() {
+                    if lifted.suppressed_blocks.insert(bp)
+                        && let Some(block) = func_cfg.blocks.get(&bp)
+                    {
+                        for &succ in &block.successors {
+                            if !lifted.suppressed_blocks.contains(&succ) {
+                                queue.push_back(succ);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         let structural = StructuralAnalysis::analyze_with_dom_tree(
@@ -272,8 +317,13 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
     let detected_functions = functions::detect_functions(&cfg);
     let call_graph = functions::build_call_graph(&cfg, &detected_functions, &program);
 
+    let direct_call_patterns =
+        functions::detect_direct_call_patterns(&cfg, &detected_functions, &program);
+
     let mut call_targets: HashMap<usize, String> = HashMap::new();
     let mut indirect_call_targets: HashMap<usize, String> = HashMap::new();
+    let mut call_pattern_eliminated_pcs: std::collections::HashSet<usize> =
+        std::collections::HashSet::new();
     for calls in call_graph.values() {
         for call in calls {
             call_targets.insert(call.callee_entry_pc, call.callee_name.clone());
@@ -284,6 +334,10 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
                 indirect_call_targets.insert(call.caller_block_pc, call.callee_name.clone());
             }
         }
+    }
+    for pat in &direct_call_patterns {
+        call_targets.insert(pat.jump_target_pc, pat.callee_name.clone());
+        call_pattern_eliminated_pcs.insert(pat.load_imm_pc);
     }
 
     let function_entry_pcs: std::collections::HashSet<usize> =
@@ -318,6 +372,26 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
         }
         for &pc in &prologue_pcs {
             lifted.eliminated_pcs.insert(pc);
+        }
+        for &pc in &call_pattern_eliminated_pcs {
+            lifted.eliminated_pcs.insert(pc);
+        }
+        for pat in &direct_call_patterns {
+            if func.block_pcs.contains(&pat.jump_target_pc) {
+                let mut queue = std::collections::VecDeque::new();
+                queue.push_back(pat.jump_target_pc);
+                while let Some(bp) = queue.pop_front() {
+                    if lifted.suppressed_blocks.insert(bp)
+                        && let Some(block) = func_cfg.blocks.get(&bp)
+                    {
+                        for &succ in &block.successors {
+                            if !lifted.suppressed_blocks.contains(&succ) {
+                                queue.push_back(succ);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         let structural = structuring::StructuralAnalysis::analyze_with_dom_tree(

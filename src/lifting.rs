@@ -125,6 +125,8 @@ pub struct LiftedProgram {
     /// Epilogue blocks: maps block_pc → epilogue kind (Return or Halt).
     /// Used by emission to render `return` / `halt()` instead of raw instructions.
     pub epilogue_blocks: HashMap<usize, crate::functions::EpilogueKind>,
+    /// Blocks to completely suppress from output (e.g., callee blocks misassigned to caller).
+    pub suppressed_blocks: HashSet<usize>,
     /// Linear memory base address (e.g. 0x50000 = 327680 for PVM).
     /// When set, expressions involving this constant are simplified.
     pub memory_base: Option<u64>,
@@ -158,6 +160,7 @@ impl LiftedProgram {
             indirect_call_targets: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
             epilogue_blocks: HashMap::new(),
+            suppressed_blocks: HashSet::new(),
             memory_base: None,
         };
 
@@ -3235,6 +3238,7 @@ mod tests {
             indirect_call_targets: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
             epilogue_blocks: HashMap::new(),
+            suppressed_blocks: HashSet::new(),
             memory_base: None,
         };
 
@@ -3313,6 +3317,7 @@ mod tests {
             indirect_call_targets: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
             epilogue_blocks: HashMap::new(),
+            suppressed_blocks: HashSet::new(),
             memory_base: None,
         };
 

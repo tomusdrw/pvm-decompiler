@@ -633,6 +633,12 @@ impl<'a> Emitter<'a> {
     /// If `skip_terminator` is true, the last instruction (branch/jump) is not emitted.
     /// When `lifted` is provided, uses variable names and skips eliminated PCs.
     fn emit_block_body(&mut self, block_pc: usize, indent: usize, skip_terminator: bool) {
+        // Skip blocks that are entirely suppressed (e.g., callee code misassigned to caller)
+        if let Some(ref lifted) = self.lifted
+            && lifted.suppressed_blocks.contains(&block_pc)
+        {
+            return;
+        }
         let prefix = "    ".repeat(indent);
         let len_before = self.output.len();
         if let Some(block) = self.cfg.blocks.get(&block_pc) {

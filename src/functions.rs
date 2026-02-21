@@ -491,6 +491,119 @@ pub fn build_call_graph(
     call_graph
 }
 
+/// A detected direct call pattern: `LoadImm64 r0, N` followed by `Jump target`.
+///
+/// In the PVM calling convention, the caller sets r0 to the return address
+/// (encoded as `(jump_table_index + 1) * 2`) and jumps to the callee.
+/// The callee eventually returns via `JumpInd r0`, which goes to
+/// `jump_table[r0 / 2 - 1]`.
+#[derive(Debug, Clone)]
+pub struct DirectCallPattern {
+    /// PC of the block containing the call pattern.
+    pub caller_block_pc: usize,
+    /// PC of the LoadImm64 instruction (to mark as eliminated).
+    pub load_imm_pc: usize,
+    /// PC of the Jump target (callee entry or stack guard).
+    pub jump_target_pc: usize,
+    /// PC where execution continues after the callee returns.
+    pub return_pc: usize,
+    /// Name of the function at the return point.
+    pub callee_name: String,
+}
+
+/// PVM jump table alignment factor: addresses are encoded as `(index + 1) * 2`.
+const JUMP_ALIGNMENT_FACTOR: u64 = 2;
+
+/// Detect direct call patterns (`LoadImm64 r0, N` + `Jump`) in the CFG.
+///
+/// Returns a list of detected call patterns. Each pattern identifies:
+/// - The call site (block and instruction PCs)
+/// - The callee (via the return point in the jump table)
+/// - PCs to eliminate from output (the LoadImm64 setting return address)
+pub fn detect_direct_call_patterns(
+    cfg: &ControlFlowGraph,
+    functions: &[Function],
+    program: &DecodedProgram,
+) -> Vec<DirectCallPattern> {
+    let func_names: HashMap<usize, String> = functions
+        .iter()
+        .map(|f| (f.entry_pc, f.name.clone()))
+        .collect();
+
+    // Build block_pc → function entry lookup
+    let block_to_func: HashMap<usize, usize> = functions
+        .iter()
+        .flat_map(|f| f.block_pcs.iter().map(move |&bp| (bp, f.entry_pc)))
+        .collect();
+
+    let mut patterns = Vec::new();
+
+    for block in cfg.blocks.values() {
+        let instrs = &block.instructions;
+        let len = instrs.len();
+        if len < 2 {
+            continue;
+        }
+
+        // Look for LoadImm64 { reg: 0, value: N } followed (possibly with Fallthrough) by Jump
+        for i in 0..len - 1 {
+            let (load_pc, load_instr) = &instrs[i];
+
+            if let Instruction::LoadImm64 { reg: 0, value } = load_instr {
+                // Find the next non-Fallthrough instruction
+                let mut jump_idx = i + 1;
+                while jump_idx < len && matches!(instrs[jump_idx].1, Instruction::Fallthrough) {
+                    jump_idx += 1;
+                }
+                if jump_idx >= len {
+                    continue;
+                }
+
+                let (jump_pc, jump_instr) = &instrs[jump_idx];
+
+                if let Instruction::Jump { offset } = jump_instr {
+                    let encoded_addr = *value;
+
+                    // Validate: must be even, non-zero, and within jump table bounds
+                    if encoded_addr == 0 || !encoded_addr.is_multiple_of(JUMP_ALIGNMENT_FACTOR) {
+                        continue;
+                    }
+
+                    let table_index = (encoded_addr / JUMP_ALIGNMENT_FACTOR - 1) as usize;
+                    if table_index >= program.jump_table.len() {
+                        continue;
+                    }
+
+                    let return_pc = program.jump_table[table_index] as usize;
+                    let jump_target =
+                        crate::cfg::ControlFlowGraph::compute_jump_target(*jump_pc, *offset);
+
+                    // Find the function at the return point
+                    let callee_name = if let Some(&func_entry) = block_to_func.get(&return_pc) {
+                        func_names
+                            .get(&func_entry)
+                            .cloned()
+                            .unwrap_or_else(|| format!("func_at_{:#06x}", func_entry))
+                    } else {
+                        // Return point isn't in any known function
+                        continue;
+                    };
+
+                    patterns.push(DirectCallPattern {
+                        caller_block_pc: block.start_pc,
+                        load_imm_pc: *load_pc,
+                        jump_target_pc: jump_target,
+                        return_pc,
+                        callee_name,
+                    });
+                }
+            }
+        }
+    }
+
+    patterns
+}
+
 /// Build a sub-CFG containing only the blocks belonging to a function.
 /// Edges to blocks outside the function are removed.
 pub fn build_function_cfg(cfg: &ControlFlowGraph, function: &Function) -> ControlFlowGraph {

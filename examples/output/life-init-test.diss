@@ -5,9 +5,9 @@ fn main(r1: u64, r7: u64, r8: u64) {
     mem[6] = 1
     mem[197120] = 4
     mem[197124] = 4
-    mem[197128] = mem[0] | mem[1] << 8 | mem[2] << 16 | mem[3] << 24
-    let var_123 = mem[6] << 16 | mem[7] << 24
-    mem[197132] = mem[4] | mem[5] << 8 | var_123
+    let var_63 = mem[2] << 16 | mem[3] << 24
+    mem[197128] = mem[0] | mem[1] << 8 | var_63
+    mem[197132] = mem[4] | mem[5] << 8 | mem[6] << 16 | mem[7] << 24
     mem[197136] = mem[8] | mem[9] << 8 | mem[10] << 16 | mem[11] << 24
     let var_243 = mem[14] << 16 | mem[15] << 24
     mem[197140] = mem[12] | mem[13] << 8 | var_243
