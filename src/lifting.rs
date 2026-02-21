@@ -1264,12 +1264,38 @@ fn simplify_expression(expr: Expression) -> Expression {
                             op: UnaryOp::Not,
                             ..
                         } | Expression::BinOp {
-                            op: BinOp::LtU | BinOp::LtS | BinOp::GeU | BinOp::GeS,
+                            op: BinOp::LtU
+                                | BinOp::LtS
+                                | BinOp::GeU
+                                | BinOp::GeS
+                                | BinOp::GtU
+                                | BinOp::GtS,
                             ..
                         }
                     ) =>
                 {
                     rhs
+                }
+                // Flip `const <u expr` → `expr >u const` and `const <s expr` → `expr >s const`
+                // for readability (e.g., `1 <s x` → `x >s 1`).
+                // Skip constant 0 for LtU since `0 <u expr` is handled by format_expression
+                // as `expr != 0` (which reads better than `expr >u 0`).
+                (BinOp::LtU, Expression::Const(0), _) => Expression::BinOp {
+                    op,
+                    lhs: Box::new(lhs),
+                    rhs: Box::new(rhs),
+                },
+                (BinOp::LtU | BinOp::LtS, Expression::Const(_), _) => {
+                    let gt_op = if op == BinOp::LtU {
+                        BinOp::GtU
+                    } else {
+                        BinOp::GtS
+                    };
+                    Expression::BinOp {
+                        op: gt_op,
+                        lhs: Box::new(rhs),
+                        rhs: Box::new(lhs),
+                    }
                 }
                 _ => Expression::BinOp {
                     op,
@@ -1892,7 +1918,7 @@ fn op_precedence(op: BinOp) -> u8 {
         BinOp::Or => 1,
         BinOp::Xor => 2,
         BinOp::And => 3,
-        BinOp::LtU | BinOp::LtS | BinOp::GeU | BinOp::GeS => 4,
+        BinOp::LtU | BinOp::LtS | BinOp::GeU | BinOp::GeS | BinOp::GtU | BinOp::GtS => 4,
         BinOp::Shl | BinOp::ShrU | BinOp::ShrS => 5,
         BinOp::Add | BinOp::Sub => 6,
         BinOp::Mul | BinOp::DivU | BinOp::DivS | BinOp::RemU | BinOp::RemS => 7,
@@ -2336,6 +2362,45 @@ mod tests {
             rhs: Box::new(Expression::Var("x".to_string())),
         };
         assert_eq!(format_expression(&expr2), "x != 0");
+    }
+
+    #[test]
+    fn test_simplify_const_lt_flip() {
+        // 1 <s x → x >s 1
+        let expr = Expression::BinOp {
+            op: BinOp::LtS,
+            lhs: Box::new(Expression::Const(1)),
+            rhs: Box::new(Expression::Var("x".to_string())),
+        };
+        let simplified = simplify_expression(expr);
+        assert_eq!(format_expression(&simplified), "x >s 1");
+
+        // 5 <u x → x >u 5
+        let expr2 = Expression::BinOp {
+            op: BinOp::LtU,
+            lhs: Box::new(Expression::Const(5)),
+            rhs: Box::new(Expression::Var("x".to_string())),
+        };
+        let simplified2 = simplify_expression(expr2);
+        assert_eq!(format_expression(&simplified2), "x >u 5");
+
+        // 0 <s x → x >s 0
+        let expr3 = Expression::BinOp {
+            op: BinOp::LtS,
+            lhs: Box::new(Expression::Const(0)),
+            rhs: Box::new(Expression::Var("x".to_string())),
+        };
+        let simplified3 = simplify_expression(expr3);
+        assert_eq!(format_expression(&simplified3), "x >s 0");
+
+        // 0 <u x → stays as-is (handled by format_expression as x != 0)
+        let expr4 = Expression::BinOp {
+            op: BinOp::LtU,
+            lhs: Box::new(Expression::Const(0)),
+            rhs: Box::new(Expression::Var("x".to_string())),
+        };
+        let simplified4 = simplify_expression(expr4);
+        assert_eq!(format_expression(&simplified4), "x != 0");
     }
 
     #[test]
