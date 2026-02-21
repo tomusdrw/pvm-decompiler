@@ -1902,8 +1902,9 @@ fn format_mem_base_access(base: &Expression, offset: i32, width: MemWidth) -> Op
     }
 
     // Pattern 2: base = var, offset = MEMORY_BASE (e.g., LoadInd { base: var, offset: 327680 })
+    // Use "mem" prefix since this is a linear memory access via the PVM memory base.
     if offset as i64 == mem_base {
-        return Some(format!("{}[{}]", width, format_expression(base)));
+        return Some(format!("mem[{}]", format_expression(base)));
     }
 
     None
@@ -3588,5 +3589,101 @@ mod tests {
             "Unknown target should render as call_indirect: {}",
             formatted
         );
+    }
+
+    #[test]
+    fn test_named_globals_in_load() {
+        // resolve_named_global should return named constants for known PVM addresses
+        let expr_heap_ptr = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::Const(196616)),
+            offset: 0,
+        };
+        assert_eq!(format_expression(&expr_heap_ptr), "HEAP_PTR");
+
+        let expr_result_ptr = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::Const(196608)),
+            offset: 0,
+        };
+        assert_eq!(format_expression(&expr_result_ptr), "RESULT_PTR");
+
+        let expr_result_len = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::Const(196612)),
+            offset: 0,
+        };
+        assert_eq!(format_expression(&expr_result_len), "RESULT_LEN");
+
+        let expr_heap_pages = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::Const(196620)),
+            offset: 0,
+        };
+        assert_eq!(format_expression(&expr_heap_pages), "HEAP_PAGES");
+    }
+
+    #[test]
+    fn test_named_globals_in_store() {
+        let expr = Expression::Store {
+            width: MemWidth::U32,
+            base: Box::new(Expression::Const(196616)),
+            offset: 0,
+            value: Box::new(Expression::Const(1036)),
+        };
+        assert_eq!(format_expression(&expr), "HEAP_PTR = 1036");
+    }
+
+    #[test]
+    fn test_memory_base_simplification() {
+        // Set memory base for this test
+        set_memory_base(Some(0x50000));
+
+        // x + (-327680) → wasm_ptr(x)
+        let expr = Expression::BinOp {
+            op: BinOp::Add,
+            lhs: Box::new(Expression::Var("addr".to_string())),
+            rhs: Box::new(Expression::Const(-327680)),
+        };
+        assert_eq!(format_expression(&expr), "wasm_ptr(addr)");
+
+        // x + 327680 → pvm_addr(x)
+        let expr2 = Expression::BinOp {
+            op: BinOp::Add,
+            lhs: Box::new(Expression::Var("offset".to_string())),
+            rhs: Box::new(Expression::Const(327680)),
+        };
+        assert_eq!(format_expression(&expr2), "pvm_addr(offset)");
+
+        // ptr->field_327680 → mem[ptr]
+        let load = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::Var("ptr_0".to_string())),
+            offset: 327680,
+        };
+        assert_eq!(format_expression(&load), "mem[ptr_0]");
+
+        // u8[var + 327680] → u8[var]  (base is BinOp with memory base)
+        let load2 = Expression::Load {
+            width: MemWidth::U8,
+            base: Box::new(Expression::BinOp {
+                op: BinOp::Add,
+                lhs: Box::new(Expression::Var("idx".to_string())),
+                rhs: Box::new(Expression::Const(327680)),
+            }),
+            offset: 0,
+        };
+        assert_eq!(format_expression(&load2), "u8[idx]");
+
+        // mem[0] for constant address = memory base
+        let load3 = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::Const(327680)),
+            offset: 0,
+        };
+        assert_eq!(format_expression(&load3), "mem[0]");
+
+        // Clean up
+        set_memory_base(None);
     }
 }

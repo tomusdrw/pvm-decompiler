@@ -24,7 +24,8 @@ fn func_1(r1: u64) {
     let ptr_0_56 = HEAP_PTR
     let var_9 = HEAP_PTR + 4
     let ptr_0_88 = var_9
-    let ptr_0_112 = var_9 + 268
+    let var_13 = var_9 + 268
+    let ptr_0_112 = var_13
     let var_15 = HEAP_PAGES
     let ptr_0_120 = var_15
     let ptr_0_192 = (var_15 << 16) + 15 & -16
@@ -71,7 +72,7 @@ fn func_1(r1: u64) {
     HEAP_PTR = ptr_0_112
     let ptr_0_520 = 0
     let ptr_0_528 = 1
-    let ptr_0_536 = u32[ptr_0_40]
+    let ptr_0_536 = mem[ptr_0_40]
 
     while (ptr_0_536 >s 0) {
         let var_136 = ptr_0_528 + ptr_0_520

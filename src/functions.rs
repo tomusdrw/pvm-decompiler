@@ -1024,4 +1024,278 @@ mod tests {
             "func_0 should have no call sites"
         );
     }
+
+    #[test]
+    fn test_detect_epilogue_return_pattern() {
+        // Block with: restore r9, restore r0, sp += 40, JumpInd r0
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (0, Instruction::LoadImm { reg: 5, value: 42 }), // some instruction
+                    (
+                        4,
+                        Instruction::LoadIndU64 {
+                            dst: 9,
+                            base: 1,
+                            offset: 8,
+                        },
+                    ), // restore r9
+                    (
+                        7,
+                        Instruction::LoadIndU64 {
+                            dst: 0,
+                            base: 1,
+                            offset: 0,
+                        },
+                    ), // restore r0
+                    (
+                        10,
+                        Instruction::AddImm64 {
+                            dst: 1,
+                            src: 1,
+                            value: 40,
+                        },
+                    ), // sp += 40
+                    (13, Instruction::JumpInd { reg: 0, offset: 0 }), // return
+                ],
+                vec![],
+            )],
+        );
+
+        let epilogues = detect_epilogues(&cfg);
+        assert!(
+            epilogues.contains_key(&0),
+            "Block 0 should be a return epilogue"
+        );
+        assert!(
+            matches!(epilogues[&0], EpilogueKind::Return { .. }),
+            "Should be Return kind"
+        );
+        if let EpilogueKind::Return { ref eliminated_pcs } = epilogues[&0] {
+            // Should eliminate: restore r0, sp +=, JumpInd, and r9 restore
+            assert!(
+                eliminated_pcs.contains(&7),
+                "r0 restore should be eliminated"
+            );
+            assert!(
+                eliminated_pcs.contains(&10),
+                "sp adjust should be eliminated"
+            );
+            assert!(eliminated_pcs.contains(&13), "JumpInd should be eliminated");
+            assert!(
+                eliminated_pcs.contains(&4),
+                "r9 restore should be eliminated"
+            );
+            assert!(
+                !eliminated_pcs.contains(&0),
+                "non-epilogue instruction should not be eliminated"
+            );
+        }
+    }
+
+    #[test]
+    fn test_detect_epilogue_halt_pattern() {
+        // Block with: LoadImm r2 = -65536, JumpInd r2
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (0, Instruction::LoadImm { reg: 5, value: 42 }),
+                    (
+                        4,
+                        Instruction::LoadImm {
+                            reg: 2,
+                            value: -65536,
+                        },
+                    ),
+                    (8, Instruction::JumpInd { reg: 2, offset: 0 }),
+                ],
+                vec![],
+            )],
+        );
+
+        let epilogues = detect_epilogues(&cfg);
+        assert!(
+            epilogues.contains_key(&0),
+            "Block 0 should be a halt epilogue"
+        );
+        assert!(
+            matches!(epilogues[&0], EpilogueKind::Halt { .. }),
+            "Should be Halt kind"
+        );
+        if let EpilogueKind::Halt { ref eliminated_pcs } = epilogues[&0] {
+            assert!(eliminated_pcs.contains(&4), "LoadImm should be eliminated");
+            assert!(eliminated_pcs.contains(&8), "JumpInd should be eliminated");
+        }
+    }
+
+    #[test]
+    fn test_detect_epilogue_no_match() {
+        // Block with JumpInd but not matching return or halt pattern
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (0, Instruction::LoadImm { reg: 5, value: 42 }),
+                    (4, Instruction::JumpInd { reg: 5, offset: 0 }),
+                ],
+                vec![],
+            )],
+        );
+
+        let epilogues = detect_epilogues(&cfg);
+        assert!(epilogues.is_empty(), "Should not detect epilogue");
+    }
+
+    #[test]
+    fn test_detect_prologue_stack_guard() {
+        // Entry block with stack guard: LoadImm64 r2, AddImm64 r3 = r1 - N, BranchGeU r2 r3
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (
+                            0,
+                            Instruction::LoadImm64 {
+                                reg: 2,
+                                value: 4277993472,
+                            },
+                        ),
+                        (
+                            10,
+                            Instruction::AddImm64 {
+                                dst: 3,
+                                src: 1,
+                                value: -40,
+                            },
+                        ),
+                        (
+                            14,
+                            Instruction::BranchGeU {
+                                reg1: 2,
+                                reg2: 3,
+                                offset: 10,
+                            },
+                        ),
+                    ],
+                    vec![20, 24],
+                ),
+                (20, vec![(20, Instruction::Trap)], vec![]),
+                (
+                    24,
+                    vec![
+                        (
+                            24,
+                            Instruction::AddImm64 {
+                                dst: 1,
+                                src: 1,
+                                value: -40,
+                            },
+                        ),
+                        (
+                            28,
+                            Instruction::StoreIndU64 {
+                                base: 1,
+                                src: 0,
+                                offset: 0,
+                            },
+                        ),
+                        (
+                            31,
+                            Instruction::StoreIndU64 {
+                                base: 1,
+                                src: 9,
+                                offset: 8,
+                            },
+                        ),
+                    ],
+                    vec![],
+                ),
+            ],
+        );
+
+        let eliminated = detect_prologue(&cfg, 0);
+        // Stack guard instructions
+        assert!(eliminated.contains(&0), "LoadImm64 should be eliminated");
+        assert!(eliminated.contains(&10), "AddImm64 should be eliminated");
+        assert!(eliminated.contains(&14), "BranchGeU should be eliminated");
+        // Frame allocation and register saves in successor block
+        assert!(eliminated.contains(&24), "sp -= 40 should be eliminated");
+        assert!(eliminated.contains(&28), "save r0 should be eliminated");
+        assert!(eliminated.contains(&31), "save r9 should be eliminated");
+    }
+
+    #[test]
+    fn test_return_epilogue_excludes_from_call_graph() {
+        // Block 0 jumps to block 10 (func_0 entry).
+        // Block 20 is a return epilogue (JumpInd r0) — should NOT be a call site.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (0, vec![(0, Instruction::Jump { offset: 10 })], vec![10]),
+                (10, vec![(10, Instruction::Trap)], vec![]),
+                (
+                    20,
+                    vec![
+                        (
+                            20,
+                            Instruction::LoadIndU64 {
+                                dst: 0,
+                                base: 1,
+                                offset: 0,
+                            },
+                        ),
+                        (
+                            23,
+                            Instruction::AddImm64 {
+                                dst: 1,
+                                src: 1,
+                                value: 40,
+                            },
+                        ),
+                        (26, Instruction::JumpInd { reg: 0, offset: 0 }),
+                    ],
+                    vec![],
+                ),
+            ],
+        );
+
+        let functions = vec![
+            Function {
+                entry_pc: 0,
+                block_pcs: [0, 20].iter().copied().collect(),
+                name: "main".to_string(),
+            },
+            Function {
+                entry_pc: 10,
+                block_pcs: [10].iter().copied().collect(),
+                name: "func_0".to_string(),
+            },
+        ];
+
+        let program = DecodedProgram {
+            jump_table: vec![10], // jump_table[0] = func_0 entry
+            instructions: vec![],
+            memory_base: None,
+            code_len: 0,
+        };
+        let call_graph = build_call_graph(&cfg, &functions, &program);
+
+        // main should call func_0 via direct Jump, but block 20 (epilogue) should NOT
+        // generate an indirect call via jump table
+        let main_calls = call_graph.get(&0usize);
+        if let Some(calls) = main_calls {
+            // Should only have the direct call from block 0, not from block 20
+            assert!(
+                !calls.iter().any(|c| c.caller_block_pc == 20),
+                "Return epilogue block should not be a call site"
+            );
+        }
+    }
 }

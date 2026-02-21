@@ -24,10 +24,12 @@ fn func_1(r1: u64) {
     let ptr_0_56 = HEAP_PAGES
     let var_9 = HEAP_PAGES + 4
     let ptr_0_88 = var_9
-    let ptr_0_112 = var_9 + 268
+    let var_13 = var_9 + 268
+    let ptr_0_112 = var_13
     let var_15 = u32[196624]
     let ptr_0_120 = var_15
-    let ptr_0_192 = (var_15 << 16) + 15 & -16
+    let var_27 = (var_15 << 16) + 15 & -16
+    let ptr_0_192 = var_27
 
     if (var_27 <u var_13) {
         let var_64 = (ptr_0_112 - ptr_0_192 + 65535 & -65536) >>u 16
@@ -70,7 +72,7 @@ fn func_1(r1: u64) {
 
     HEAP_PAGES = ptr_0_112
     RESULT_PTR = ptr_0_88
-    let var_100 = u32[ptr_0_40]
+    let var_100 = mem[ptr_0_40]
     let ptr_0_464 = var_100
     let ptr_0_512 = 2
 
@@ -102,7 +104,7 @@ fn func_1(r1: u64) {
         ptr_0_688 = ptr_0_768
     }
 
-    u32[RESULT_PTR] = ptr_0_688
+    mem[RESULT_PTR] = ptr_0_688
     RESULT_LEN = RESULT_PTR
     HEAP_PTR = 4
 
