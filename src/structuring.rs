@@ -848,6 +848,30 @@ impl<'a> Emitter<'a> {
         self.emitted.insert(header);
     }
 
+    /// Check if a block would emit break or continue when inside a loop.
+    /// Returns true if the block exits the loop or jumps back to the header.
+    fn is_loop_terminal_block(
+        cfg: &ControlFlowGraph,
+        block_pc: usize,
+        body: &HashSet<usize>,
+        header_pc: usize,
+    ) -> bool {
+        if let Some(block) = cfg.blocks.get(&block_pc) {
+            let exits_loop = block
+                .successors
+                .iter()
+                .any(|s| !body.contains(s) && *s != header_pc);
+            let continues_loop = block.successors.len() == 1 && block.successors[0] == header_pc;
+            let is_trap = block
+                .instructions
+                .last()
+                .is_some_and(|(_, instr)| matches!(instr, Instruction::Trap));
+            !is_trap && (exits_loop || continues_loop)
+        } else {
+            false
+        }
+    }
+
     /// Compute which blocks in a loop body are reachable from the header
     /// through non-terminal paths (i.e., not through break/continue blocks).
     /// A block that would emit break or continue is itself reachable, but
@@ -870,92 +894,58 @@ impl<'a> Emitter<'a> {
                 continue;
             }
 
-            // Check if this block would emit break or continue
-            if let Some(block) = self.cfg.blocks.get(&pc) {
-                let exits_loop = block
-                    .successors
+            let is_terminal = Self::is_loop_terminal_block(self.cfg, pc, body, header_pc);
+
+            // If this block is an if-then-else header, check if ALL branches terminate
+            let if_terminates = if let Some(Structure::IfThenElse {
+                then_blocks,
+                else_blocks,
+                ..
+            }) = self.if_map.get(&pc)
+            {
+                let all_then_terminal = then_blocks
                     .iter()
-                    .any(|s| !body.contains(s) && *s != header_pc);
-                let continues_loop =
-                    block.successors.len() == 1 && block.successors[0] == header_pc;
-                let is_trap = block
-                    .instructions
-                    .last()
-                    .is_some_and(|(_, instr)| matches!(instr, Instruction::Trap));
+                    .all(|&tb| Self::is_loop_terminal_block(self.cfg, tb, body, header_pc));
+                let all_else_terminal = else_blocks
+                    .iter()
+                    .all(|&eb| Self::is_loop_terminal_block(self.cfg, eb, body, header_pc));
+                !then_blocks.is_empty()
+                    && !else_blocks.is_empty()
+                    && all_then_terminal
+                    && all_else_terminal
+            } else {
+                false
+            };
 
-                let is_terminal = !is_trap && (exits_loop || continues_loop);
+            // Don't traverse past terminal blocks or if-then-else where all branches terminate
+            if is_terminal || if_terminates {
+                continue;
+            }
 
-                // If this block is an if-then-else header, check if ALL branches terminate
-                let if_terminates = if let Some(Structure::IfThenElse {
-                    then_blocks,
-                    else_blocks,
-                    ..
-                }) = self.if_map.get(&pc)
-                {
-                    let all_then_terminal = then_blocks.iter().all(|&tb| {
-                        self.cfg.blocks.get(&tb).is_some_and(|b| {
-                            let exits = b
-                                .successors
-                                .iter()
-                                .any(|s| !body.contains(s) && *s != header_pc);
-                            let cont = b.successors.len() == 1 && b.successors[0] == header_pc;
-                            let trap = b
-                                .instructions
-                                .last()
-                                .is_some_and(|(_, i)| matches!(i, Instruction::Trap));
-                            !trap && (exits || cont)
-                        })
-                    });
-                    let all_else_terminal = else_blocks.iter().all(|&eb| {
-                        self.cfg.blocks.get(&eb).is_some_and(|b| {
-                            let exits = b
-                                .successors
-                                .iter()
-                                .any(|s| !body.contains(s) && *s != header_pc);
-                            let cont = b.successors.len() == 1 && b.successors[0] == header_pc;
-                            let trap = b
-                                .instructions
-                                .last()
-                                .is_some_and(|(_, i)| matches!(i, Instruction::Trap));
-                            !trap && (exits || cont)
-                        })
-                    });
-                    !then_blocks.is_empty()
-                        && !else_blocks.is_empty()
-                        && all_then_terminal
-                        && all_else_terminal
-                } else {
-                    false
-                };
-
-                // Don't traverse past terminal blocks or if-then-else where all branches terminate
-                if is_terminal || if_terminates {
-                    continue;
-                }
-
-                // Follow successors within the loop body
+            // Follow successors within the loop body
+            if let Some(block) = self.cfg.blocks.get(&pc) {
                 for &succ in &block.successors {
                     if body.contains(&succ) && succ != header_pc {
                         worklist.push_back(succ);
                     }
                 }
+            }
 
-                // Also follow if-then-else branches
-                if let Some(Structure::IfThenElse {
-                    then_blocks,
-                    else_blocks,
-                    ..
-                }) = self.if_map.get(&pc)
-                {
-                    for &tb in then_blocks {
-                        if body.contains(&tb) {
-                            worklist.push_back(tb);
-                        }
+            // Also follow if-then-else branches
+            if let Some(Structure::IfThenElse {
+                then_blocks,
+                else_blocks,
+                ..
+            }) = self.if_map.get(&pc)
+            {
+                for &tb in then_blocks {
+                    if body.contains(&tb) {
+                        worklist.push_back(tb);
                     }
-                    for &eb in else_blocks {
-                        if body.contains(&eb) {
-                            worklist.push_back(eb);
-                        }
+                }
+                for &eb in else_blocks {
+                    if body.contains(&eb) {
+                        worklist.push_back(eb);
                     }
                 }
             }
