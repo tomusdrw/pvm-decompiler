@@ -629,12 +629,6 @@ impl StructuralAnalysis {
                 body, condition, ..
             }) = loop_map.get(&block_pc)
             {
-                // Emit loop — declare any undeclared condition variables first.
-                if let (Some(cond), Some(ref mut lifted)) =
-                    (condition.as_ref(), lifted.as_deref_mut())
-                {
-                    emit_condition_declarations(cond, cfg, block_pc, lifted, &mut output, "");
-                }
                 let cond_str = condition
                     .as_ref()
                     .map(|c| format_condition_maybe_lifted(c, cfg, block_pc, lifted.as_deref()))
@@ -855,10 +849,6 @@ impl StructuralAnalysis {
         // Emit header block instructions (before the branch)
         self.emit_block_body(cfg, header, output, indent, true, lifted.as_deref_mut());
 
-        // Declare any undeclared condition variables.
-        if let (Some(cond), Some(ref mut lifted)) = (condition, lifted.as_deref_mut()) {
-            emit_condition_declarations(cond, cfg, header, lifted, output, &prefix);
-        }
         let cond_str = condition
             .map(|c| format_condition_maybe_lifted(c, cfg, header, lifted.as_deref()))
             .unwrap_or_else(|| "...".to_string());
@@ -902,14 +892,6 @@ impl StructuralAnalysis {
             } else {
                 len
             };
-
-            // In lifted mode: pre-scan to collect all variable declarations,
-            // emit them at the top of the block (C-style).
-            if let Some(ref mut lifted) = lifted {
-                let instrs = &block.instructions[..end];
-                let decls = lifted.collect_block_declarations(instrs);
-                output.push_str(&decls.format(&prefix));
-            }
 
             for (pc, instr) in &block.instructions[..end] {
                 if let Some(ref mut lifted) = lifted {
@@ -1025,36 +1007,6 @@ fn format_goto_target(target: usize, labels: &HashMap<usize, String>) -> String 
         .get(&target)
         .cloned()
         .unwrap_or_else(|| format!("{:#06x}", target))
-}
-
-/// Emit `let` declarations for any undeclared variables used in a branch condition.
-fn emit_condition_declarations(
-    cond: &Condition,
-    cfg: &ControlFlowGraph,
-    header_pc: usize,
-    lifted: &mut LiftedProgram,
-    output: &mut String,
-    prefix: &str,
-) {
-    use std::fmt::Write;
-    let branch_pc = match last_instruction_pc(cfg, header_pc) {
-        Some(pc) => pc,
-        None => return,
-    };
-    for operand in [&cond.lhs, &cond.rhs] {
-        if let Operand::Reg(reg) = operand
-            && let Some(name) = lifted.var_at_use.get(&(branch_pc, *reg)).cloned()
-            && lifted.declared_vars.insert(name.clone())
-        {
-            let type_str = lifted
-                .variables
-                .values()
-                .find(|v| v.name == name)
-                .map(|v| format!("{}", v.var_type))
-                .unwrap_or_else(|| "u64".to_string());
-            let _ = writeln!(output, "{}let {}: {};", prefix, name, type_str);
-        }
-    }
 }
 
 /// Get the PC of the last instruction in a block (the branch/terminator).

@@ -90,21 +90,6 @@ pub struct LiftedProgram {
 }
 
 /// A set of variable declarations collected for a block, to be emitted at its top.
-pub struct BlockDeclarations(Vec<(String, VarType)>);
-
-impl BlockDeclarations {
-    /// Format the declarations as `let name: type;` lines with the given indentation prefix.
-    /// Returns an empty string if there are no declarations.
-    pub fn format(&self, prefix: &str) -> String {
-        use std::fmt::Write;
-        let mut result = String::new();
-        for (name, var_type) in &self.0 {
-            let _ = writeln!(result, "{}let {}: {};", prefix, name, var_type);
-        }
-        result
-    }
-}
-
 impl LiftedProgram {
     /// Run the full lifting pipeline on a CFG with dataflow information.
     pub fn analyze(cfg: &ControlFlowGraph, dataflow: &DataFlowAnalysis) -> Self {
@@ -933,83 +918,10 @@ impl LiftedProgram {
         output
     }
 
-    /// Pre-scan a block's instructions and collect all variable declarations needed.
-    /// Marks variables as declared in `declared_vars`. Returns a `BlockDeclarations`
-    /// that can be formatted at the top of the block.
-    pub fn collect_block_declarations(
-        &mut self,
-        instructions: &[(usize, Instruction)],
-    ) -> BlockDeclarations {
-        let mut decls: Vec<(String, VarType)> = Vec::new();
-
-        for (pc, instr) in instructions {
-            if self.eliminated_pcs.contains(pc) {
-                continue;
-            }
-            if matches!(instr, Instruction::Fallthrough | Instruction::Jump { .. }) {
-                continue;
-            }
-
-            // Collect the variable defined by this instruction.
-            if let Some((name, var_type)) = self.def_var_name_with_type(*pc, instr)
-                && self.declared_vars.insert(name.clone())
-            {
-                decls.push((name, var_type));
-            }
-
-            // Collect the stack variable assigned by a Store expression.
-            if let Some(Expression::Store { base, offset, .. }) = self.expressions.get(pc)
-                && let Expression::Var(base_name) = base.as_ref()
-                && let Some(slot_name) = self.stack_vars.get(&(base_name.clone(), *offset))
-                && self.declared_vars.insert(slot_name.clone())
-            {
-                decls.push((slot_name.clone(), VarType::Integer));
-            }
-
-            // Collect variables referenced in the expression.
-            if let Some(expr) = self.expressions.get(pc) {
-                let mut names = Vec::new();
-                collect_var_names(expr, &mut names);
-                // For Raw expressions, also check var_at_use (variable names are
-                // embedded as strings, not Var nodes).
-                if matches!(expr, Expression::Raw(_)) {
-                    for ((upc, _), name) in &self.var_at_use {
-                        if *upc == *pc && !names.contains(name) {
-                            names.push(name.clone());
-                        }
-                    }
-                }
-                for name in names {
-                    if self.declared_vars.insert(name.clone()) {
-                        // Look up type: first check register variables, then stack variables.
-                        let vt = self
-                            .variables
-                            .values()
-                            .find(|v| v.name == name)
-                            .map(|v| v.var_type.clone())
-                            .or_else(|| {
-                                if self.stack_vars.values().any(|n| *n == name) {
-                                    Some(VarType::Integer)
-                                } else {
-                                    None
-                                }
-                            });
-                        if let Some(vt) = vt {
-                            decls.push((name, vt));
-                        }
-                    }
-                }
-            }
-        }
-
-        BlockDeclarations(decls)
-    }
-
     /// Format an instruction at a given PC as a lifted pseudo-code line.
     /// Returns None if the PC has been eliminated.
-    /// Declarations are handled separately via `collect_block_declarations`,
-    /// so this always emits plain assignments.
-    pub fn format_pc(&self, pc: usize, instr: &Instruction) -> Option<String> {
+    /// Emits `let var = expr` on first definition, plain `var = expr` on reassignment.
+    pub fn format_pc(&mut self, pc: usize, instr: &Instruction) -> Option<String> {
         if self.eliminated_pcs.contains(&pc) {
             return None;
         }
@@ -1017,7 +929,7 @@ impl LiftedProgram {
         let expr = self.expressions.get(&pc)?;
 
         // Determine if this instruction defines a register.
-        let dst_name = self.def_var_name_with_type(pc, instr).map(|(name, _)| name);
+        let dst_info = self.def_var_name_with_type(pc, instr);
 
         match expr {
             Expression::Raw(s) => Some(s.clone()),
@@ -1031,28 +943,68 @@ impl LiftedProgram {
                 if let Expression::Var(base_name) = base.as_ref()
                     && let Some(slot_name) = self.stack_vars.get(&(base_name.clone(), *offset))
                 {
-                    return Some(format!("{} = {}", slot_name, format_expression(value)));
+                    let slot_name = slot_name.clone();
+                    let value = value.clone();
+                    let let_prefix = if self.declared_vars.insert(slot_name.clone()) {
+                        "let "
+                    } else {
+                        ""
+                    };
+                    return Some(format!(
+                        "{}{} = {}",
+                        let_prefix,
+                        slot_name,
+                        format_expression(&value)
+                    ));
                 }
+                let width = *width;
+                let base = base.clone();
+                let offset = *offset;
+                let value = value.clone();
                 Some(format!(
                     "{}[{}] = {}",
                     width,
-                    format_mem_address(base, *offset),
-                    format_expression(value)
+                    format_mem_address(&base, offset),
+                    format_expression(&value)
                 ))
             }
             Expression::Call { name, args } => {
+                let name = name.clone();
+                let args = args.clone();
                 let arg_strs: Vec<String> = args.iter().map(format_expression).collect();
-                if let Some(dst) = dst_name {
-                    Some(format!("{} = {}({})", dst, name, arg_strs.join(", ")))
+                if let Some((dst, _)) = dst_info {
+                    let let_prefix = if self.declared_vars.insert(dst.clone()) {
+                        "let "
+                    } else {
+                        ""
+                    };
+                    Some(format!(
+                        "{}{} = {}({})",
+                        let_prefix,
+                        dst,
+                        name,
+                        arg_strs.join(", ")
+                    ))
                 } else {
                     Some(format!("{}({})", name, arg_strs.join(", ")))
                 }
             }
             _ => {
-                if let Some(dst) = dst_name {
-                    Some(format!("{} = {}", dst, format_expression(expr)))
+                let expr = expr.clone();
+                if let Some((dst, _)) = dst_info {
+                    let let_prefix = if self.declared_vars.insert(dst.clone()) {
+                        "let "
+                    } else {
+                        ""
+                    };
+                    Some(format!(
+                        "{}{} = {}",
+                        let_prefix,
+                        dst,
+                        format_expression(&expr)
+                    ))
                 } else {
-                    Some(format_expression(expr))
+                    Some(format_expression(&expr))
                 }
             }
         }
@@ -1283,32 +1235,6 @@ fn substitute_var(expr: &Expression, name: &str, replacement: &Expression) -> Ex
 }
 
 /// Collect all distinct variable names referenced in an expression tree.
-fn collect_var_names(expr: &Expression, names: &mut Vec<String>) {
-    match expr {
-        Expression::Var(n) => {
-            if !names.contains(n) {
-                names.push(n.clone());
-            }
-        }
-        Expression::Const(_) | Expression::Raw(_) => {}
-        Expression::BinOp { lhs, rhs, .. } => {
-            collect_var_names(lhs, names);
-            collect_var_names(rhs, names);
-        }
-        Expression::UnaryOp { operand, .. } => collect_var_names(operand, names),
-        Expression::Load { base, .. } => collect_var_names(base, names),
-        Expression::Store { base, value, .. } => {
-            collect_var_names(base, names);
-            collect_var_names(value, names);
-        }
-        Expression::Call { args, .. } => {
-            for arg in args {
-                collect_var_names(arg, names);
-            }
-        }
-    }
-}
-
 /// Count occurrences of `Var(name)` in an expression tree.
 fn count_var_refs(expr: &Expression, name: &str) -> usize {
     match expr {
@@ -1736,7 +1662,7 @@ mod tests {
             )],
         );
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
 
         // PC 0 and PC 4 should both be eliminated.
         assert!(lifted.eliminated_pcs.contains(&0));
