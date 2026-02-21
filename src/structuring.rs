@@ -604,7 +604,7 @@ impl StructuralAnalysis {
         mut lifted: Option<&mut LiftedProgram>,
         sig: Option<&FunctionSignature>,
     ) -> String {
-        let mut output = String::new();
+        let mut header_line = String::new();
 
         // Emit function header
         if let Some(sig) = sig {
@@ -627,9 +627,7 @@ impl StructuralAnalysis {
                     format!("r{}: u64", reg)
                 })
                 .collect();
-            let _ = writeln!(output, "fn {}({}) {{", sig.name, params_str.join(", "));
-        } else {
-            output.push_str("=== Pseudo-Code ===\n\n");
+            let _ = writeln!(header_line, "fn {}({}) {{", sig.name, params_str.join(", "));
         }
 
         // Build block labels for readable goto targets.
@@ -708,17 +706,27 @@ impl StructuralAnalysis {
             }
         }
 
-        // Track which blocks we've already emitted inside structures
-        let mut emitted: HashSet<usize> = HashSet::new();
+        // Create the emitter with all mutable state.
+        let mut em = Emitter {
+            cfg,
+            output: if sig.is_some() {
+                String::new()
+            } else {
+                "=== Pseudo-Code ===\n\n".to_string()
+            },
+            emitted: HashSet::new(),
+            lifted,
+            labels,
+        };
 
         for &block_pc in &self.dom_tree.rpo {
-            if emitted.contains(&block_pc) {
+            if em.emitted.contains(&block_pc) {
                 continue;
             }
 
             // Emit label if this block has one.
-            if let Some(label) = labels.get(&block_pc) {
-                let _ = writeln!(output, "{}:", label);
+            if let Some(label) = em.labels.get(&block_pc) {
+                let _ = writeln!(em.output, "{}:", label);
             }
 
             if let Some(Structure::Loop {
@@ -730,23 +738,23 @@ impl StructuralAnalysis {
             {
                 let cond_str = condition
                     .as_ref()
-                    .map(|c| format_condition_maybe_lifted(c, cfg, block_pc, lifted.as_deref()))
+                    .map(|c| format_condition_maybe_lifted(c, cfg, block_pc, em.lifted.as_deref()))
                     .unwrap_or_else(|| "...".to_string());
 
                 let for_loop_info = for_loop_map.get(&block_pc);
 
                 if let Some(info) = for_loop_info {
                     let _ = writeln!(
-                        output,
+                        em.output,
                         "for ({}; {}; {}) {{",
                         info.init_str, cond_str, info.step_str
                     );
                 } else {
-                    let _ = writeln!(output, "while ({}) {{", cond_str);
+                    let _ = writeln!(em.output, "while ({}) {{", cond_str);
                 }
 
                 // Emit body blocks (excluding header's own instructions which form the condition)
-                self.emit_block_body(cfg, block_pc, &mut output, 1, true, lifted.as_deref_mut());
+                em.emit_block_body(block_pc, 1, true);
 
                 let mut body_sorted: Vec<usize> = body.iter().copied().collect();
                 body_sorted.sort();
@@ -754,7 +762,7 @@ impl StructuralAnalysis {
                     if body_pc == block_pc {
                         continue;
                     }
-                    if emitted.contains(&body_pc) {
+                    if em.emitted.contains(&body_pc) {
                         continue;
                     }
 
@@ -764,7 +772,7 @@ impl StructuralAnalysis {
                     // Suppress step instruction in latch block for for-loops
                     if is_latch
                         && let Some(info) = for_loop_info
-                        && let Some(ref mut lifted) = lifted
+                        && let Some(ref mut lifted) = em.lifted
                     {
                         lifted.eliminated_pcs.insert(info.step_pc);
                     }
@@ -777,17 +785,12 @@ impl StructuralAnalysis {
                         ..
                     }) = if_map.get(&body_pc)
                     {
-                        self.emit_if(
-                            cfg,
+                        em.emit_if(
                             body_pc,
                             then_blocks,
                             else_blocks,
                             condition.as_ref(),
-                            &mut output,
                             1,
-                            &mut emitted,
-                            lifted.as_deref_mut(),
-                            &labels,
                             Some((body, block_pc)),
                         );
                         continue;
@@ -795,32 +798,19 @@ impl StructuralAnalysis {
 
                     if is_latch {
                         // For for-loops, emit latch body but skip the step instruction
-                        self.emit_block_body(
-                            cfg,
-                            body_pc,
-                            &mut output,
-                            1,
-                            true,
-                            lifted.as_deref_mut(),
-                        );
+                        em.emit_block_body(body_pc, 1, true);
                     } else {
-                        let ctrl = self.emit_block_with_loop_control(
-                            cfg,
-                            body_pc,
-                            &mut output,
-                            1,
-                            lifted.as_deref_mut(),
-                            Some((body, block_pc)),
-                        );
+                        let ctrl =
+                            em.emit_block_with_loop_control(body_pc, 1, Some((body, block_pc)));
                         if let Some(keyword) = ctrl {
-                            let _ = writeln!(output, "    {}", keyword);
+                            let _ = writeln!(em.output, "    {}", keyword);
                         }
                     }
-                    emitted.insert(body_pc);
+                    em.emitted.insert(body_pc);
                 }
 
-                output.push_str("}\n");
-                emitted.extend(body.iter());
+                em.output.push_str("}\n");
+                em.emitted.extend(body.iter());
             } else if let Some(Structure::IfThenElse {
                 then_blocks,
                 else_blocks,
@@ -828,25 +818,20 @@ impl StructuralAnalysis {
                 ..
             }) = if_map.get(&block_pc)
             {
-                self.emit_if(
-                    cfg,
+                em.emit_if(
                     block_pc,
                     then_blocks,
                     else_blocks,
                     condition.as_ref(),
-                    &mut output,
                     0,
-                    &mut emitted,
-                    lifted.as_deref_mut(),
-                    &labels,
                     None,
                 );
             } else if let Some(Structure::Switch { reg, cases, .. }) = switch_map.get(&block_pc) {
                 // Emit preceding instructions
-                self.emit_block_body(cfg, block_pc, &mut output, 0, true, lifted.as_deref_mut());
+                em.emit_block_body(block_pc, 0, true);
 
                 // Use lifted variable name for the switch register if available.
-                let switch_var = if let Some(ref mut lifted) = lifted {
+                let switch_var = if let Some(ref mut lifted) = em.lifted {
                     if let Some(branch_pc) = last_instruction_pc(cfg, block_pc) {
                         if let Some(name) = lifted.var_at_use.get(&(branch_pc, *reg)).cloned() {
                             // Declare if not yet declared.
@@ -857,7 +842,7 @@ impl StructuralAnalysis {
                                     .find(|v| v.name == name)
                                     .map(|v| format!("{}", v.var_type))
                                     .unwrap_or_else(|| "u64".to_string());
-                                let _ = writeln!(output, "let {}: {};", name, type_str);
+                                let _ = writeln!(em.output, "let {}: {};", name, type_str);
                             }
                             name
                         } else {
@@ -869,40 +854,41 @@ impl StructuralAnalysis {
                 } else {
                     format!("r{}", reg)
                 };
-                let _ = writeln!(output, "switch ({}) {{", switch_var);
+                let _ = writeln!(em.output, "switch ({}) {{", switch_var);
                 for (values, target) in cases.iter() {
                     let vals: Vec<String> = values.iter().map(|v| format!("{}", v)).collect();
-                    let target_label = format_goto_target(*target, &labels);
+                    let target_label = format_goto_target(*target, &em.labels);
                     let _ = writeln!(
-                        output,
+                        em.output,
                         "    case {}: goto {};",
                         vals.join(", "),
                         target_label
                     );
                 }
-                output.push_str("}\n");
-                emitted.insert(block_pc);
+                em.output.push_str("}\n");
+                em.emitted.insert(block_pc);
             } else {
                 // Plain block
-                self.emit_block_body(cfg, block_pc, &mut output, 0, false, lifted.as_deref_mut());
-                emitted.insert(block_pc);
+                em.emit_block_body(block_pc, 0, false);
+                em.emitted.insert(block_pc);
             }
         }
 
         // Emit switch target blocks that weren't reached by the RPO walk.
         // These are separate "entry points" dispatched via indirect jump.
-        let mut switch_targets: Vec<usize> = labels
+        let labels_ref = &em.labels;
+        let mut switch_targets: Vec<usize> = labels_ref
             .keys()
             .copied()
-            .filter(|pc| !emitted.contains(pc) && cfg.blocks.contains_key(pc))
+            .filter(|pc| !em.emitted.contains(pc) && cfg.blocks.contains_key(pc))
             .collect();
         switch_targets.sort();
 
         for target_pc in switch_targets {
-            if emitted.contains(&target_pc) {
+            if em.emitted.contains(&target_pc) {
                 continue;
             }
-            let _ = writeln!(output, "{}:", labels[&target_pc]);
+            let _ = writeln!(em.output, "{}:", em.labels[&target_pc]);
 
             // Emit all blocks reachable from this target in RPO order.
             // Simple BFS forward walk to collect the reachable set.
@@ -911,14 +897,14 @@ impl StructuralAnalysis {
             let mut queue = VecDeque::new();
             queue.push_back(target_pc);
             while let Some(pc) = queue.pop_front() {
-                if !visited.insert(pc) || emitted.contains(&pc) {
+                if !visited.insert(pc) || em.emitted.contains(&pc) {
                     continue;
                 }
                 reachable.push(pc);
-                emitted.insert(pc);
+                em.emitted.insert(pc);
                 if let Some(block) = cfg.blocks.get(&pc) {
                     for &succ in &block.successors {
-                        if !visited.contains(&succ) && !emitted.contains(&succ) {
+                        if !visited.contains(&succ) && !em.emitted.contains(&succ) {
                             queue.push_back(succ);
                         }
                     }
@@ -928,9 +914,9 @@ impl StructuralAnalysis {
             for &block_pc in &reachable {
                 // Check if this block has its own label (and it's not the first one we already emitted).
                 if block_pc != target_pc
-                    && let Some(label) = labels.get(&block_pc)
+                    && let Some(label) = em.labels.get(&block_pc)
                 {
-                    let _ = writeln!(output, "{}:", label);
+                    let _ = writeln!(em.output, "{}:", label);
                 }
 
                 if let Some(Structure::IfThenElse {
@@ -940,45 +926,32 @@ impl StructuralAnalysis {
                     ..
                 }) = if_map.get(&block_pc)
                 {
-                    self.emit_if(
-                        cfg,
+                    em.emit_if(
                         block_pc,
                         then_blocks,
                         else_blocks,
                         condition.as_ref(),
-                        &mut output,
                         0,
-                        &mut emitted,
-                        lifted.as_deref_mut(),
-                        &labels,
                         None,
                     );
                 } else {
-                    self.emit_block_body(
-                        cfg,
-                        block_pc,
-                        &mut output,
-                        0,
-                        false,
-                        lifted.as_deref_mut(),
-                    );
+                    em.emit_block_body(block_pc, 0, false);
                 }
             }
         }
+
+        let output = em.output;
 
         // If we have a function signature, indent the body
         if sig.is_some() {
             // Split off the first line (fn header) from the rest (body)
             let lines: Vec<&str> = output.lines().collect();
-            let mut result = String::new();
-            if let Some(header_line) = lines.first() {
-                let _ = writeln!(result, "{}", header_line);
-                for line in &lines[1..] {
-                    if line.is_empty() {
-                        result.push('\n');
-                    } else {
-                        let _ = writeln!(result, "    {}", line);
-                    }
+            let mut result = header_line;
+            for line in &lines {
+                if line.is_empty() {
+                    result.push('\n');
+                } else {
+                    let _ = writeln!(result, "    {}", line);
                 }
             }
             result.push_str("}\n");
@@ -987,83 +960,73 @@ impl StructuralAnalysis {
 
         fix_blank_lines(&output)
     }
+}
 
-    #[allow(clippy::too_many_arguments)]
+/// Groups mutable emission state so that emission helper methods have clean signatures.
+///
+/// Created once inside `pseudo_code` and passed by `&mut self` to the helpers.
+struct Emitter<'a> {
+    cfg: &'a ControlFlowGraph,
+    output: String,
+    emitted: HashSet<usize>,
+    lifted: Option<&'a mut LiftedProgram>,
+    labels: HashMap<usize, String>,
+}
+
+impl<'a> Emitter<'a> {
     fn emit_if(
-        &self,
-        cfg: &ControlFlowGraph,
+        &mut self,
         header: usize,
         then_blocks: &[usize],
         else_blocks: &[usize],
         condition: Option<&Condition>,
-        output: &mut String,
         indent: usize,
-        emitted: &mut HashSet<usize>,
-        mut lifted: Option<&mut LiftedProgram>,
-        _labels: &HashMap<usize, String>,
-        loop_context: Option<(&HashSet<usize>, usize)>, // (loop_body, loop_header)
+        loop_context: Option<(&HashSet<usize>, usize)>,
     ) {
         let prefix = "    ".repeat(indent);
         let inner_prefix = "    ".repeat(indent + 1);
 
         // Emit header block instructions (before the branch)
-        self.emit_block_body(cfg, header, output, indent, true, lifted.as_deref_mut());
+        self.emit_block_body(header, indent, true);
 
         let cond_str = condition
-            .map(|c| format_condition_maybe_lifted(c, cfg, header, lifted.as_deref()))
+            .map(|c| format_condition_maybe_lifted(c, self.cfg, header, self.lifted.as_deref()))
             .unwrap_or_else(|| "...".to_string());
-        let _ = writeln!(output, "{}if ({}) {{", prefix, cond_str);
+        let _ = writeln!(self.output, "{}if ({}) {{", prefix, cond_str);
 
         for &tb in then_blocks {
-            let ctrl = self.emit_block_with_loop_control(
-                cfg,
-                tb,
-                output,
-                indent + 1,
-                lifted.as_deref_mut(),
-                loop_context,
-            );
+            let ctrl = self.emit_block_with_loop_control(tb, indent + 1, loop_context);
             if let Some(keyword) = ctrl {
-                let _ = writeln!(output, "{}{}", inner_prefix, keyword);
+                let _ = writeln!(self.output, "{}{}", inner_prefix, keyword);
             }
-            emitted.insert(tb);
+            self.emitted.insert(tb);
         }
 
         if !else_blocks.is_empty() {
-            let _ = writeln!(output, "{}}} else {{", prefix);
+            let _ = writeln!(self.output, "{}}} else {{", prefix);
             for &eb in else_blocks {
-                let ctrl = self.emit_block_with_loop_control(
-                    cfg,
-                    eb,
-                    output,
-                    indent + 1,
-                    lifted.as_deref_mut(),
-                    loop_context,
-                );
+                let ctrl = self.emit_block_with_loop_control(eb, indent + 1, loop_context);
                 if let Some(keyword) = ctrl {
-                    let _ = writeln!(output, "{}{}", inner_prefix, keyword);
+                    let _ = writeln!(self.output, "{}{}", inner_prefix, keyword);
                 }
-                emitted.insert(eb);
+                self.emitted.insert(eb);
             }
         }
 
-        let _ = writeln!(output, "{}}}", prefix);
-        emitted.insert(header);
+        let _ = writeln!(self.output, "{}}}", prefix);
+        self.emitted.insert(header);
     }
 
     /// Emit a block body, detecting break/continue when inside a loop.
     /// Returns `Some("break")` or `Some("continue")` if the block exits/continues the loop.
     fn emit_block_with_loop_control(
-        &self,
-        cfg: &ControlFlowGraph,
+        &mut self,
         block_pc: usize,
-        output: &mut String,
         indent: usize,
-        lifted: Option<&mut LiftedProgram>,
-        loop_context: Option<(&HashSet<usize>, usize)>, // (loop_body, loop_header)
+        loop_context: Option<(&HashSet<usize>, usize)>,
     ) -> Option<&'static str> {
         if let Some((loop_body, loop_header)) = loop_context
-            && let Some(block) = cfg.blocks.get(&block_pc)
+            && let Some(block) = self.cfg.blocks.get(&block_pc)
         {
             let exits_loop = block
                 .successors
@@ -1076,7 +1039,7 @@ impl StructuralAnalysis {
                 .is_some_and(|(_, instr)| matches!(instr, Instruction::Trap));
 
             if !is_trap && (exits_loop || continues_loop) {
-                self.emit_block_body(cfg, block_pc, output, indent, true, lifted);
+                self.emit_block_body(block_pc, indent, true);
                 if exits_loop {
                     return Some("break");
                 } else {
@@ -1084,25 +1047,17 @@ impl StructuralAnalysis {
                 }
             }
         }
-        self.emit_block_body(cfg, block_pc, output, indent, false, lifted);
+        self.emit_block_body(block_pc, indent, false);
         None
     }
 
     /// Emit the instructions in a block as pseudo-code lines.
     /// If `skip_terminator` is true, the last instruction (branch/jump) is not emitted.
     /// When `lifted` is provided, uses variable names and skips eliminated PCs.
-    fn emit_block_body(
-        &self,
-        cfg: &ControlFlowGraph,
-        block_pc: usize,
-        output: &mut String,
-        indent: usize,
-        skip_terminator: bool,
-        mut lifted: Option<&mut LiftedProgram>,
-    ) {
+    fn emit_block_body(&mut self, block_pc: usize, indent: usize, skip_terminator: bool) {
         let prefix = "    ".repeat(indent);
-        let len_before = output.len();
-        if let Some(block) = cfg.blocks.get(&block_pc) {
+        let len_before = self.output.len();
+        if let Some(block) = self.cfg.blocks.get(&block_pc) {
             let len = block.instructions.len();
             let end = if skip_terminator && len > 0 {
                 len - 1
@@ -1111,7 +1066,7 @@ impl StructuralAnalysis {
             };
 
             for (pc, instr) in &block.instructions[..end] {
-                if let Some(ref mut lifted) = lifted {
+                if let Some(ref mut lifted) = self.lifted {
                     // Skip eliminated PCs (folded/propagated).
                     if lifted.eliminated_pcs.contains(pc) {
                         continue;
@@ -1121,7 +1076,7 @@ impl StructuralAnalysis {
                         let target =
                             crate::cfg::ControlFlowGraph::compute_jump_target(*pc, *offset);
                         if let Some(callee) = lifted.call_targets.get(&target) {
-                            let _ = writeln!(output, "{}{}()", prefix, callee);
+                            let _ = writeln!(self.output, "{}{}()", prefix, callee);
                             continue;
                         }
                     }
@@ -1130,11 +1085,11 @@ impl StructuralAnalysis {
                         continue;
                     }
                     if let Some(line) = lifted.format_pc(*pc, instr) {
-                        let _ = writeln!(output, "{}{}", prefix, line);
+                        let _ = writeln!(self.output, "{}{}", prefix, line);
                     }
                 } else {
                     let _ = writeln!(
-                        output,
+                        self.output,
                         "{}{:#06x}: {}",
                         prefix,
                         pc,
@@ -1144,8 +1099,8 @@ impl StructuralAnalysis {
             }
         }
         // Blank line between basic blocks when content was emitted.
-        if output.len() > len_before {
-            output.push('\n');
+        if self.output.len() > len_before {
+            self.output.push('\n');
         }
     }
 }
