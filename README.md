@@ -20,7 +20,7 @@ cargo run -- --debug path/to/file.pvm
 The decompiler produces pseudo-code with:
 - Named variables (`var_0`, `ptr_1`, `cond_2`) replacing register references
 - Inline `let` declarations at first assignment (`let var_0 = 42`)
-- High-level control structures: `while`, `if/else`, `switch/case`
+- High-level control structures: `for`, `while`, `if/else`, `switch/case`
 - Comparison inlining in conditions (e.g. `x <u y` instead of `cond_0 != 0`)
 - Stack variable recovery (`local_0` instead of `u64[sp - 8]`)
 - `return` instead of `trap` at function exits

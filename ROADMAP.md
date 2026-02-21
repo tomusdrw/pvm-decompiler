@@ -43,8 +43,11 @@ Create a tool to reverse engineer PVM (Polkadot Virtual Machine) bytecode into r
 - `trap` → `return` rendering
 
 ### Phase 4: Output Quality — IN PROGRESS
+Completed:
+- For-loop pattern detection (#20) — detects init/cond/step and emits `for` syntax
+
 See open GitHub issues for planned improvements:
-- For-loop pattern detection (#20)
+- SSA variable coalescing for loop variables (#24)
 - Struct field access recovery (#19)
 - Signedness tracking and type narrowing (#16)
 - Named ecalli host functions (#17)

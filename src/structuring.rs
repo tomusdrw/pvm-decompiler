@@ -2089,6 +2089,91 @@ mod tests {
             "Should NOT contain 'while' when for-loop detected: {}",
             pseudo
         );
+        // Check the for-header contains init and condition.
+        // Note: variable names may vary due to HashMap iteration order in
+        // reaching-definition resolution (var_0 vs var_2 for the same register).
+        assert!(
+            pseudo.contains("= 0"),
+            "For-header should contain init assignment: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("!= 10"),
+            "For-header should contain condition: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_while_loop_not_detected_as_for() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // While-loop pattern (no clear init or step for condition variable):
+        // block 0: r1 = 42 (unrelated init), fallthrough to header
+        // block 10 (header): branch r0 != 0 → body (20) | exit (30)
+        // block 20 (body): r1 = r1 + 1, jump to header
+        // block 30: trap
+        //
+        // r0 is the condition variable, but block 0 doesn't define r0,
+        // and the latch (block 20) doesn't define r0 either.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 1, value: 42 }),
+                        (4, Instruction::Fallthrough),
+                    ],
+                    vec![10],
+                ),
+                (
+                    10,
+                    vec![(
+                        10,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
+                    vec![20, 30],
+                ),
+                (
+                    20,
+                    vec![
+                        (
+                            20,
+                            Instruction::AddImm32 {
+                                dst: 1,
+                                src: 1,
+                                value: 1,
+                            },
+                        ),
+                        (24, Instruction::Jump { offset: -14 }),
+                    ],
+                    vec![10],
+                ),
+                (30, vec![(30, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted));
+
+        assert!(
+            pseudo.contains("while"),
+            "Should remain a while-loop when no for-pattern found: {}",
+            pseudo
+        );
+        assert!(
+            !pseudo.contains("for ("),
+            "Should NOT contain 'for (' without init/step pattern: {}",
+            pseudo
+        );
     }
 
     #[test]
