@@ -769,6 +769,33 @@ impl<'a> Emitter<'a> {
         condition: &Option<Condition>,
         indent: usize,
     ) {
+        // Suppress loops whose body blocks are all already emitted or suppressed.
+        // This happens when callee blocks get assigned to the caller but are not
+        // actually part of the caller's logic. Self-loops (body = {header}) are
+        // always rendered since they represent genuine tight loops.
+        let non_header_body: Vec<usize> =
+            body.iter().copied().filter(|&bp| bp != header_pc).collect();
+        let has_unemitted_body = non_header_body.is_empty()
+            || non_header_body.iter().any(|&bp| {
+                !self.emitted.contains(&bp)
+                    && !self
+                        .lifted
+                        .as_ref()
+                        .is_some_and(|l| l.suppressed_blocks.contains(&bp))
+            });
+        if !has_unemitted_body {
+            // Mark all body blocks as emitted so they don't get rendered as top-level blocks.
+            self.emitted.insert(header_pc);
+            self.emitted.extend(body.iter());
+            // Still emit the header block's non-branch instructions (they may have side effects).
+            self.emit_block_body(header_pc, indent, true);
+            return;
+        }
+
+        // Save output position before the loop, so we can rewind if the
+        // loop body turns out to be empty (all blocks produce no visible output).
+        let output_before_loop = self.output.len();
+
         let prefix = "    ".repeat(indent);
         let cond_str = condition
             .as_ref()
@@ -788,6 +815,8 @@ impl<'a> Emitter<'a> {
         } else {
             let _ = writeln!(self.output, "{}while ({}) {{", prefix, cond_str);
         }
+        // Position after the `while/for {` line — body content starts here.
+        let output_after_header_line = self.output.len();
 
         // Suppress the branch and its inlined condition variable definition.
         if let Some(cond) = condition.as_ref() {
@@ -888,7 +917,17 @@ impl<'a> Emitter<'a> {
             self.emitted.insert(body_pc);
         }
 
-        let _ = writeln!(self.output, "{}}}", prefix);
+        // If the loop body produced no visible output and has many non-header body
+        // blocks (> 3), suppress the entire loop. Callee dispatch loops typically have
+        // 10+ body blocks of stack frame saves/restores that all get eliminated by
+        // lifting. Real loops with small bodies (1-2 blocks) are preserved even if
+        // their instructions are eliminated — they represent real control flow.
+        let body_output = &self.output[output_after_header_line..];
+        if non_header_body.len() > 3 && body_output.trim().is_empty() {
+            self.output.truncate(output_before_loop);
+        } else {
+            let _ = writeln!(self.output, "{}}}", prefix);
+        }
         self.emitted.extend(body.iter());
     }
 
@@ -1282,16 +1321,18 @@ fn format_condition_lifted(cond: &Condition, branch_pc: usize, lifted: &LiftedPr
         // Check if the expression is already boolean (comparison, negation,
         // or bitwise AND/OR of booleans). If so, inline it directly.
         if crate::lifting::is_boolean_expr(expr) {
+            // Resolve any eliminated variable references before formatting.
+            let resolved = lifted.resolve_eliminated_vars(expr);
             if cond.op == CondOp::Eq {
                 // Invert: `cond_var == 0` where cond_var is boolean → negate
                 use crate::lifting::simplify_expression;
                 let negated = crate::lifting::Expression::UnaryOp {
                     op: crate::instruction::UnaryOp::Not,
-                    operand: Box::new(expr.clone()),
+                    operand: Box::new(resolved),
                 };
                 return format_expression(&simplify_expression(negated));
             } else {
-                return format_expression(expr);
+                return format_expression(&resolved);
             }
         }
     }
@@ -1316,12 +1357,33 @@ fn format_operand(op: &Operand) -> String {
 }
 
 fn format_operand_lifted(op: &Operand, branch_pc: usize, lifted: &LiftedProgram) -> String {
+    use crate::lifting::format_expression;
     match op {
-        Operand::Reg(r) => lifted
-            .var_at_use
-            .get(&(branch_pc, *r))
-            .cloned()
-            .unwrap_or_else(|| format!("r{}", r)),
+        Operand::Reg(r) => {
+            if let Some(name) = lifted.var_at_use.get(&(branch_pc, *r)) {
+                // If the variable was eliminated, inline its definition expression.
+                // Skip inlining for variables with multiple uses in var_at_use, since
+                // they are likely loop induction variables whose initial constant def
+                // was absorbed into a for-loop header but whose name is still live.
+                if let Some(def_pc) = lifted.var_name_to_def_pc.get(name.as_str())
+                    && lifted.eliminated_pcs.contains(def_pc)
+                    && let Some(expr) = lifted.expressions.get(def_pc)
+                {
+                    let use_count = lifted
+                        .var_at_use
+                        .values()
+                        .filter(|v| v.as_str() == name.as_str())
+                        .count();
+                    if use_count <= 1 {
+                        let resolved = lifted.resolve_eliminated_vars(expr);
+                        return format_expression(&resolved);
+                    }
+                }
+                name.clone()
+            } else {
+                format!("r{}", r)
+            }
+        }
         Operand::Imm(v) => format!("{}", v),
     }
 }

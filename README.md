@@ -40,6 +40,127 @@ The decompiler produces pseudo-code with:
 - Compound boolean condition inlining (`while (x <s 5 & x <=s 2)` instead of `while (cond != 0)`)
 - Unreachable code suppression after `return` (dispatch infrastructure removed)
 
+## Example Outputs
+
+All examples are compiled from WASM to PVM bytecode. The decompiler recovers high-level structure from raw register-based instructions.
+
+### Fibonacci (simple, compiled with polkatool)
+
+Input: `examples/compiled/fibonacci.pvm` — a basic Fibonacci loop compiled from Rust via polkatool.
+
+```
+fn main(r1: u64, r7: u64, r8: u64) {
+    let ptr_0_56 = u32[r7]
+    let ptr_0_80 = 0
+    let ptr_0_88 = 1
+    let ptr_0_96 = 0
+
+    while (ptr_0_80 >=u ptr_0_56) {
+        ptr_0_80 = ptr_0_80 + 1
+        ptr_0_88 = ptr_0_96 + ptr_0_88
+        ptr_0_96 = ptr_0_88
+    }
+
+    mem[0] = ptr_0_96
+    let ptr_0_64 = 17179869184
+
+    let var_9 = pvm_addr(ptr_0_64) + (ptr_0_64 >>u 32)
+    halt()
+}
+
+fn func_0() {
+    return
+}
+```
+
+### Fibonacci (AssemblyScript)
+
+Input: `examples/compiled/as-fibonacci.pvm` — Fibonacci compiled from AssemblyScript via wasm-pvm. Shows cross-function calls, heap management (WASM memory grow via `sbrk`), and the actual Fibonacci loop.
+
+```
+fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    func_1()
+}
+
+fn func_1(r1: u64) {
+    let var_1 = u64[r1 + 8]
+    let ptr_0_40 = wasm_ptr(u64[r1])
+    let ptr_0_56 = HEAP_PTR
+    let var_9 = HEAP_PTR + 4
+    let ptr_0_88 = var_9
+    let ptr_0_112 = var_9 + 268
+    let var_15 = HEAP_PAGES
+    let ptr_0_120 = var_15
+    let ptr_0_192 = (var_15 << 16) + 15 & -16
+
+    if (((var_15 << 16) + 15 & -16) <u var_9 + 268) {
+        ...  // heap grow logic
+    }
+
+    HEAP_PTR = ptr_0_112
+    let ptr_0_520 = 0
+    let ptr_0_528 = 1
+    let ptr_0_536 = mem[ptr_0_40]
+
+    while (ptr_0_536 >s 0) {
+        let var_136 = ptr_0_528 + ptr_0_520
+        ptr_0_520 = var_136 - ptr_0_520
+        ptr_0_528 = var_136
+        ptr_0_536 = ptr_0_536 - 1
+    }
+
+    RESULT_PTR = ptr_0_88
+    RESULT_LEN = 4
+    halt()
+}
+```
+
+### Control Flow (AssemblyScript)
+
+Input: `examples/compiled/as-tests-control-flow.pvm` — Tests `if/else`, counting loops, and nested `while` with compound boolean conditions.
+
+```
+fn func_1(r1: u64) {
+    ...
+    let var_100 = mem[ptr_0_40]
+    let ptr_0_464 = var_100
+    let ptr_0_512 = 2
+
+    if (var_100 <=s 10) {
+        let ptr_0_568 = 0
+        let ptr_0_576 = ptr_0_512
+    } else {
+        ptr_0_512 = 1
+    }
+
+    while (ptr_0_568 <s ptr_0_464) {
+        ptr_0_568 = ptr_0_568 + 1
+        ptr_0_576 = ptr_0_576 + 1
+    }
+
+    let ptr_0_680 = 0
+    let ptr_0_688 = ptr_0_576
+
+    while (ptr_0_680 <s 5) {
+        let ptr_0_760 = 0
+        let ptr_0_768 = ptr_0_688
+
+        while (ptr_0_760 <s 5 & ptr_0_760 <=s 2) {
+            ptr_0_760 = ptr_0_760 + 1
+            ptr_0_768 = ptr_0_768 + 1
+        }
+
+        ptr_0_680 = ptr_0_680 + 1
+        ptr_0_688 = ptr_0_768
+    }
+
+    mem[RESULT_PTR] = ptr_0_688
+    ...
+}
+```
+
+Full outputs for all examples are in [`examples/output/`](examples/output/).
+
 ## Architecture
 
 The decompiler pipeline has 6 stages:

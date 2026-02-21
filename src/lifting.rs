@@ -850,6 +850,7 @@ impl LiftedProgram {
     /// and var_at_use for Raw expressions (branches) where names are embedded as strings.
     fn count_var_use_sites(&self, var_name: &str, exclude_pc: usize) -> usize {
         let mut count = 0;
+        // Count uses in expression trees
         for (&pc, expr) in &self.expressions {
             if pc == exclude_pc || self.eliminated_pcs.contains(&pc) {
                 continue;
@@ -865,6 +866,19 @@ impl LiftedProgram {
                 count += 1;
             }
         }
+        // Also count uses in var_at_use for PCs that have NO expression entry
+        // (e.g., branch/terminator instructions that use registers in conditions).
+        let mut branch_use_pcs: HashSet<usize> = HashSet::new();
+        for (&(upc, _), name) in &self.var_at_use {
+            if upc != exclude_pc
+                && !self.eliminated_pcs.contains(&upc)
+                && name.as_str() == var_name
+                && !self.expressions.contains_key(&upc)
+            {
+                branch_use_pcs.insert(upc);
+            }
+        }
+        count += branch_use_pcs.len();
         count
     }
 
@@ -1182,6 +1196,68 @@ impl LiftedProgram {
     pub fn expression_for_var(&self, var_name: &str) -> Option<&Expression> {
         let def_pc = self.var_name_to_def_pc.get(var_name)?;
         self.expressions.get(def_pc)
+    }
+
+    /// Recursively resolve eliminated variable references in an expression.
+    /// When a `Var(name)` refers to a variable whose definition was eliminated
+    /// (inlined elsewhere), substitute the variable's definition expression.
+    pub fn resolve_eliminated_vars(&self, expr: &Expression) -> Expression {
+        self.resolve_eliminated_vars_depth(expr, 0)
+    }
+
+    fn resolve_eliminated_vars_depth(&self, expr: &Expression, depth: usize) -> Expression {
+        if depth > 10 {
+            return expr.clone();
+        }
+        match expr {
+            Expression::Var(name) => {
+                if let Some(def_pc) = self.var_name_to_def_pc.get(name.as_str())
+                    && self.eliminated_pcs.contains(def_pc)
+                    && let Some(def_expr) = self.expressions.get(def_pc)
+                {
+                    self.resolve_eliminated_vars_depth(def_expr, depth + 1)
+                } else {
+                    expr.clone()
+                }
+            }
+            Expression::BinOp { op, lhs, rhs } => Expression::BinOp {
+                op: *op,
+                lhs: Box::new(self.resolve_eliminated_vars_depth(lhs, depth)),
+                rhs: Box::new(self.resolve_eliminated_vars_depth(rhs, depth)),
+            },
+            Expression::UnaryOp { op, operand } => Expression::UnaryOp {
+                op: *op,
+                operand: Box::new(self.resolve_eliminated_vars_depth(operand, depth)),
+            },
+            Expression::Load {
+                width,
+                base,
+                offset,
+            } => Expression::Load {
+                width: *width,
+                base: Box::new(self.resolve_eliminated_vars_depth(base, depth)),
+                offset: *offset,
+            },
+            Expression::Store {
+                width,
+                base,
+                offset,
+                value,
+            } => Expression::Store {
+                width: *width,
+                base: Box::new(self.resolve_eliminated_vars_depth(base, depth)),
+                offset: *offset,
+                value: Box::new(self.resolve_eliminated_vars_depth(value, depth)),
+            },
+            Expression::Call { name, args } => Expression::Call {
+                name: name.clone(),
+                args: args
+                    .iter()
+                    .map(|a| self.resolve_eliminated_vars_depth(a, depth))
+                    .collect(),
+            },
+            Expression::Const(_) | Expression::Raw(_) => expr.clone(),
+        }
     }
 }
 
@@ -3690,5 +3766,107 @@ mod tests {
 
         // Clean up
         set_memory_base(None);
+    }
+
+    fn empty_lifted() -> LiftedProgram {
+        LiftedProgram {
+            variables: HashMap::new(),
+            expressions: HashMap::new(),
+            eliminated_pcs: HashSet::new(),
+            var_at_use: HashMap::new(),
+            declared_vars: HashSet::new(),
+            stack_vars: HashMap::new(),
+            call_targets: HashMap::new(),
+            indirect_call_targets: HashMap::new(),
+            var_name_to_def_pc: HashMap::new(),
+            epilogue_blocks: HashMap::new(),
+            suppressed_blocks: HashSet::new(),
+            memory_base: None,
+        }
+    }
+
+    #[test]
+    fn test_resolve_eliminated_vars() {
+        let mut lifted = empty_lifted();
+
+        // Define var_a = 42 at PC 0 (eliminated)
+        lifted.variables.insert(
+            (0, 2),
+            Variable {
+                name: "var_a".to_string(),
+                var_type: VarType::U64,
+            },
+        );
+        lifted.expressions.insert(0, Expression::Const(42));
+        lifted.var_name_to_def_pc.insert("var_a".to_string(), 0);
+        lifted.eliminated_pcs.insert(0);
+
+        // Define var_b = var_a + 10 at PC 5 (eliminated)
+        lifted.variables.insert(
+            (5, 3),
+            Variable {
+                name: "var_b".to_string(),
+                var_type: VarType::U64,
+            },
+        );
+        lifted.expressions.insert(
+            5,
+            Expression::BinOp {
+                op: BinOp::Add,
+                lhs: Box::new(Expression::Var("var_a".to_string())),
+                rhs: Box::new(Expression::Const(10)),
+            },
+        );
+        lifted.var_name_to_def_pc.insert("var_b".to_string(), 5);
+        lifted.eliminated_pcs.insert(5);
+
+        // Define var_c = var_b * 2 at PC 10 (NOT eliminated — still live)
+        lifted.variables.insert(
+            (10, 4),
+            Variable {
+                name: "var_c".to_string(),
+                var_type: VarType::U64,
+            },
+        );
+        lifted.expressions.insert(
+            10,
+            Expression::BinOp {
+                op: BinOp::Mul,
+                lhs: Box::new(Expression::Var("var_b".to_string())),
+                rhs: Box::new(Expression::Const(2)),
+            },
+        );
+        lifted.var_name_to_def_pc.insert("var_c".to_string(), 10);
+
+        // Expression referencing eliminated var_b: should resolve to (42 + 10)
+        let expr = Expression::Var("var_b".to_string());
+        let resolved = lifted.resolve_eliminated_vars(&expr);
+        assert_eq!(
+            format_expression(&resolved),
+            "42 + 10",
+            "var_b should be resolved to its definition (42 + 10)"
+        );
+
+        // Expression referencing live var_c: should stay as var_c
+        let expr2 = Expression::Var("var_c".to_string());
+        let resolved2 = lifted.resolve_eliminated_vars(&expr2);
+        assert_eq!(
+            format_expression(&resolved2),
+            "var_c",
+            "var_c should NOT be resolved (not eliminated)"
+        );
+
+        // Compound expression: var_b + var_c should partially resolve
+        let compound = Expression::BinOp {
+            op: BinOp::Add,
+            lhs: Box::new(Expression::Var("var_b".to_string())),
+            rhs: Box::new(Expression::Var("var_c".to_string())),
+        };
+        let resolved3 = lifted.resolve_eliminated_vars(&compound);
+        assert_eq!(
+            format_expression(&resolved3),
+            "42 + 10 + var_c",
+            "Should resolve eliminated var_b but keep live var_c"
+        );
     }
 }

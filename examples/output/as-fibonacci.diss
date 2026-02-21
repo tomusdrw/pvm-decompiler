@@ -15,10 +15,9 @@ fn func_1(r1: u64) {
     let ptr_0_112 = var_9 + 268
     let var_15 = HEAP_PAGES
     let ptr_0_120 = var_15
-    let var_27 = (var_15 << 16) + 15 & -16
-    let ptr_0_192 = var_27
+    let ptr_0_192 = (var_15 << 16) + 15 & -16
 
-    if (var_27 <u var_13) {
+    if (((var_15 << 16) + 15 & -16) <u var_9 + 268) {
         let var_64 = (ptr_0_112 - ptr_0_192 + 65535 & -65536) >>u 16
         let ptr_0_344 = var_64
         let cond_3 = var_64 <s ptr_0_120
@@ -34,7 +33,7 @@ fn func_1(r1: u64) {
     if (var_81 <u var_82) {
         let var_87 = -1
     } else {
-        if (var_82 <u var_83) goto block_0223;
+        if (var_82 <u 256) goto block_0223;
     }
 
     HEAP_PAGES = var_82
@@ -46,7 +45,7 @@ fn func_1(r1: u64) {
         if (var_103 <u var_104) goto block_02d5;
     }
 
-    if (var_104 <u var_105) {
+    if (var_104 <u 256) {
         let var_109 = -1
     } else {
         HEAP_PAGES = var_104
@@ -63,8 +62,9 @@ fn func_1(r1: u64) {
     let ptr_0_536 = mem[ptr_0_40]
 
     while (ptr_0_536 >s 0) {
+        let var_136 = ptr_0_528 + ptr_0_520
         ptr_0_520 = var_136 - ptr_0_520
-        ptr_0_528 = ptr_0_528 + ptr_0_520
+        ptr_0_528 = var_136
         ptr_0_536 = ptr_0_536 - 1
     }
 

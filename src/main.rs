@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs;
 use std::io::Read;
@@ -250,8 +250,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Suppress callee blocks that were misassigned to this function.
         // When a direct call pattern jumps to a target within this function,
         // BFS from the target to find all reachable callee blocks to suppress.
+        // Skip when calling ourselves (recursive) — those blocks are ours.
+        // Stop the BFS at the caller's own block PCs (the caller_block_pc and
+        // nearby blocks) to avoid flooding into caller's continuation code.
+        // Collect all caller block PCs and return points as BFS boundaries.
+        let caller_block_pcs: HashSet<usize> = direct_call_patterns
+            .iter()
+            .flat_map(|p| [p.caller_block_pc, p.return_pc])
+            .collect();
         for pat in &direct_call_patterns {
-            if func.block_pcs.contains(&pat.jump_target_pc) {
+            if func.block_pcs.contains(&pat.jump_target_pc) && pat.callee_name != func.name {
                 let mut queue = std::collections::VecDeque::new();
                 queue.push_back(pat.jump_target_pc);
                 while let Some(bp) = queue.pop_front() {
@@ -259,7 +267,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         && let Some(block) = func_cfg.blocks.get(&bp)
                     {
                         for &succ in &block.successors {
-                            if !lifted.suppressed_blocks.contains(&succ) {
+                            if !lifted.suppressed_blocks.contains(&succ)
+                                && !caller_block_pcs.contains(&succ)
+                            {
                                 queue.push_back(succ);
                             }
                         }
@@ -267,7 +277,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-
         let structural = StructuralAnalysis::analyze_with_dom_tree(
             &func_cfg,
             &program,
@@ -376,8 +385,12 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
         for &pc in &call_pattern_eliminated_pcs {
             lifted.eliminated_pcs.insert(pc);
         }
+        let caller_block_pcs: HashSet<usize> = direct_call_patterns
+            .iter()
+            .flat_map(|p| [p.caller_block_pc, p.return_pc])
+            .collect();
         for pat in &direct_call_patterns {
-            if func.block_pcs.contains(&pat.jump_target_pc) {
+            if func.block_pcs.contains(&pat.jump_target_pc) && pat.callee_name != func.name {
                 let mut queue = std::collections::VecDeque::new();
                 queue.push_back(pat.jump_target_pc);
                 while let Some(bp) = queue.pop_front() {
@@ -385,7 +398,9 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
                         && let Some(block) = func_cfg.blocks.get(&bp)
                     {
                         for &succ in &block.successors {
-                            if !lifted.suppressed_blocks.contains(&succ) {
+                            if !lifted.suppressed_blocks.contains(&succ)
+                                && !caller_block_pcs.contains(&succ)
+                            {
                                 queue.push_back(succ);
                             }
                         }
