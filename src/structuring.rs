@@ -1546,7 +1546,34 @@ fn fix_blank_lines(input: &str) -> String {
         }
     }
 
-    let mut out = final_out.join("\n");
+    // Fifth pass: suppress unreachable code after top-level `return`.
+    // Inside a function body (indentation = 4 spaces), code after `return`
+    // that isn't a labeled block header is unreachable dispatch infrastructure.
+    let mut cleaned: Vec<&str> = Vec::new();
+    let mut suppressing = false;
+    for &line in &final_out {
+        let trimmed = line.trim();
+        if suppressing {
+            // Stop suppressing at labeled blocks (goto targets) or function closing brace
+            if trimmed.ends_with(':') && !trimmed.starts_with("case ") {
+                suppressing = false;
+                cleaned.push(line);
+            } else if trimmed == "}" && !line.starts_with("    ") {
+                // Only stop at the function-level closing brace (no indentation)
+                suppressing = false;
+                cleaned.push(line);
+            }
+            // Otherwise skip the line (unreachable)
+            continue;
+        }
+        cleaned.push(line);
+        // Start suppressing after a top-level `return` (indented by exactly 4 spaces)
+        if trimmed == "return" && line.starts_with("    return") && !line.starts_with("        ") {
+            suppressing = true;
+        }
+    }
+
+    let mut out = cleaned.join("\n");
     out.push('\n');
     out
 }
