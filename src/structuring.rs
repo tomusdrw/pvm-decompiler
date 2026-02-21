@@ -852,11 +852,7 @@ impl<'a> Emitter<'a> {
     /// through non-terminal paths (i.e., not through break/continue blocks).
     /// A block that would emit break or continue is itself reachable, but
     /// its successors (within the loop body) are not traversed further.
-    fn compute_reachable_in_loop(
-        &self,
-        body: &HashSet<usize>,
-        header_pc: usize,
-    ) -> HashSet<usize> {
+    fn compute_reachable_in_loop(&self, body: &HashSet<usize>, header_pc: usize) -> HashSet<usize> {
         let mut reachable = HashSet::new();
         let mut worklist = VecDeque::new();
 
@@ -902,8 +898,7 @@ impl<'a> Emitter<'a> {
                                 .successors
                                 .iter()
                                 .any(|s| !body.contains(s) && *s != header_pc);
-                            let cont =
-                                b.successors.len() == 1 && b.successors[0] == header_pc;
+                            let cont = b.successors.len() == 1 && b.successors[0] == header_pc;
                             let trap = b
                                 .instructions
                                 .last()
@@ -917,8 +912,7 @@ impl<'a> Emitter<'a> {
                                 .successors
                                 .iter()
                                 .any(|s| !body.contains(s) && *s != header_pc);
-                            let cont =
-                                b.successors.len() == 1 && b.successors[0] == header_pc;
+                            let cont = b.successors.len() == 1 && b.successors[0] == header_pc;
                             let trap = b
                                 .instructions
                                 .last()
@@ -3110,7 +3104,12 @@ mod tests {
                     30,
                     vec![
                         (30, Instruction::LoadImm { reg: 4, value: 99 }),
-                        (34, Instruction::Jump { offset: 60_i32 - 34 }),
+                        (
+                            34,
+                            Instruction::Jump {
+                                offset: 60_i32 - 34,
+                            },
+                        ),
                     ],
                     vec![60],
                 ),
@@ -3135,11 +3134,7 @@ mod tests {
         let pseudo = result.pseudo_code(&cfg, None, None);
 
         // Should contain both break and continue
-        assert!(
-            pseudo.contains("break"),
-            "Should contain break: {}",
-            pseudo
-        );
+        assert!(pseudo.contains("break"), "Should contain break: {}", pseudo);
         assert!(
             pseudo.contains("continue"),
             "Should contain continue: {}",
