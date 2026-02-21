@@ -79,6 +79,8 @@ Completed:
 ### Phase 4d: Advanced Output — COMPLETE
 - Render `0 <s x` as `x >s 0` and similar comparisons (#38) — flip `const <u/s expr` to `expr >u/s const`, with `0 <u` kept for `!= 0` rendering
 - Improve block emission order in loop bodies (#37) — reverse post-order DFS instead of PC-sorted, prevents `continue` appearing mid-body in nested loops
+- Suppress redundant `continue` at end of loop body — implicit fall-through makes trailing `continue` unnecessary
+- Eliminate redundant condition variable definitions in if headers — `let cond = x >=s y` suppressed when inlined into `if (x >=s y)`
 
 ### Phase 5: LLM Refinement (Future)
 - Prompt engineering for function-level polishing

@@ -22,7 +22,7 @@ The decompiler produces pseudo-code with:
 - Named variables (`var_0`, `ptr_1`, `cond_2`) with width/signedness types (`u32`, `i64`, `bool`)
 - Inline `let` declarations at first assignment (`let var_0: u32 = 42`)
 - High-level control structures: `for`, `while`, `if/else`, `switch/case`
-- `break`/`continue` in loop bodies, with unreachable code suppressed and redundant trailing `continue` elided
+- `break`/`continue` in loop bodies, with unreachable code suppressed, redundant trailing `continue` elided, and condition variable definitions eliminated when inlined
 - Comparison inlining in conditions (e.g. `x <u y` instead of `cond_0 != 0`)
 - Comparison inversion (`!(x <u y)` → `x >=u y`) and flipping (`0 <s x` → `x >s 0`)
 - Struct field access recovery (`ptr_0->field_8` instead of `u64[ptr_0 + 8]`)
