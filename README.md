@@ -22,8 +22,9 @@ The decompiler produces pseudo-code with:
 - Named variables (`var_0`, `ptr_1`, `cond_2`) with width/signedness types (`u32`, `i64`, `bool`)
 - Inline `let` declarations at first assignment (`let var_0: u32 = 42`)
 - High-level control structures: `for`, `while`, `if/else`, `switch/case`
-- `break`/`continue` in loop bodies
+- `break`/`continue` in loop bodies, with unreachable code after them suppressed
 - Comparison inlining in conditions (e.g. `x <u y` instead of `cond_0 != 0`)
+- Comparison inversion (`!(x <u y)` → `x >=u y`) and flipping (`0 <s x` → `x >s 0`)
 - Struct field access recovery (`ptr_0->field_8` instead of `u64[ptr_0 + 8]`)
 - Stack variable recovery (`local_0` instead of `u64[sp - 8]`)
 - Named JAM host calls (`gas_remaining()`, `read()`, `write()` instead of `ecalli(0)`)
@@ -31,6 +32,9 @@ The decompiler produces pseudo-code with:
 - SSA variable coalescing for loop induction variables
 - Array access pattern recovery (`ptr[i]` instead of `u32[ptr + i * 4]`)
 - Indirect call resolution (`func_name()` instead of `call_indirect(var)` when target is constant)
+- Expression simplification: double negation elimination, constant folding, identity operations
+- Bitwise boolean pattern simplification (`0 <u (a | b)` → `(a | b) != 0`)
+- Empty else block suppression for cleaner output
 
 ## Architecture
 
