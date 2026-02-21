@@ -1186,6 +1186,38 @@ fn ecalli_name(index: u32) -> String {
 /// - `x * 1`, `x /u 1`, `x /s 1` → `x`
 /// - `x * 0`, `x & 0` → `0`
 /// - `bool <u 1` → `!bool` (common negation pattern)
+///
+/// Returns true if an expression is known to produce a boolean (0 or 1) result.
+/// Used to elide `!= 0` checks on expressions that are already boolean.
+pub fn is_boolean_expr(expr: &Expression) -> bool {
+    match expr {
+        Expression::UnaryOp {
+            op: UnaryOp::Not, ..
+        } => true,
+        Expression::BinOp { op, lhs, rhs } => {
+            if matches!(
+                op,
+                BinOp::LtU
+                    | BinOp::LtS
+                    | BinOp::GeU
+                    | BinOp::GeS
+                    | BinOp::GtU
+                    | BinOp::GtS
+                    | BinOp::LeU
+                    | BinOp::LeS
+            ) {
+                return true;
+            }
+            // Bitwise AND/OR of two booleans is also boolean
+            if matches!(op, BinOp::And | BinOp::Or) {
+                return is_boolean_expr(lhs) && is_boolean_expr(rhs);
+            }
+            false
+        }
+        _ => false,
+    }
+}
+
 pub fn simplify_expression(expr: Expression) -> Expression {
     match expr {
         Expression::BinOp { op, lhs, rhs } => {
@@ -1257,25 +1289,7 @@ pub fn simplify_expression(expr: Expression) -> Expression {
                 },
                 // 0 <u expr → expr when expr is already boolean (comparison or negation)
                 // This eliminates truthy checks like `0 <u (x >=u y)` → `x >=u y`
-                (BinOp::LtU, Expression::Const(0), _)
-                    if matches!(
-                        &rhs,
-                        Expression::UnaryOp {
-                            op: UnaryOp::Not,
-                            ..
-                        } | Expression::BinOp {
-                            op: BinOp::LtU
-                                | BinOp::LtS
-                                | BinOp::GeU
-                                | BinOp::GeS
-                                | BinOp::GtU
-                                | BinOp::GtS,
-                            ..
-                        }
-                    ) =>
-                {
-                    rhs
-                }
+                (BinOp::LtU, Expression::Const(0), _) if is_boolean_expr(&rhs) => rhs,
                 // Flip `const <u expr` → `expr >u const` and `const <s expr` → `expr >s const`
                 // for readability (e.g., `1 <s x` → `x >s 1`).
                 // Skip constant 0 for LtU since `0 <u expr` is handled by format_expression
@@ -1734,23 +1748,7 @@ pub fn format_expression(expr: &Expression) -> String {
             // This makes bitwise boolean patterns more readable.
             if *op == BinOp::LtU
                 && matches!(lhs.as_ref(), Expression::Const(0))
-                && !matches!(
-                    rhs.as_ref(),
-                    Expression::UnaryOp {
-                        op: UnaryOp::Not,
-                        ..
-                    } | Expression::BinOp {
-                        op: BinOp::LtU
-                            | BinOp::LtS
-                            | BinOp::GeU
-                            | BinOp::GeS
-                            | BinOp::GtU
-                            | BinOp::GtS
-                            | BinOp::LeU
-                            | BinOp::LeS,
-                        ..
-                    }
-                )
+                && !is_boolean_expr(rhs)
             {
                 let rhs_str = format_expression(rhs);
                 // Wrap in parens if the rhs is a binary operation to avoid precedence issues

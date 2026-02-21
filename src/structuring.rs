@@ -1770,7 +1770,6 @@ fn format_condition(cond: &Condition) -> String {
 /// When the condition is `cond_var != 0` and cond_var was defined by a comparison
 /// expression (e.g. `x <u y`), inline the comparison directly.
 fn format_condition_lifted(cond: &Condition, branch_pc: usize, lifted: &LiftedProgram) -> String {
-    use crate::instruction::BinOp;
     use crate::lifting::format_expression;
 
     // Try to inline boolean variable definitions into conditions.
@@ -1782,51 +1781,20 @@ fn format_condition_lifted(cond: &Condition, branch_pc: usize, lifted: &LiftedPr
         && let Some(name) = lifted.var_at_use.get(&(branch_pc, *reg))
         && let Some(expr) = lifted.expression_for_var(name)
     {
-        // Check if the expression is a comparison (LtU, LtS, GeU, GeS, GtU, GtS)
-        if let crate::lifting::Expression::BinOp {
-            op,
-            lhs: inner_lhs,
-            rhs: inner_rhs,
-        } = expr
-            && matches!(
-                op,
-                BinOp::LtU
-                    | BinOp::LtS
-                    | BinOp::GeU
-                    | BinOp::GeS
-                    | BinOp::GtU
-                    | BinOp::GtS
-                    | BinOp::LeU
-                    | BinOp::LeS
-            )
-        {
+        // Check if the expression is already boolean (comparison, negation,
+        // or bitwise AND/OR of booleans). If so, inline it directly.
+        if crate::lifting::is_boolean_expr(expr) {
             if cond.op == CondOp::Eq {
-                // Invert the comparison directly instead of wrapping with !(...)
+                // Invert: `cond_var == 0` where cond_var is boolean → negate
                 use crate::lifting::simplify_expression;
                 let negated = crate::lifting::Expression::UnaryOp {
                     op: crate::instruction::UnaryOp::Not,
-                    operand: Box::new(crate::lifting::Expression::BinOp {
-                        op: *op,
-                        lhs: Box::new(inner_lhs.as_ref().clone()),
-                        rhs: Box::new(inner_rhs.as_ref().clone()),
-                    }),
+                    operand: Box::new(expr.clone()),
                 };
                 return format_expression(&simplify_expression(negated));
             } else {
                 return format_expression(expr);
             }
-        }
-        // Check if it's a negation: !bool
-        if let crate::lifting::Expression::UnaryOp {
-            op: crate::instruction::UnaryOp::Not,
-            operand,
-        } = expr
-        {
-            return if cond.op == CondOp::Eq {
-                format_expression(operand)
-            } else {
-                format_expression(expr)
-            };
         }
     }
 
