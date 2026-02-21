@@ -341,6 +341,67 @@ fn assign_blocks_to_entries(
     assignments
 }
 
+/// A call site: a block in one function that has an edge to another function's entry.
+#[derive(Debug, Clone)]
+pub struct CallSite {
+    /// PC of the block containing the call (the last instruction is the jump/branch).
+    pub caller_block_pc: usize,
+    /// Entry PC of the called function.
+    pub callee_entry_pc: usize,
+    /// Name of the called function.
+    pub callee_name: String,
+}
+
+/// Build a call graph: find all cross-function edges and map them to call sites.
+/// Returns a map from caller function entry PC → list of call sites.
+pub fn build_call_graph(
+    cfg: &ControlFlowGraph,
+    functions: &[Function],
+) -> HashMap<usize, Vec<CallSite>> {
+    // Build a lookup: block_pc → function entry_pc
+    let mut block_to_func: HashMap<usize, usize> = HashMap::new();
+    for func in functions {
+        for &block_pc in &func.block_pcs {
+            block_to_func.insert(block_pc, func.entry_pc);
+        }
+    }
+
+    // Build a lookup: function entry_pc → function name
+    let func_names: HashMap<usize, String> = functions
+        .iter()
+        .map(|f| (f.entry_pc, f.name.clone()))
+        .collect();
+
+    let mut call_graph: HashMap<usize, Vec<CallSite>> = HashMap::new();
+
+    for func in functions {
+        for &block_pc in &func.block_pcs {
+            if let Some(block) = cfg.blocks.get(&block_pc) {
+                for &succ in &block.successors {
+                    // Check if the successor belongs to a different function
+                    if let Some(&succ_func_entry) = block_to_func.get(&succ)
+                        && succ_func_entry != func.entry_pc
+                        && succ == succ_func_entry
+                    {
+                        // This is a call: jump from this function to another function's entry
+                        let callee_name = func_names
+                            .get(&succ_func_entry)
+                            .cloned()
+                            .unwrap_or_else(|| format!("func_at_{:#06x}", succ_func_entry));
+                        call_graph.entry(func.entry_pc).or_default().push(CallSite {
+                            caller_block_pc: block_pc,
+                            callee_entry_pc: succ_func_entry,
+                            callee_name,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    call_graph
+}
+
 /// Build a sub-CFG containing only the blocks belonging to a function.
 /// Edges to blocks outside the function are removed.
 pub fn build_function_cfg(cfg: &ControlFlowGraph, function: &Function) -> ControlFlowGraph {
@@ -582,5 +643,74 @@ mod tests {
             let pseudo = structural.pseudo_code(&func_cfg, Some(&mut lifted), None);
             assert!(!pseudo.is_empty(), "Pseudo-code should not be empty");
         }
+    }
+
+    #[test]
+    fn test_build_call_graph() {
+        // Build a CFG where block 10 (in func_0) has a successor edge to 0x100
+        // (entry of func_1). We manually specify the function boundaries to
+        // simulate what detect_functions + split_at_prologues would produce.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                // func_0: block at 0
+                (
+                    0,
+                    vec![(0, Instruction::LoadImm { reg: 0, value: 1 })],
+                    vec![10],
+                ),
+                // func_0: block at 10, has a cross-function edge to 0x100
+                (
+                    10,
+                    vec![(
+                        10,
+                        Instruction::Jump {
+                            offset: 0x100_i32 - 10,
+                        },
+                    )],
+                    vec![0x100],
+                ),
+                // func_1: entry block at 0x100
+                (
+                    0x100,
+                    vec![(0x100, Instruction::LoadImm { reg: 1, value: 2 })],
+                    vec![0x110],
+                ),
+                // func_1: exit block
+                (0x110, vec![(0x110, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        // Manually define function boundaries (simulating prologue-based split)
+        let functions = vec![
+            Function {
+                entry_pc: 0,
+                block_pcs: [0, 10].iter().copied().collect(),
+                name: "main".to_string(),
+            },
+            Function {
+                entry_pc: 0x100,
+                block_pcs: [0x100, 0x110].iter().copied().collect(),
+                name: "func_0".to_string(),
+            },
+        ];
+
+        let call_graph = build_call_graph(&cfg, &functions);
+
+        // main should have a call to func_0
+        let calls = call_graph.get(&0usize);
+        assert!(calls.is_some(), "main should have call sites");
+
+        let calls = calls.unwrap();
+        assert_eq!(calls.len(), 1, "main should call exactly one function");
+        assert_eq!(calls[0].callee_entry_pc, 0x100);
+        assert_eq!(calls[0].caller_block_pc, 10);
+        assert_eq!(calls[0].callee_name, "func_0");
+
+        // func_0 should have no outgoing calls
+        assert!(
+            call_graph.get(&0x100usize).is_none(),
+            "func_0 should have no call sites"
+        );
     }
 }

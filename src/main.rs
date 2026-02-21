@@ -15,7 +15,7 @@ mod varint;
 
 use cfg::ControlFlowGraph;
 use dataflow::DataFlowAnalysis;
-use functions::{build_function_cfg, detect_functions};
+use functions::{build_call_graph, build_function_cfg, detect_functions};
 use lifting::LiftedProgram;
 use structuring::{DominatorTree, FunctionSignature, StructuralAnalysis};
 
@@ -147,12 +147,39 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    // Build call graph
+    let call_graph = build_call_graph(&cfg, &detected_functions);
+    if verbosity >= Verbosity::Verbose && !call_graph.is_empty() {
+        println!("\n=== Call Graph ===");
+        for func in &detected_functions {
+            if let Some(calls) = call_graph.get(&func.entry_pc) {
+                for call in calls {
+                    println!(
+                        "  {} (block {:#06x}) → {}",
+                        func.name, call.caller_block_pc, call.callee_name
+                    );
+                }
+            }
+        }
+    }
+
+    // Build a flat lookup from callee_entry_pc → callee_name for pseudo-code emission.
+    // This lets the emitter recognize Jump targets that are function entries.
+    let mut call_targets: std::collections::HashMap<usize, String> =
+        std::collections::HashMap::new();
+    for calls in call_graph.values() {
+        for call in calls {
+            call_targets.insert(call.callee_entry_pc, call.callee_name.clone());
+        }
+    }
+
     // Process each function independently
     for func in &detected_functions {
         let func_cfg = build_function_cfg(&cfg, func);
         let dom_tree = DominatorTree::compute(&func_cfg);
         let dataflow = DataFlowAnalysis::analyze(&func_cfg);
         let mut lifted = LiftedProgram::analyze_with_dom_tree(&func_cfg, &dataflow, &dom_tree);
+        lifted.call_targets = call_targets.clone();
         let structural = StructuralAnalysis::analyze_with_dom_tree(&func_cfg, &program, dom_tree);
 
         // Compute function signature from live-in registers at entry block

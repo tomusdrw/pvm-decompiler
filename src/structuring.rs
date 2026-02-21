@@ -1116,6 +1116,15 @@ impl StructuralAnalysis {
                     if lifted.eliminated_pcs.contains(pc) {
                         continue;
                     }
+                    // Check if this Jump is a function call
+                    if let Instruction::Jump { offset } = instr {
+                        let target =
+                            crate::cfg::ControlFlowGraph::compute_jump_target(*pc, *offset);
+                        if let Some(callee) = lifted.call_targets.get(&target) {
+                            let _ = writeln!(output, "{}{}()", prefix, callee);
+                            continue;
+                        }
+                    }
                     // Skip noise instructions in lifted mode.
                     if matches!(instr, Instruction::Fallthrough | Instruction::Jump { .. }) {
                         continue;

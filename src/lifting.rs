@@ -99,6 +99,8 @@ pub struct LiftedProgram {
     pub declared_vars: HashSet<String>,
     /// Named stack variables: maps (base_ptr_name, offset) to a stack variable name.
     pub stack_vars: HashMap<(String, i32), String>,
+    /// Call targets: maps block_pc → callee function name (for cross-function jumps).
+    pub call_targets: HashMap<usize, String>,
 }
 
 /// A set of variable declarations collected for a block, to be emitted at its top.
@@ -125,6 +127,7 @@ impl LiftedProgram {
             var_at_use: HashMap::new(),
             declared_vars: HashSet::new(),
             stack_vars: HashMap::new(),
+            call_targets: HashMap::new(),
         };
 
         lifted.assign_variables(cfg, dataflow);
@@ -2663,6 +2666,7 @@ mod tests {
             var_at_use: HashMap::new(),
             declared_vars: HashSet::new(),
             stack_vars: HashMap::new(),
+            call_targets: HashMap::new(),
         };
 
         // Set up two variables for the same register at different PCs
