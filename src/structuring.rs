@@ -717,6 +717,8 @@ impl StructuralAnalysis {
             emitted: HashSet::new(),
             lifted,
             labels,
+            if_map,
+            for_loop_map,
         };
 
         for &block_pc in &self.dom_tree.rpo {
@@ -736,87 +738,13 @@ impl StructuralAnalysis {
                 ..
             }) = loop_map.get(&block_pc)
             {
-                let cond_str = condition
-                    .as_ref()
-                    .map(|c| format_condition_maybe_lifted(c, cfg, block_pc, em.lifted.as_deref()))
-                    .unwrap_or_else(|| "...".to_string());
-
-                let for_loop_info = for_loop_map.get(&block_pc);
-
-                if let Some(info) = for_loop_info {
-                    let _ = writeln!(
-                        em.output,
-                        "for ({}; {}; {}) {{",
-                        info.init_str, cond_str, info.step_str
-                    );
-                } else {
-                    let _ = writeln!(em.output, "while ({}) {{", cond_str);
-                }
-
-                // Emit body blocks (excluding header's own instructions which form the condition)
-                em.emit_block_body(block_pc, 1, true);
-
-                let mut body_sorted: Vec<usize> = body.iter().copied().collect();
-                body_sorted.sort();
-                for &body_pc in &body_sorted {
-                    if body_pc == block_pc {
-                        continue;
-                    }
-                    if em.emitted.contains(&body_pc) {
-                        continue;
-                    }
-
-                    // Skip the latch block's step expression if it's a for-loop
-                    // (it will be shown in the for header).
-                    let is_latch = body_pc == *latch && for_loop_info.is_some();
-                    // Suppress step instruction in latch block for for-loops
-                    if is_latch
-                        && let Some(info) = for_loop_info
-                        && let Some(ref mut lifted) = em.lifted
-                    {
-                        lifted.eliminated_pcs.insert(info.step_pc);
-                    }
-
-                    // Check if this body block is an if-then-else
-                    if let Some(Structure::IfThenElse {
-                        then_blocks,
-                        else_blocks,
-                        condition,
-                        ..
-                    }) = if_map.get(&body_pc)
-                    {
-                        em.emit_if(
-                            body_pc,
-                            then_blocks,
-                            else_blocks,
-                            condition.as_ref(),
-                            1,
-                            Some((body, block_pc)),
-                        );
-                        continue;
-                    }
-
-                    if is_latch {
-                        // For for-loops, emit latch body but skip the step instruction
-                        em.emit_block_body(body_pc, 1, true);
-                    } else {
-                        let ctrl =
-                            em.emit_block_with_loop_control(body_pc, 1, Some((body, block_pc)));
-                        if let Some(keyword) = ctrl {
-                            let _ = writeln!(em.output, "    {}", keyword);
-                        }
-                    }
-                    em.emitted.insert(body_pc);
-                }
-
-                em.output.push_str("}\n");
-                em.emitted.extend(body.iter());
+                em.emit_loop(block_pc, body, *latch, condition);
             } else if let Some(Structure::IfThenElse {
                 then_blocks,
                 else_blocks,
                 condition,
                 ..
-            }) = if_map.get(&block_pc)
+            }) = em.if_map.get(&block_pc).copied()
             {
                 em.emit_if(
                     block_pc,
@@ -827,46 +755,7 @@ impl StructuralAnalysis {
                     None,
                 );
             } else if let Some(Structure::Switch { reg, cases, .. }) = switch_map.get(&block_pc) {
-                // Emit preceding instructions
-                em.emit_block_body(block_pc, 0, true);
-
-                // Use lifted variable name for the switch register if available.
-                let switch_var = if let Some(ref mut lifted) = em.lifted {
-                    if let Some(branch_pc) = last_instruction_pc(cfg, block_pc) {
-                        if let Some(name) = lifted.var_at_use.get(&(branch_pc, *reg)).cloned() {
-                            // Declare if not yet declared.
-                            if lifted.declared_vars.insert(name.clone()) {
-                                let type_str = lifted
-                                    .variables
-                                    .values()
-                                    .find(|v| v.name == name)
-                                    .map(|v| format!("{}", v.var_type))
-                                    .unwrap_or_else(|| "u64".to_string());
-                                let _ = writeln!(em.output, "let {}: {};", name, type_str);
-                            }
-                            name
-                        } else {
-                            format!("r{}", reg)
-                        }
-                    } else {
-                        format!("r{}", reg)
-                    }
-                } else {
-                    format!("r{}", reg)
-                };
-                let _ = writeln!(em.output, "switch ({}) {{", switch_var);
-                for (values, target) in cases.iter() {
-                    let vals: Vec<String> = values.iter().map(|v| format!("{}", v)).collect();
-                    let target_label = format_goto_target(*target, &em.labels);
-                    let _ = writeln!(
-                        em.output,
-                        "    case {}: goto {};",
-                        vals.join(", "),
-                        target_label
-                    );
-                }
-                em.output.push_str("}\n");
-                em.emitted.insert(block_pc);
+                em.emit_switch(block_pc, *reg, cases);
             } else {
                 // Plain block
                 em.emit_block_body(block_pc, 0, false);
@@ -874,71 +763,7 @@ impl StructuralAnalysis {
             }
         }
 
-        // Emit switch target blocks that weren't reached by the RPO walk.
-        // These are separate "entry points" dispatched via indirect jump.
-        let labels_ref = &em.labels;
-        let mut switch_targets: Vec<usize> = labels_ref
-            .keys()
-            .copied()
-            .filter(|pc| !em.emitted.contains(pc) && cfg.blocks.contains_key(pc))
-            .collect();
-        switch_targets.sort();
-
-        for target_pc in switch_targets {
-            if em.emitted.contains(&target_pc) {
-                continue;
-            }
-            let _ = writeln!(em.output, "{}:", em.labels[&target_pc]);
-
-            // Emit all blocks reachable from this target in RPO order.
-            // Simple BFS forward walk to collect the reachable set.
-            let mut reachable = Vec::new();
-            let mut visited: HashSet<usize> = HashSet::new();
-            let mut queue = VecDeque::new();
-            queue.push_back(target_pc);
-            while let Some(pc) = queue.pop_front() {
-                if !visited.insert(pc) || em.emitted.contains(&pc) {
-                    continue;
-                }
-                reachable.push(pc);
-                em.emitted.insert(pc);
-                if let Some(block) = cfg.blocks.get(&pc) {
-                    for &succ in &block.successors {
-                        if !visited.contains(&succ) && !em.emitted.contains(&succ) {
-                            queue.push_back(succ);
-                        }
-                    }
-                }
-            }
-
-            for &block_pc in &reachable {
-                // Check if this block has its own label (and it's not the first one we already emitted).
-                if block_pc != target_pc
-                    && let Some(label) = em.labels.get(&block_pc)
-                {
-                    let _ = writeln!(em.output, "{}:", label);
-                }
-
-                if let Some(Structure::IfThenElse {
-                    then_blocks,
-                    else_blocks,
-                    condition,
-                    ..
-                }) = if_map.get(&block_pc)
-                {
-                    em.emit_if(
-                        block_pc,
-                        then_blocks,
-                        else_blocks,
-                        condition.as_ref(),
-                        0,
-                        None,
-                    );
-                } else {
-                    em.emit_block_body(block_pc, 0, false);
-                }
-            }
-        }
+        em.emit_switch_targets();
 
         let output = em.output;
 
@@ -971,6 +796,8 @@ struct Emitter<'a> {
     emitted: HashSet<usize>,
     lifted: Option<&'a mut LiftedProgram>,
     labels: HashMap<usize, String>,
+    if_map: HashMap<usize, &'a Structure>,
+    for_loop_map: HashMap<usize, ForLoopInfo>,
 }
 
 impl<'a> Emitter<'a> {
@@ -1103,6 +930,192 @@ impl<'a> Emitter<'a> {
             self.output.push('\n');
         }
     }
+
+    /// Emit a loop structure (while or for).
+    fn emit_loop(
+        &mut self,
+        header_pc: usize,
+        body: &HashSet<usize>,
+        latch: usize,
+        condition: &Option<Condition>,
+    ) {
+        let cond_str = condition
+            .as_ref()
+            .map(|c| format_condition_maybe_lifted(c, self.cfg, header_pc, self.lifted.as_deref()))
+            .unwrap_or_else(|| "...".to_string());
+
+        // Clone for-loop info to avoid holding a borrow of self.for_loop_map
+        // across mutable self calls.
+        let for_loop_info = self.for_loop_map.get(&header_pc).cloned();
+
+        if let Some(ref info) = for_loop_info {
+            let _ = writeln!(
+                self.output,
+                "for ({}; {}; {}) {{",
+                info.init_str, cond_str, info.step_str
+            );
+        } else {
+            let _ = writeln!(self.output, "while ({}) {{", cond_str);
+        }
+
+        // Emit header block body (before the condition branch)
+        self.emit_block_body(header_pc, 1, true);
+
+        let mut body_sorted: Vec<usize> = body.iter().copied().collect();
+        body_sorted.sort();
+        for &body_pc in &body_sorted {
+            if body_pc == header_pc || self.emitted.contains(&body_pc) {
+                continue;
+            }
+
+            let is_latch = body_pc == latch && for_loop_info.is_some();
+            // Suppress step instruction in latch block for for-loops
+            if is_latch
+                && let Some(ref info) = for_loop_info
+                && let Some(ref mut lifted) = self.lifted
+            {
+                lifted.eliminated_pcs.insert(info.step_pc);
+            }
+
+            // Check if this body block is an if-then-else
+            if let Some(Structure::IfThenElse {
+                then_blocks,
+                else_blocks,
+                condition,
+                ..
+            }) = self.if_map.get(&body_pc).copied()
+            {
+                self.emit_if(
+                    body_pc,
+                    then_blocks,
+                    else_blocks,
+                    condition.as_ref(),
+                    1,
+                    Some((body, header_pc)),
+                );
+                continue;
+            }
+
+            if is_latch {
+                self.emit_block_body(body_pc, 1, true);
+            } else {
+                let ctrl = self.emit_block_with_loop_control(body_pc, 1, Some((body, header_pc)));
+                if let Some(keyword) = ctrl {
+                    let _ = writeln!(self.output, "    {}", keyword);
+                }
+            }
+            self.emitted.insert(body_pc);
+        }
+
+        self.output.push_str("}\n");
+        self.emitted.extend(body.iter());
+    }
+
+    /// Emit a switch/case structure.
+    fn emit_switch(&mut self, block_pc: usize, reg: u8, cases: &[(Vec<u32>, usize)]) {
+        self.emit_block_body(block_pc, 0, true);
+
+        let switch_var = if let Some(ref mut lifted) = self.lifted {
+            if let Some(branch_pc) = last_instruction_pc(self.cfg, block_pc) {
+                if let Some(name) = lifted.var_at_use.get(&(branch_pc, reg)).cloned() {
+                    if lifted.declared_vars.insert(name.clone()) {
+                        let type_str = lifted
+                            .variables
+                            .values()
+                            .find(|v| v.name == name)
+                            .map(|v| format!("{}", v.var_type))
+                            .unwrap_or_else(|| "u64".to_string());
+                        let _ = writeln!(self.output, "let {}: {};", name, type_str);
+                    }
+                    name
+                } else {
+                    format!("r{}", reg)
+                }
+            } else {
+                format!("r{}", reg)
+            }
+        } else {
+            format!("r{}", reg)
+        };
+        let _ = writeln!(self.output, "switch ({}) {{", switch_var);
+        for (values, target) in cases.iter() {
+            let vals: Vec<String> = values.iter().map(|v| format!("{}", v)).collect();
+            let target_label = format_goto_target(*target, &self.labels);
+            let _ = writeln!(
+                self.output,
+                "    case {}: goto {};",
+                vals.join(", "),
+                target_label
+            );
+        }
+        self.output.push_str("}\n");
+        self.emitted.insert(block_pc);
+    }
+
+    /// Emit switch target blocks that weren't reached by the RPO walk.
+    fn emit_switch_targets(&mut self) {
+        let mut switch_targets: Vec<usize> = self
+            .labels
+            .keys()
+            .copied()
+            .filter(|pc| !self.emitted.contains(pc) && self.cfg.blocks.contains_key(pc))
+            .collect();
+        switch_targets.sort();
+
+        for target_pc in switch_targets {
+            if self.emitted.contains(&target_pc) {
+                continue;
+            }
+            let _ = writeln!(self.output, "{}:", self.labels[&target_pc]);
+
+            // BFS forward walk to collect reachable blocks
+            let mut reachable = Vec::new();
+            let mut visited: HashSet<usize> = HashSet::new();
+            let mut queue = VecDeque::new();
+            queue.push_back(target_pc);
+            while let Some(pc) = queue.pop_front() {
+                if !visited.insert(pc) || self.emitted.contains(&pc) {
+                    continue;
+                }
+                reachable.push(pc);
+                self.emitted.insert(pc);
+                if let Some(block) = self.cfg.blocks.get(&pc) {
+                    for &succ in &block.successors {
+                        if !visited.contains(&succ) && !self.emitted.contains(&succ) {
+                            queue.push_back(succ);
+                        }
+                    }
+                }
+            }
+
+            for &block_pc in &reachable {
+                if block_pc != target_pc
+                    && let Some(label) = self.labels.get(&block_pc)
+                {
+                    let _ = writeln!(self.output, "{}:", label);
+                }
+
+                if let Some(Structure::IfThenElse {
+                    then_blocks,
+                    else_blocks,
+                    condition,
+                    ..
+                }) = self.if_map.get(&block_pc).copied()
+                {
+                    self.emit_if(
+                        block_pc,
+                        then_blocks,
+                        else_blocks,
+                        condition.as_ref(),
+                        0,
+                        None,
+                    );
+                } else {
+                    self.emit_block_body(block_pc, 0, false);
+                }
+            }
+        }
+    }
 }
 
 /// Post-process pseudo-code output to fix blank line placement:
@@ -1158,6 +1171,7 @@ fn fix_blank_lines(input: &str) -> String {
 
 /// Build human-readable labels for blocks that are targets of goto/switch statements.
 /// Information about a detected for-loop pattern.
+#[derive(Clone)]
 struct ForLoopInfo {
     /// The initialization expression (e.g. "let var_0 = 0")
     init_str: String,
