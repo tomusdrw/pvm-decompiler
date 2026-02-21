@@ -310,7 +310,10 @@ impl LiftedProgram {
                 name: "ecalli".to_string(),
                 args: vec![Expression::Const(index as i64)],
             },
-            InstructionShape::NoOp { name } => Expression::Raw(name.to_string()),
+            InstructionShape::NoOp { name } => {
+                let display_name = if name == "trap" { "return" } else { name };
+                Expression::Raw(display_name.to_string())
+            }
             InstructionShape::Jump { offset } => Expression::Raw(format!("jump {}", offset)),
             InstructionShape::JumpInd { reg, .. } => {
                 if self.is_halt_target(pc, reg) {
@@ -1027,11 +1030,7 @@ impl LiftedProgram {
     /// Returns the expression if found and not eliminated.
     pub fn expression_for_var(&self, var_name: &str) -> Option<&Expression> {
         // Find the (def_pc, reg) that produced this variable name
-        let (def_pc, _) = self
-            .variables
-            .iter()
-            .find(|(_, v)| v.name == var_name)?
-            .0;
+        let (def_pc, _) = self.variables.iter().find(|(_, v)| v.name == var_name)?.0;
         self.expressions.get(def_pc)
     }
 }
