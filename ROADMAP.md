@@ -66,9 +66,15 @@ Completed:
 ### Phase 4b: Further Output Improvements — COMPLETE
 - Counting-down for-loop detection (#31) — `detect_for_loop_pattern` scans all init/latch instructions, handles AddImm with negative values and Sub32 steps
 - Array access pattern recovery (#32) — `format_array_access` detects `base + index * elem_size` and renders as `base[index]`
-- Double negation elimination — `!!x → x` and `0 <u !(x) → !(x)` simplifications
+- Double negation elimination — `!!x → x` and `0 <u !(x) → x >=u y` simplification chain
 - Redundant condition suppression (#34) — branch + condition variable definitions eliminated from while/for body when inlined into header
-- Comparison inversion (#33) — `!(x <u y)` → `x >=u y` for cleaner conditions
+- Comparison inversion (#33) — `!(x <u y)` → `x >=u y`, `!(x <s y)` → `x >=s y` for cleaner conditions
+- Deterministic function ordering — fix HashSet iteration non-determinism in `find_component_entry`
+
+### Phase 4c: Polish (Open)
+See open GitHub issues:
+- Suppress unreachable code after break/continue (#35)
+- Simplify `0 <u (a | b)` bitwise boolean patterns (#36)
 
 ### Phase 5: LLM Refinement (Future)
 - Prompt engineering for function-level polishing
