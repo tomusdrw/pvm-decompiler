@@ -2504,8 +2504,7 @@ mod tests {
         );
         // Step should show subtraction
         assert!(
-            pseudo.contains("var_0 = var_0 - var_2")
-                || pseudo.contains("var_0 = var_0 - 1"),
+            pseudo.contains("var_0 = var_0 - var_2") || pseudo.contains("var_0 = var_0 - 1"),
             "For-header step should show subtraction: {}",
             pseudo
         );
