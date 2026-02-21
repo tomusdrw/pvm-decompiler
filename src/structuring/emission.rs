@@ -81,7 +81,9 @@ impl StructuralAnalysis {
                     }
                     output.push('\n');
                 }
-                Structure::Switch { header, reg, cases, .. } => {
+                Structure::Switch {
+                    header, reg, cases, ..
+                } => {
                     let _ = writeln!(
                         output,
                         "\n  Switch: header={:#06x}, reg=r{}, cases={}",
@@ -349,13 +351,9 @@ impl<'a> Emitter<'a> {
             // Check if all else blocks are Trap-only (renders as just `return`).
             // If so, suppress the else clause entirely.
             let all_trap_only = else_blocks.iter().all(|&eb| {
-                self.cfg
-                    .blocks
-                    .get(&eb)
-                    .is_some_and(|b| {
-                        b.instructions.len() == 1
-                            && matches!(b.instructions[0].1, Instruction::Trap)
-                    })
+                self.cfg.blocks.get(&eb).is_some_and(|b| {
+                    b.instructions.len() == 1 && matches!(b.instructions[0].1, Instruction::Trap)
+                })
             });
 
             if all_trap_only {
@@ -860,13 +858,12 @@ impl<'a> Emitter<'a> {
                 if let Some(name) = lifted.var_at_use.get(&(branch_pc, reg)).cloned() {
                     // Only emit a forward declaration if the variable has a definition
                     // PC within the current function's CFG (not an orphaned global ref).
-                    let has_local_def = lifted
-                        .var_name_to_def_pc
-                        .get(&name)
-                        .is_some_and(|def_pc| {
-                            self.cfg.blocks.values().any(|b| {
-                                b.instructions.iter().any(|(pc, _)| pc == def_pc)
-                            })
+                    let has_local_def =
+                        lifted.var_name_to_def_pc.get(&name).is_some_and(|def_pc| {
+                            self.cfg
+                                .blocks
+                                .values()
+                                .any(|b| b.instructions.iter().any(|(pc, _)| pc == def_pc))
                         });
                     if has_local_def && lifted.declared_vars.insert(name.clone()) {
                         let type_str = lifted
@@ -2532,5 +2529,4 @@ mod tests {
             output
         );
     }
-
 }
