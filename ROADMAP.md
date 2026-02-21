@@ -63,12 +63,9 @@ Completed:
 - End-to-end integration tests (#29) — full pipeline tests on 6 real PVM binary fixtures
 - Operator associativity fix — correct parenthesization for non-commutative right operands
 
-### Phase 4b: Further Output Improvements (In Progress)
-Completed:
+### Phase 4b: Further Output Improvements — COMPLETE
 - Counting-down for-loop detection (#31) — `detect_for_loop_pattern` scans all init/latch instructions, handles AddImm with negative values and Sub32 steps
-
-Open:
-- Array access pattern recovery (#32)
+- Array access pattern recovery (#32) — `format_array_access` detects `base + index * elem_size` and renders as `base[index]`
 
 ### Phase 5: LLM Refinement (Future)
 - Prompt engineering for function-level polishing

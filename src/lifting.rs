@@ -1656,6 +1656,8 @@ pub fn format_expression(expr: &Expression) -> String {
         } => {
             if let Some(field) = format_struct_field(base, *offset) {
                 field
+            } else if let Some(arr) = format_array_access(base, *offset, *width) {
+                arr
             } else {
                 format!("{}[{}]", width, format_mem_address(base, *offset))
             }
@@ -1668,6 +1670,8 @@ pub fn format_expression(expr: &Expression) -> String {
         } => {
             if let Some(field) = format_struct_field(base, *offset) {
                 format!("{} = {}", field, format_expression(value))
+            } else if let Some(arr) = format_array_access(base, *offset, *width) {
+                format!("{} = {}", arr, format_expression(value))
             } else {
                 format!(
                     "{}[{}] = {}",
@@ -1693,6 +1697,80 @@ fn format_struct_field(base: &Expression, offset: i32) -> Option<String> {
     {
         return Some(format!("{}->field_{}", name, offset));
     }
+    None
+}
+
+/// Detect array access patterns: `base + index * element_size` where element_size
+/// matches the load/store width. Returns `Some("base[index]")` on match.
+fn format_array_access(base: &Expression, offset: i32, width: MemWidth) -> Option<String> {
+    // Only match when the constant offset is zero (the index handles all addressing)
+    if offset != 0 {
+        return None;
+    }
+    let elem_size = width.byte_size();
+    // Skip byte-width accesses — `base + index * 1` is just `base + index`,
+    // which doesn't clearly indicate array semantics.
+    if elem_size <= 1 {
+        return None;
+    }
+
+    // Pattern: base = ptr + index * element_size
+    if let Expression::BinOp {
+        op: BinOp::Add,
+        lhs: ptr,
+        rhs: index_expr,
+    } = base
+    {
+        // rhs = index * Const(elem_size)
+        if let Expression::BinOp {
+            op: BinOp::Mul,
+            lhs: index,
+            rhs: multiplier,
+        } = index_expr.as_ref()
+        {
+            if let Expression::Const(m) = multiplier.as_ref() {
+                if *m == elem_size {
+                    return Some(format!(
+                        "{}[{}]",
+                        format_expression(ptr),
+                        format_expression(index)
+                    ));
+                }
+            }
+        }
+        // Also match: lhs = index * element_size, rhs = ptr (commutative Add)
+        if let Expression::BinOp {
+            op: BinOp::Mul,
+            lhs: index,
+            rhs: multiplier,
+        } = ptr.as_ref()
+        {
+            if let Expression::Const(m) = multiplier.as_ref() {
+                if *m == elem_size {
+                    return Some(format!(
+                        "{}[{}]",
+                        format_expression(index_expr),
+                        format_expression(index)
+                    ));
+                }
+            }
+        }
+    }
+
+    // Pattern: base = index * element_size (base pointer is implicit zero / constant)
+    if let Expression::BinOp {
+        op: BinOp::Mul,
+        lhs: index,
+        rhs: multiplier,
+    } = base
+    {
+        if let Expression::Const(m) = multiplier.as_ref() {
+            if *m == elem_size {
+                return Some(format!("(({width}*)0)[{}]", format_expression(index)));
+            }
+        }
+    }
+
     None
 }
 
@@ -2880,6 +2958,125 @@ mod tests {
             offset: -4,
         };
         assert_eq!(format_expression(&load_neg), "u64[ptr_0 - 4]");
+    }
+
+    #[test]
+    fn test_array_access_formatting() {
+        // u32 load: base + index * 4 → base[index]
+        let load = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::BinOp {
+                op: BinOp::Add,
+                lhs: Box::new(Expression::Var("ptr_0".to_string())),
+                rhs: Box::new(Expression::BinOp {
+                    op: BinOp::Mul,
+                    lhs: Box::new(Expression::Var("var_1".to_string())),
+                    rhs: Box::new(Expression::Const(4)),
+                }),
+            }),
+            offset: 0,
+        };
+        assert_eq!(format_expression(&load), "ptr_0[var_1]");
+
+        // u64 load: base + index * 8 → base[index]
+        let load64 = Expression::Load {
+            width: MemWidth::U64,
+            base: Box::new(Expression::BinOp {
+                op: BinOp::Add,
+                lhs: Box::new(Expression::Var("arr".to_string())),
+                rhs: Box::new(Expression::BinOp {
+                    op: BinOp::Mul,
+                    lhs: Box::new(Expression::Var("i".to_string())),
+                    rhs: Box::new(Expression::Const(8)),
+                }),
+            }),
+            offset: 0,
+        };
+        assert_eq!(format_expression(&load64), "arr[i]");
+
+        // u16 load: base + index * 2 → base[index]
+        let load16 = Expression::Load {
+            width: MemWidth::U16,
+            base: Box::new(Expression::BinOp {
+                op: BinOp::Add,
+                lhs: Box::new(Expression::Var("buf".to_string())),
+                rhs: Box::new(Expression::BinOp {
+                    op: BinOp::Mul,
+                    lhs: Box::new(Expression::Var("idx".to_string())),
+                    rhs: Box::new(Expression::Const(2)),
+                }),
+            }),
+            offset: 0,
+        };
+        assert_eq!(format_expression(&load16), "buf[idx]");
+
+        // Wrong multiplier: u32 load with * 8 should NOT match
+        let load_wrong = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::BinOp {
+                op: BinOp::Add,
+                lhs: Box::new(Expression::Var("ptr_0".to_string())),
+                rhs: Box::new(Expression::BinOp {
+                    op: BinOp::Mul,
+                    lhs: Box::new(Expression::Var("var_1".to_string())),
+                    rhs: Box::new(Expression::Const(8)),
+                }),
+            }),
+            offset: 0,
+        };
+        assert_eq!(format_expression(&load_wrong), "u32[ptr_0 + var_1 * 8]");
+
+        // Non-zero offset: should NOT match array pattern
+        let load_offset = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::BinOp {
+                op: BinOp::Add,
+                lhs: Box::new(Expression::Var("ptr_0".to_string())),
+                rhs: Box::new(Expression::BinOp {
+                    op: BinOp::Mul,
+                    lhs: Box::new(Expression::Var("var_1".to_string())),
+                    rhs: Box::new(Expression::Const(4)),
+                }),
+            }),
+            offset: 8,
+        };
+        assert_eq!(
+            format_expression(&load_offset),
+            "u32[ptr_0 + var_1 * 4 + 8]"
+        );
+
+        // Store: base + index * 4 = value → base[index] = value
+        let store = Expression::Store {
+            width: MemWidth::U32,
+            base: Box::new(Expression::BinOp {
+                op: BinOp::Add,
+                lhs: Box::new(Expression::Var("arr".to_string())),
+                rhs: Box::new(Expression::BinOp {
+                    op: BinOp::Mul,
+                    lhs: Box::new(Expression::Var("i".to_string())),
+                    rhs: Box::new(Expression::Const(4)),
+                }),
+            }),
+            offset: 0,
+            value: Box::new(Expression::Const(42)),
+        };
+        assert_eq!(format_expression(&store), "arr[i] = 42");
+
+        // Commutative: index * 4 + base → base[index]
+        let load_comm = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::BinOp {
+                op: BinOp::Add,
+                lhs: Box::new(Expression::BinOp {
+                    op: BinOp::Mul,
+                    lhs: Box::new(Expression::Var("var_1".to_string())),
+                    rhs: Box::new(Expression::Const(4)),
+                }),
+                rhs: Box::new(Expression::Var("ptr_0".to_string())),
+            }),
+            offset: 0,
+        };
+        assert_eq!(format_expression(&load_comm), "ptr_0[var_1]");
     }
 
     #[test]

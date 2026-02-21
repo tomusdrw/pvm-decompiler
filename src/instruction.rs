@@ -101,6 +101,18 @@ pub enum MemWidth {
     U64,
 }
 
+impl MemWidth {
+    /// Return the byte size of this memory width.
+    pub fn byte_size(self) -> i64 {
+        match self {
+            MemWidth::U8 | MemWidth::I8 => 1,
+            MemWidth::U16 | MemWidth::I16 => 2,
+            MemWidth::U32 => 4,
+            MemWidth::U64 => 8,
+        }
+    }
+}
+
 impl fmt::Display for MemWidth {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
