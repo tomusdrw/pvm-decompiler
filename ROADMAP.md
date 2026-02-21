@@ -54,9 +54,11 @@ Completed:
 - Signedness tracking (#16) — U32/I32/U64/I64 type inference from instruction width and signed ops
 - Struct field access recovery (#19) — pointer loads/stores show as `ptr->field_N`
 
+- Call graph construction (#21) — cross-function jumps detected and rendered as `func_name()` calls
+
 See open GitHub issues for planned improvements:
-- Call graph and inter-procedural analysis (#21)
 - Emission method refactoring (#27)
+- Reverse index for variable name → definition lookup (#23)
 
 ### Phase 5: LLM Refinement (Future)
 - Prompt engineering for function-level polishing

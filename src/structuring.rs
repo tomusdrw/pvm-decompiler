@@ -2650,6 +2650,43 @@ mod tests {
     }
 
     #[test]
+    fn test_call_target_rendering() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // Block 0: load r0 = 1, then Jump to 0x100 (a known function entry)
+        // Block 10: trap (fallthrough successor, won't be reached in practice)
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 0, value: 1 }),
+                        (4, Instruction::Jump { offset: 0x100 - 4 }),
+                    ],
+                    vec![10],
+                ),
+                (10, vec![(10, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        // Register a call target: address 0x100 is "helper_func"
+        lifted.call_targets.insert(0x100, "helper_func".to_string());
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+
+        assert!(
+            pseudo.contains("helper_func()"),
+            "Should render Jump to known function as call: {}",
+            pseudo
+        );
+    }
+
+    #[test]
     fn test_empty_cfg() {
         let cfg = ControlFlowGraph::new(0);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
