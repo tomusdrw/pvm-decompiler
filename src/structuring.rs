@@ -1429,7 +1429,24 @@ fn fix_blank_lines(input: &str) -> String {
         }
     }
 
-    let mut out = final_lines.join("\n");
+    // Third pass: suppress consecutive duplicate `return` statements.
+    let mut deduped: Vec<&str> = Vec::new();
+    let mut prev_was_return = false;
+    for &line in &final_lines {
+        let trimmed = line.trim();
+        if trimmed == "return" {
+            if prev_was_return {
+                continue; // Skip duplicate return
+            }
+            prev_was_return = true;
+        } else if !trimmed.is_empty() {
+            prev_was_return = false;
+        }
+        // Keep blank lines between non-return content
+        deduped.push(line);
+    }
+
+    let mut out = deduped.join("\n");
     out.push('\n');
     out
 }
