@@ -58,8 +58,15 @@ Completed:
 
 - Emission method refactoring (#27) — Emitter struct groups mutable state, cleaner method signatures
 - Reverse index for variable lookups (#23) — O(1) var_name → def_pc via HashMap
+- Emitter method extraction (#28) — emit_loop, emit_switch, emit_switch_targets as separate methods
+- Indirect call resolution (#30) — JumpInd with constant targets render as `func_name()`
+- End-to-end integration tests (#29) — full pipeline tests on 6 real PVM binary fixtures
+- Operator associativity fix — correct parenthesization for non-commutative right operands
 
-All Phase 4 issues are complete.
+### Phase 4b: Further Output Improvements (Open)
+See open GitHub issues:
+- Counting-down for-loop detection (#31)
+- Array access pattern recovery (#32)
 
 ### Phase 5: LLM Refinement (Future)
 - Prompt engineering for function-level polishing
