@@ -1255,6 +1255,22 @@ fn simplify_expression(expr: Expression) -> Expression {
                     op: UnaryOp::Not,
                     operand: Box::new(lhs),
                 },
+                // 0 <u expr → expr when expr is already boolean (Not, LtU, LtS)
+                // This eliminates truthy checks like `0 <u !(x <u y)` → `!(x <u y)`
+                (BinOp::LtU, Expression::Const(0), _)
+                    if matches!(
+                        &rhs,
+                        Expression::UnaryOp {
+                            op: UnaryOp::Not,
+                            ..
+                        } | Expression::BinOp {
+                            op: BinOp::LtU | BinOp::LtS,
+                            ..
+                        }
+                    ) =>
+                {
+                    rhs
+                }
                 _ => Expression::BinOp {
                     op,
                     lhs: Box::new(lhs),
@@ -1262,10 +1278,22 @@ fn simplify_expression(expr: Expression) -> Expression {
                 },
             }
         }
-        Expression::UnaryOp { op, operand } => Expression::UnaryOp {
-            op,
-            operand: Box::new(simplify_expression(*operand)),
-        },
+        Expression::UnaryOp { op, operand } => {
+            let operand = simplify_expression(*operand);
+            // Double negation elimination: !!x → x
+            if op == UnaryOp::Not
+                && let Expression::UnaryOp {
+                    op: UnaryOp::Not,
+                    operand: inner,
+                } = operand
+            {
+                return *inner;
+            }
+            Expression::UnaryOp {
+                op,
+                operand: Box::new(operand),
+            }
+        }
         Expression::Load {
             width,
             base,
@@ -2165,6 +2193,55 @@ mod tests {
         };
         let simplified = simplify_expression(expr);
         assert_eq!(format_expression(&simplified), "!(cond_0)");
+    }
+
+    #[test]
+    fn test_simplify_double_negation() {
+        // !!x → x
+        let expr = Expression::UnaryOp {
+            op: UnaryOp::Not,
+            operand: Box::new(Expression::UnaryOp {
+                op: UnaryOp::Not,
+                operand: Box::new(Expression::Var("cond_0".to_string())),
+            }),
+        };
+        let simplified = simplify_expression(expr);
+        assert_eq!(format_expression(&simplified), "cond_0");
+    }
+
+    #[test]
+    fn test_simplify_0_ltu_boolean() {
+        // 0 <u !(x <u y) → !(x <u y) (truthy check on boolean)
+        let expr = Expression::BinOp {
+            op: BinOp::LtU,
+            lhs: Box::new(Expression::Const(0)),
+            rhs: Box::new(Expression::UnaryOp {
+                op: UnaryOp::Not,
+                operand: Box::new(Expression::BinOp {
+                    op: BinOp::LtU,
+                    lhs: Box::new(Expression::Var("x".to_string())),
+                    rhs: Box::new(Expression::Var("y".to_string())),
+                }),
+            }),
+        };
+        let simplified = simplify_expression(expr);
+        assert_eq!(format_expression(&simplified), "!(x <u y)");
+    }
+
+    #[test]
+    fn test_simplify_0_ltu_comparison() {
+        // 0 <u (x <u y) → (x <u y) (truthy check on comparison)
+        let expr = Expression::BinOp {
+            op: BinOp::LtU,
+            lhs: Box::new(Expression::Const(0)),
+            rhs: Box::new(Expression::BinOp {
+                op: BinOp::LtU,
+                lhs: Box::new(Expression::Var("x".to_string())),
+                rhs: Box::new(Expression::Var("y".to_string())),
+            }),
+        };
+        let simplified = simplify_expression(expr);
+        assert_eq!(format_expression(&simplified), "x <u y");
     }
 
     #[test]
