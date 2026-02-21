@@ -907,6 +907,13 @@ impl<'a> Emitter<'a> {
                             continue;
                         }
                     }
+                    // Check if this JumpInd targets a known function entry
+                    if let Instruction::JumpInd { reg, .. } = instr
+                        && let Some(callee) = lifted.resolve_indirect_call(*pc, *reg)
+                    {
+                        let _ = writeln!(self.output, "{}{}()", prefix, callee);
+                        continue;
+                    }
                     // Skip noise instructions in lifted mode.
                     if matches!(instr, Instruction::Fallthrough | Instruction::Jump { .. }) {
                         continue;
@@ -2651,6 +2658,44 @@ mod tests {
         assert!(
             pseudo.contains("helper_func()"),
             "Should render Jump to known function as call: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_indirect_call_rendering() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // Block: load reg5 = 0x200, then JumpInd reg5
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (
+                        0,
+                        Instruction::LoadImm {
+                            reg: 5,
+                            value: 0x200,
+                        },
+                    ),
+                    (4, Instruction::JumpInd { reg: 5, offset: 0 }),
+                ],
+                vec![],
+            )],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        lifted.call_targets.insert(0x200, "target_func".to_string());
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+
+        assert!(
+            pseudo.contains("target_func()"),
+            "Should render JumpInd to known function as call: {}",
             pseudo
         );
     }

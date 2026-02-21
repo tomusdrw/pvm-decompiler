@@ -29,6 +29,7 @@ The decompiler produces pseudo-code with:
 - Named JAM host calls (`gas_remaining()`, `read()`, `write()` instead of `ecalli(0)`)
 - `return` instead of `trap` at function exits
 - SSA variable coalescing for loop induction variables
+- Indirect call resolution (`func_name()` instead of `call_indirect(var)` when target is constant)
 
 ## Architecture
 

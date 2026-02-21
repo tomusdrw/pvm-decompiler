@@ -436,7 +436,7 @@ impl LiftedProgram {
                 if self.is_halt_target(pc, reg) {
                     Expression::Raw("halt()".to_string())
                 } else {
-                    Expression::Raw(format!("jump_ind {}", self.reg_name(pc, reg)))
+                    Expression::Raw(format!("call_indirect({})", self.reg_name(pc, reg)))
                 }
             }
             InstructionShape::BranchImm {
@@ -475,6 +475,21 @@ impl LiftedProgram {
             .get(&(use_pc, reg))
             .cloned()
             .unwrap_or_else(|| format!("r{}", reg))
+    }
+
+    /// Check if a JumpInd target register holds a known function entry address.
+    /// Returns the function name if the register is a constant matching a call target.
+    pub fn resolve_indirect_call(&self, use_pc: usize, reg: u8) -> Option<String> {
+        if self.call_targets.is_empty() {
+            return None;
+        }
+        if let Some(var_name) = self.var_at_use.get(&(use_pc, reg))
+            && let Some(Expression::Const(val)) = self.expression_for_var(var_name)
+        {
+            let addr = *val as usize;
+            return self.call_targets.get(&addr).cloned();
+        }
+        None
     }
 
     /// Check if a JumpInd target register holds a known halt address constant.
@@ -2871,5 +2886,74 @@ mod tests {
             offset: -4,
         };
         assert_eq!(format_expression(&load_neg), "u64[ptr_0 - 4]");
+    }
+
+    #[test]
+    fn test_indirect_call_resolution() {
+        // JumpInd with a register holding a known function entry constant
+        // resolve_indirect_call should find the function name
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (
+                        0,
+                        Instruction::LoadImm {
+                            reg: 5,
+                            value: 0x200,
+                        },
+                    ),
+                    (4, Instruction::JumpInd { reg: 5, offset: 0 }),
+                ],
+                vec![],
+            )],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        // Register address 0x200 as a function
+        lifted.call_targets.insert(0x200, "helper".to_string());
+
+        // resolve_indirect_call should find the target
+        let resolved = lifted.resolve_indirect_call(4, 5);
+        assert_eq!(
+            resolved.as_deref(),
+            Some("helper"),
+            "Should resolve indirect call to known function"
+        );
+    }
+
+    #[test]
+    fn test_indirect_call_unknown_target() {
+        // JumpInd with an unknown target should render as call_indirect(var)
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (0, Instruction::LoadImm { reg: 3, value: 42 }),
+                    (4, Instruction::JumpInd { reg: 3, offset: 0 }),
+                ],
+                vec![],
+            )],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        // No call_targets set — resolve should return None
+
+        let resolved = lifted.resolve_indirect_call(4, 3);
+        assert!(resolved.is_none(), "Unknown target should not resolve");
+
+        // The expression should be call_indirect
+        let expr = lifted.expressions.get(&4);
+        assert!(expr.is_some());
+        let formatted = format_expression(expr.unwrap());
+        assert!(
+            formatted.contains("call_indirect"),
+            "Unknown target should render as call_indirect: {}",
+            formatted
+        );
     }
 }
