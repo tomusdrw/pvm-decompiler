@@ -965,6 +965,27 @@ impl<'a> Emitter<'a> {
             let _ = writeln!(self.output, "while ({}) {{", cond_str);
         }
 
+        // Suppress the branch instruction and its inlined condition variable definition.
+        // The condition is already shown in the while/for header.
+        if let Some(cond) = condition.as_ref()
+            && let Some(header_block) = self.cfg.blocks.get(&header_pc)
+            && let Some((branch_pc, _)) = header_block.instructions.last()
+            && let Some(ref mut lifted) = self.lifted
+        {
+            lifted.eliminated_pcs.insert(*branch_pc);
+
+            // Also suppress the instruction that defined the condition variable,
+            // since it was inlined into the while/for condition header.
+            if let Operand::Reg(reg) = &cond.lhs
+                && let Operand::Imm(0) = &cond.rhs
+                && matches!(cond.op, CondOp::Ne | CondOp::Eq)
+                && let Some(var_name) = lifted.var_at_use.get(&(*branch_pc, *reg)).cloned()
+                && let Some(def_pc) = lifted.var_name_to_def_pc.get(&var_name).copied()
+            {
+                lifted.eliminated_pcs.insert(def_pc);
+            }
+        }
+
         // Emit header block body (before the condition branch)
         self.emit_block_body(header_pc, 1, true);
 
