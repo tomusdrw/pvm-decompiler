@@ -1704,10 +1704,24 @@ fn format_mem_address(base: &Expression, offset: i32) -> String {
 }
 
 /// Format a sub-expression, adding parentheses only when needed for precedence.
-fn format_expression_maybe_parens(expr: &Expression, parent_op: BinOp, _is_left: bool) -> String {
+fn format_expression_maybe_parens(expr: &Expression, parent_op: BinOp, is_left: bool) -> String {
     match expr {
         Expression::BinOp { op, .. } => {
-            let needs_parens = op_precedence(*op) < op_precedence(parent_op);
+            let child_prec = op_precedence(*op);
+            let parent_prec = op_precedence(parent_op);
+            // Parenthesise if child binds looser than parent.
+            // For right-hand operands of non-commutative ops (sub, div, rem),
+            // also parenthesise when precedences are equal to preserve
+            // left-to-right evaluation: a - (b - c) != a - b - c.
+            let needs_parens = if child_prec < parent_prec {
+                true
+            } else if child_prec == parent_prec && !is_left {
+                // Same precedence on the right: only safe without parens
+                // for commutative operators.
+                !is_commutative(parent_op)
+            } else {
+                false
+            };
             if needs_parens {
                 format!("({})", format_expression(expr))
             } else {
@@ -1716,6 +1730,13 @@ fn format_expression_maybe_parens(expr: &Expression, parent_op: BinOp, _is_left:
         }
         _ => format_expression(expr),
     }
+}
+
+fn is_commutative(op: BinOp) -> bool {
+    matches!(
+        op,
+        BinOp::Add | BinOp::Mul | BinOp::And | BinOp::Or | BinOp::Xor
+    )
 }
 
 /// Simple operator precedence (higher = binds tighter).
@@ -2138,6 +2159,36 @@ mod tests {
         };
         let formatted = format_expression(&expr);
         assert_eq!(formatted, "a * b + c");
+    }
+
+    #[test]
+    fn test_format_expression_right_associativity() {
+        // a - (b - c) must parenthesise the right operand because
+        // subtraction is left-associative: a - b - c != a - (b - c)
+        let expr = Expression::BinOp {
+            op: BinOp::Sub,
+            lhs: Box::new(Expression::Var("a".to_string())),
+            rhs: Box::new(Expression::BinOp {
+                op: BinOp::Sub,
+                lhs: Box::new(Expression::Var("b".to_string())),
+                rhs: Box::new(Expression::Var("c".to_string())),
+            }),
+        };
+        let formatted = format_expression(&expr);
+        assert_eq!(formatted, "a - (b - c)");
+
+        // a + (b + c) should NOT parenthesise — addition is commutative
+        let expr2 = Expression::BinOp {
+            op: BinOp::Add,
+            lhs: Box::new(Expression::Var("a".to_string())),
+            rhs: Box::new(Expression::BinOp {
+                op: BinOp::Add,
+                lhs: Box::new(Expression::Var("b".to_string())),
+                rhs: Box::new(Expression::Var("c".to_string())),
+            }),
+        };
+        let formatted2 = format_expression(&expr2);
+        assert_eq!(formatted2, "a + b + c");
     }
 
     #[test]
