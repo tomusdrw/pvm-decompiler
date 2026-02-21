@@ -84,9 +84,10 @@ Completed:
 - Add LeU/LeS operators and complete comparison inversion — `!(x >s y)` → `x <=s y`, `!(x >=u y)` → `x <u y`
 - Suppress consecutive duplicate `return` statements
 - Extract `eliminate_condition_def` helper to reduce code duplication
+- Emit nested loops inside loop bodies with proper indentation (#39 partial) — `loop_map` passed to Emitter, `emit_loop` accepts indent parameter
 
 ### Phase 4e: Structural Improvements (Future)
-- Resolve raw jump instructions in pseudo-code (#39) — branch instructions still appear as `if (...) jump <offset>` when not recognized as if-then-else
+- Resolve remaining raw jump instructions in pseudo-code (#39) — some branch instructions may still appear as `if (...) jump <offset>` in complex patterns
 - Improve top-level block label rendering (#40) — detect dispatch loops and structure as `loop { switch { ... } }`
 
 ### Phase 5: LLM Refinement (Future)
