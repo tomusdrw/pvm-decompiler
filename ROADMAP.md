@@ -85,9 +85,9 @@ Completed:
 - Suppress consecutive duplicate `return` statements
 - Extract `eliminate_condition_def` helper to reduce code duplication
 - Emit nested loops inside loop bodies with proper indentation (#39 partial) — `loop_map` passed to Emitter, `emit_loop` accepts indent parameter
+- Conditional branch goto labels (#39) — unstructured branches render as `if (cond) goto block_XXXX;` instead of raw `if (...) jump <offset>`
 
 ### Phase 4e: Structural Improvements (Future)
-- Resolve remaining raw jump instructions in pseudo-code (#39) — some branch instructions may still appear as `if (...) jump <offset>` in complex patterns
 - Improve top-level block label rendering (#40) — detect dispatch loops and structure as `loop { switch { ... } }`
 
 ### Phase 5: LLM Refinement (Future)

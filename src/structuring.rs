@@ -3473,4 +3473,27 @@ mod tests {
             pseudo
         );
     }
+
+    #[test]
+    fn test_conditional_branch_goto_rendering() {
+        // Verify that real binary output uses `goto` labels
+        // instead of raw `jump <offset>` for unstructured conditional branches.
+        let bytes = std::fs::read("benchmarks/compiled/as-fibonacci.pvm")
+            .expect("as-fibonacci.pvm fixture required");
+        let output =
+            crate::decompile_bytes(&bytes).expect("as-fibonacci should decompile successfully");
+
+        // Should contain at least one goto (unstructured conditional branches)
+        assert!(
+            output.contains("goto"),
+            "Output should contain goto labels: {}",
+            output
+        );
+        // No raw jump offsets should remain
+        assert!(
+            !output.contains("jump"),
+            "Should not contain raw jump offsets: {}",
+            output
+        );
+    }
 }

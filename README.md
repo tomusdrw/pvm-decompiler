@@ -35,6 +35,7 @@ The decompiler produces pseudo-code with:
 - Expression simplification: double negation elimination, constant folding, identity operations
 - Bitwise boolean pattern simplification (`0 <u (a | b)` → `(a | b) != 0`)
 - Empty else block suppression for cleaner output
+- Goto labels for unstructured branches (`if (cond) goto block_XXXX;` instead of raw jump offsets)
 
 ## Architecture
 
