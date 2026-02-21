@@ -9,8 +9,10 @@
 //! entry point, enabling independent analysis (dataflow, lifting, structuring).
 
 use crate::cfg::ControlFlowGraph;
+use crate::decoder::DecodedProgram;
 use crate::instruction::InstructionShape;
 use std::collections::{HashMap, HashSet, VecDeque};
+use wasm_pvm::pvm::Instruction;
 
 /// A detected function within the PVM binary.
 #[derive(Debug, Clone)]
@@ -352,11 +354,62 @@ pub struct CallSite {
     pub callee_name: String,
 }
 
+/// Check if a block is a return epilogue (ends with JumpInd r0 preceded by sp restore).
+/// These should not be treated as indirect call sites.
+fn is_return_epilogue(block: &crate::cfg::BasicBlock) -> bool {
+    let len = block.instructions.len();
+    if len < 3 {
+        return false;
+    }
+    let (_, last) = &block.instructions[len - 1];
+    let (_, second_last) = &block.instructions[len - 2];
+    let (_, third_last) = &block.instructions[len - 3];
+
+    // Return pattern: restore r0, sp += N, JumpInd r0
+    matches!(last, Instruction::JumpInd { reg: 0, offset: 0 })
+        && matches!(second_last, Instruction::AddImm64 { dst: 1, src: 1, value } if *value > 0)
+        && matches!(
+            third_last,
+            Instruction::LoadIndU64 {
+                dst: 0,
+                base: 1,
+                ..
+            }
+        )
+}
+
+/// Check if a block is a halt epilogue (ends with LoadImm reg=-65536 + JumpInd reg).
+fn is_halt_epilogue(block: &crate::cfg::BasicBlock) -> bool {
+    let len = block.instructions.len();
+    if len < 2 {
+        return false;
+    }
+    let (_, last) = &block.instructions[len - 1];
+    let (_, second_last) = &block.instructions[len - 2];
+
+    if let Instruction::JumpInd { reg: jump_reg, .. } = last
+        && let Instruction::LoadImm {
+            reg: load_reg,
+            value: -65536,
+        } = second_last
+    {
+        jump_reg == load_reg
+    } else {
+        false
+    }
+}
+
 /// Build a call graph: find all cross-function edges and map them to call sites.
 /// Returns a map from caller function entry PC → list of call sites.
+///
+/// Detection methods:
+/// 1. Direct CFG edges from one function to another function's entry
+/// 2. Indirect calls through jump table: when a JumpInd instruction in a function
+///    can reach another function's entry via jump_table entries
 pub fn build_call_graph(
     cfg: &ControlFlowGraph,
     functions: &[Function],
+    program: &DecodedProgram,
 ) -> HashMap<usize, Vec<CallSite>> {
     // Build a lookup: block_pc → function entry_pc
     let mut block_to_func: HashMap<usize, usize> = HashMap::new();
@@ -372,18 +425,20 @@ pub fn build_call_graph(
         .map(|f| (f.entry_pc, f.name.clone()))
         .collect();
 
+    // Build a set of function entry PCs for quick lookup
+    let func_entry_pcs: HashSet<usize> = functions.iter().map(|f| f.entry_pc).collect();
+
     let mut call_graph: HashMap<usize, Vec<CallSite>> = HashMap::new();
 
     for func in functions {
         for &block_pc in &func.block_pcs {
             if let Some(block) = cfg.blocks.get(&block_pc) {
+                // Method 1: Direct CFG edges to other function entries
                 for &succ in &block.successors {
-                    // Check if the successor belongs to a different function
                     if let Some(&succ_func_entry) = block_to_func.get(&succ)
                         && succ_func_entry != func.entry_pc
                         && succ == succ_func_entry
                     {
-                        // This is a call: jump from this function to another function's entry
                         let callee_name = func_names
                             .get(&succ_func_entry)
                             .cloned()
@@ -393,6 +448,40 @@ pub fn build_call_graph(
                             callee_entry_pc: succ_func_entry,
                             callee_name,
                         });
+                    }
+                }
+
+                // Method 2: JumpInd instructions can reach other functions via jump table
+                // Skip blocks that are return epilogues (JumpInd r0 after sp restore)
+                if let Some((_, last_instr)) = block.instructions.last()
+                    && matches!(last_instr, Instruction::JumpInd { .. })
+                    && !is_return_epilogue(block)
+                    && !is_halt_epilogue(block)
+                {
+                    // Check which jump table entries point to OTHER function entries
+                    for &entry in &program.jump_table {
+                        let target_pc = entry as usize;
+                        if func_entry_pcs.contains(&target_pc) && target_pc != func.entry_pc {
+                            let callee_name = func_names
+                                .get(&target_pc)
+                                .cloned()
+                                .unwrap_or_else(|| format!("func_at_{:#06x}", target_pc));
+                            // Avoid duplicate call sites
+                            let already_added =
+                                call_graph.get(&func.entry_pc).is_some_and(|calls| {
+                                    calls.iter().any(|c| {
+                                        c.callee_entry_pc == target_pc
+                                            && c.caller_block_pc == block_pc
+                                    })
+                                });
+                            if !already_added {
+                                call_graph.entry(func.entry_pc).or_default().push(CallSite {
+                                    caller_block_pc: block_pc,
+                                    callee_entry_pc: target_pc,
+                                    callee_name,
+                                });
+                            }
+                        }
                     }
                 }
             }
@@ -424,10 +513,225 @@ pub fn build_function_cfg(cfg: &ControlFlowGraph, function: &Function) -> Contro
     sub_cfg
 }
 
+/// Detected epilogue type for a block.
+#[derive(Debug, Clone)]
+pub enum EpilogueKind {
+    /// Function return: restore callee-saved registers, restore r0, sp += N, JumpInd r0.
+    /// Contains the PCs of all epilogue instructions to eliminate.
+    Return { eliminated_pcs: Vec<usize> },
+    /// Program halt: LoadImm reg = -65536, JumpInd reg.
+    /// Contains the PCs of the halt instructions to eliminate.
+    Halt { eliminated_pcs: Vec<usize> },
+}
+
+/// Detect epilogue patterns in a function's blocks.
+/// Returns a map from block_pc → EpilogueKind for blocks that contain epilogues.
+pub fn detect_epilogues(cfg: &ControlFlowGraph) -> HashMap<usize, EpilogueKind> {
+    let mut epilogues = HashMap::new();
+
+    for (&block_pc, block) in &cfg.blocks {
+        if block.instructions.is_empty() {
+            continue;
+        }
+
+        // Check for halt pattern: LoadImm reg = -65536 + JumpInd reg
+        if block.instructions.len() >= 2 {
+            let last_idx = block.instructions.len() - 1;
+            let (jump_pc, jump_instr) = &block.instructions[last_idx];
+            let (load_pc, load_instr) = &block.instructions[last_idx - 1];
+
+            if let Instruction::JumpInd { reg: jump_reg, .. } = jump_instr
+                && let Instruction::LoadImm {
+                    reg: load_reg,
+                    value: -65536,
+                } = load_instr
+                && jump_reg == load_reg
+            {
+                epilogues.insert(
+                    block_pc,
+                    EpilogueKind::Halt {
+                        eliminated_pcs: vec![*load_pc, *jump_pc],
+                    },
+                );
+                continue;
+            }
+        }
+
+        // Check for return pattern: restore registers, restore r0, sp += N, JumpInd r0
+        // Working backwards from the end of the block:
+        //   JumpInd { reg: 0, offset: 0 }
+        //   AddImm64 { dst: 1, src: 1, value: +N }    (sp += frame_size)
+        //   LoadIndU64 { dst: 0, base: 1, offset: 0 }  (restore r0)
+        //   LoadIndU64 { dst: 12, base: 1, ... }        (restore r12, optional)
+        //   LoadIndU64 { dst: 11, base: 1, ... }        (restore r11, optional)
+        //   LoadIndU64 { dst: 10, base: 1, ... }        (restore r10, optional)
+        //   LoadIndU64 { dst: 9, base: 1, ... }         (restore r9, optional)
+        let instrs = &block.instructions;
+        let len = instrs.len();
+        if len < 3 {
+            continue;
+        }
+
+        let (jump_pc, jump_instr) = &instrs[len - 1];
+        if !matches!(jump_instr, Instruction::JumpInd { reg: 0, offset: 0 }) {
+            continue;
+        }
+
+        let (sp_pc, sp_instr) = &instrs[len - 2];
+        let is_sp_restore =
+            matches!(sp_instr, Instruction::AddImm64 { dst: 1, src: 1, value } if *value > 0);
+        if !is_sp_restore {
+            continue;
+        }
+
+        let (r0_pc, r0_instr) = &instrs[len - 3];
+        let is_r0_restore = matches!(
+            r0_instr,
+            Instruction::LoadIndU64 {
+                dst: 0,
+                base: 1,
+                ..
+            }
+        );
+        if !is_r0_restore {
+            continue;
+        }
+
+        let mut eliminated_pcs = vec![*r0_pc, *sp_pc, *jump_pc];
+
+        // Scan backwards for callee-saved register restores (r9-r12)
+        let callee_saved = [9u8, 10, 11, 12];
+        let mut scan_idx = len.saturating_sub(4); // start before r0 restore
+        while scan_idx > 0 {
+            let idx = scan_idx;
+            scan_idx -= 1;
+
+            let (pc, instr) = &instrs[idx];
+            if let Instruction::LoadIndU64 { dst, base: 1, .. } = instr
+                && callee_saved.contains(dst)
+            {
+                eliminated_pcs.push(*pc);
+            } else {
+                break;
+            }
+        }
+
+        epilogues.insert(block_pc, EpilogueKind::Return { eliminated_pcs });
+    }
+
+    epilogues
+}
+
+/// Detect prologue patterns in a function's entry block.
+/// Returns a list of PCs to eliminate (stack guard, frame allocation, register saves).
+///
+/// wasm-pvm prologue pattern:
+///   LoadImm64 { reg: 2, value: <stack_guard> }    // stack guard constant
+///   AddImm64 { dst: 3, src: 1, value: -N }        // compute stack limit
+///   BranchGeU { reg1: 2, reg2: 3, ... }            // guard check
+///   Trap                                            // (in a separate block)
+///   AddImm64 { dst: 1, src: 1, value: -N }        // frame allocation
+///   StoreIndU64 { base: 1, src: 0, offset: 0 }    // save r0
+///   StoreIndU64 { base: 1, src: 9, offset: ... }  // save r9
+///   StoreIndU64 { base: 1, src: 10, offset: ... } // save r10
+///   StoreIndU64 { base: 1, src: 11, offset: ... } // save r11
+///   StoreIndU64 { base: 1, src: 12, offset: ... } // save r12
+pub fn detect_prologue(cfg: &ControlFlowGraph, entry_pc: usize) -> Vec<usize> {
+    let mut eliminated = Vec::new();
+
+    // Collect all blocks reachable from entry in order
+    let entry_block = match cfg.blocks.get(&entry_pc) {
+        Some(b) => b,
+        None => return eliminated,
+    };
+
+    // Phase 1: Check for stack guard pattern in the entry block
+    let instrs = &entry_block.instructions;
+    let mut idx = 0;
+
+    // Skip initial Jump (dispatch to main) or Fallthrough
+    while idx < instrs.len() {
+        let (_, instr) = &instrs[idx];
+        if matches!(instr, Instruction::Fallthrough) {
+            idx += 1;
+        } else {
+            break;
+        }
+    }
+
+    // Look for: LoadImm64 (stack guard value) + AddImm64 (stack limit) + BranchGeU (guard check)
+    if idx + 2 < instrs.len() {
+        let (pc0, instr0) = &instrs[idx];
+        let (pc1, instr1) = &instrs[idx + 1];
+        let (pc2, instr2) = &instrs[idx + 2];
+
+        let is_stack_guard = matches!(instr0, Instruction::LoadImm64 { reg: 2, .. })
+            && matches!(instr1, Instruction::AddImm64 { dst: 3, src: 1, value } if *value < 0)
+            && matches!(
+                instr2,
+                Instruction::BranchGeU {
+                    reg1: 2,
+                    reg2: 3,
+                    ..
+                }
+            );
+
+        if is_stack_guard {
+            eliminated.push(*pc0);
+            eliminated.push(*pc1);
+            eliminated.push(*pc2);
+            // The Trap block (reached by the guard) will be emitted naturally
+        }
+    }
+
+    // Phase 2: Find the frame allocation and register saves
+    // These might be in the entry block (after the guard) or in a successor block
+    let blocks_to_check: Vec<usize> = {
+        let mut blocks = vec![entry_pc];
+        blocks.extend(entry_block.successors.iter());
+        blocks
+    };
+
+    for &block_pc in &blocks_to_check {
+        if let Some(block) = cfg.blocks.get(&block_pc) {
+            for (pc, instr) in &block.instructions {
+                match instr {
+                    // Frame allocation: sp -= N
+                    Instruction::AddImm64 {
+                        dst: 1,
+                        src: 1,
+                        value,
+                    } if *value < 0 => {
+                        eliminated.push(*pc);
+                    }
+                    // Save return address: [sp+0] = r0
+                    Instruction::StoreIndU64 {
+                        base: 1,
+                        src: 0,
+                        offset: 0,
+                    } => {
+                        eliminated.push(*pc);
+                    }
+                    // Save callee-saved registers: [sp+N] = r9/r10/r11/r12
+                    Instruction::StoreIndU64 { base: 1, src, .. }
+                        if [9u8, 10, 11, 12].contains(src) =>
+                    {
+                        eliminated.push(*pc);
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    eliminated
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::cfg::build_test_cfg;
+    use crate::decoder::DecodedProgram;
     use wasm_pvm::pvm::Instruction;
 
     #[test]
@@ -628,6 +932,7 @@ mod tests {
         let program = DecodedProgram {
             jump_table: vec![],
             instructions: vec![],
+            memory_base: None,
             code_len: 0,
         };
 
@@ -695,7 +1000,13 @@ mod tests {
             },
         ];
 
-        let call_graph = build_call_graph(&cfg, &functions);
+        let program = DecodedProgram {
+            jump_table: vec![],
+            instructions: vec![],
+            memory_base: None,
+            code_len: 0,
+        };
+        let call_graph = build_call_graph(&cfg, &functions, &program);
 
         // main should have a call to func_0
         let calls = call_graph.get(&0usize);

@@ -1,6 +1,4 @@
 fn main(r1: u64, r7: u64, r8: u64) {
-    let ptr_0 = r1 - 144
-
     if (var_1 == 0) {
         let ptr_0_80 = 100
     } else {
@@ -21,10 +19,11 @@ fn main(r1: u64, r7: u64, r8: u64) {
 
     ptr_0_128 = ptr_0_80
 
-    u32[327680] = ptr_0_128
+    mem[0] = ptr_0_128
     let ptr_0_72 = 17179869184
 
-    let var_9 = ptr_0_72 + 327680 + (ptr_0_72 >>u 32)
+    let var_9 = pvm_addr(ptr_0_72) + (ptr_0_72 >>u 32)
+    halt()
 }
 
 fn func_0() {

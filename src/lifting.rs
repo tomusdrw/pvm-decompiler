@@ -10,9 +10,25 @@ use crate::cfg::ControlFlowGraph;
 use crate::dataflow::DataFlowAnalysis;
 use crate::instruction::{BinOp, InstructionShape, MemWidth, UnaryOp};
 use crate::structuring::DominatorTree;
+use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use wasm_pvm::pvm::Instruction;
+
+thread_local! {
+    /// The PVM linear memory base address, set before formatting expressions.
+    static MEMORY_BASE: Cell<Option<u64>> = const { Cell::new(None) };
+}
+
+/// Set the memory base for expression formatting.
+pub fn set_memory_base(base: Option<u64>) {
+    MEMORY_BASE.with(|cell| cell.set(base));
+}
+
+/// Get the current memory base.
+fn get_memory_base() -> Option<u64> {
+    MEMORY_BASE.with(|cell| cell.get())
+}
 
 /// Inferred variable type based on usage context.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -99,10 +115,19 @@ pub struct LiftedProgram {
     pub declared_vars: HashSet<String>,
     /// Named stack variables: maps (base_ptr_name, offset) to a stack variable name.
     pub stack_vars: HashMap<(String, i32), String>,
-    /// Call targets: maps block_pc → callee function name (for cross-function jumps).
+    /// Call targets: maps callee_entry_pc → callee function name (for direct Jump calls).
     pub call_targets: HashMap<usize, String>,
+    /// Indirect call targets: maps caller_block_pc → callee function name
+    /// (for JumpInd-based calls resolved through the jump table).
+    pub indirect_call_targets: HashMap<usize, String>,
     /// Reverse index: variable name → definition PC for O(1) lookups.
     pub var_name_to_def_pc: HashMap<String, usize>,
+    /// Epilogue blocks: maps block_pc → epilogue kind (Return or Halt).
+    /// Used by emission to render `return` / `halt()` instead of raw instructions.
+    pub epilogue_blocks: HashMap<usize, crate::functions::EpilogueKind>,
+    /// Linear memory base address (e.g. 0x50000 = 327680 for PVM).
+    /// When set, expressions involving this constant are simplified.
+    pub memory_base: Option<u64>,
 }
 
 /// A set of variable declarations collected for a block, to be emitted at its top.
@@ -130,7 +155,10 @@ impl LiftedProgram {
             declared_vars: HashSet::new(),
             stack_vars: HashMap::new(),
             call_targets: HashMap::new(),
+            indirect_call_targets: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
+            epilogue_blocks: HashMap::new(),
+            memory_base: None,
         };
 
         lifted.assign_variables(cfg, dataflow);
@@ -1095,15 +1123,24 @@ impl LiftedProgram {
                         Some(slot_name.clone()),
                     ));
                 }
-                Some((
-                    format!(
-                        "{}[{}] = {}",
-                        width,
-                        format_mem_address(base, *offset),
-                        format_expression(value)
-                    ),
-                    None,
-                ))
+                if let Some(name) = resolve_named_global(base, *offset) {
+                    Some((format!("{} = {}", name, format_expression(value)), None))
+                } else if let Some(mem_access) = format_mem_base_access(base, *offset, *width) {
+                    Some((
+                        format!("{} = {}", mem_access, format_expression(value)),
+                        None,
+                    ))
+                } else {
+                    Some((
+                        format!(
+                            "{}[{}] = {}",
+                            width,
+                            format_mem_address(base, *offset),
+                            format_expression(value)
+                        ),
+                        None,
+                    ))
+                }
             }
             Expression::Call { name, args } => {
                 let arg_strs: Vec<String> = args.iter().map(format_expression).collect();
@@ -1736,13 +1773,39 @@ pub fn format_expression(expr: &Expression) -> String {
         Expression::Var(name) => name.clone(),
         Expression::Raw(s) => s.clone(),
         Expression::BinOp { op, lhs, rhs } => {
-            // Convert `x + -N` to `x - N`.
+            // Convert `x + -N` to `x - N`, and simplify memory base subtractions.
             if *op == BinOp::Add
                 && let Expression::Const(v) = rhs.as_ref()
                 && *v < 0
             {
+                // If subtracting the memory base, this converts PVM addr → WASM offset
+                if let Some(mem_base) = get_memory_base()
+                    && (-*v) as u64 == mem_base
+                {
+                    let lhs_str = format_expression(lhs);
+                    return format!("wasm_ptr({})", lhs_str);
+                }
                 let lhs_str = format_expression_maybe_parens(lhs, BinOp::Sub, true);
                 return format!("{} - {}", lhs_str, -v);
+            }
+            // Simplify `x + MEMORY_BASE` (converting WASM offset → PVM address)
+            if *op == BinOp::Add
+                && let Expression::Const(v) = rhs.as_ref()
+                && *v > 0
+                && let Some(mem_base) = get_memory_base()
+                && *v as u64 == mem_base
+            {
+                let lhs_str = format_expression(lhs);
+                return format!("pvm_addr({})", lhs_str);
+            }
+            if *op == BinOp::Add
+                && let Expression::Const(v) = lhs.as_ref()
+                && *v > 0
+                && let Some(mem_base) = get_memory_base()
+                && *v as u64 == mem_base
+            {
+                let rhs_str = format_expression(rhs);
+                return format!("pvm_addr({})", rhs_str);
             }
             // Convert `0 <u (a | b)` to `(a | b) != 0` for non-boolean expressions.
             // This makes bitwise boolean patterns more readable.
@@ -1771,7 +1834,11 @@ pub fn format_expression(expr: &Expression) -> String {
             base,
             offset,
         } => {
-            if let Some(field) = format_struct_field(base, *offset) {
+            if let Some(name) = resolve_named_global(base, *offset) {
+                name
+            } else if let Some(mem_access) = format_mem_base_access(base, *offset, *width) {
+                mem_access
+            } else if let Some(field) = format_struct_field(base, *offset) {
                 field
             } else if let Some(arr) = format_array_access(base, *offset, *width) {
                 arr
@@ -1785,7 +1852,11 @@ pub fn format_expression(expr: &Expression) -> String {
             offset,
             value,
         } => {
-            if let Some(field) = format_struct_field(base, *offset) {
+            if let Some(name) = resolve_named_global(base, *offset) {
+                format!("{} = {}", name, format_expression(value))
+            } else if let Some(mem_access) = format_mem_base_access(base, *offset, *width) {
+                format!("{} = {}", mem_access, format_expression(value))
+            } else if let Some(field) = format_struct_field(base, *offset) {
                 format!("{} = {}", field, format_expression(value))
             } else if let Some(arr) = format_array_access(base, *offset, *width) {
                 format!("{} = {}", arr, format_expression(value))
@@ -1805,6 +1876,39 @@ pub fn format_expression(expr: &Expression) -> String {
     }
 }
 
+/// Detect if a Load/Store base expression is `var + MEMORY_BASE` and simplify to `mem[var]`.
+/// For example, `u8[var_61 + 327680]` → `mem[var_61]` when memory_base = 327680.
+fn format_mem_base_access(base: &Expression, offset: i32, width: MemWidth) -> Option<String> {
+    let mem_base = get_memory_base()? as i64;
+
+    // Pattern 1: base = BinOp(var, Add, Const(MEMORY_BASE)), offset = 0
+    if offset == 0
+        && let Expression::BinOp {
+            op: BinOp::Add,
+            lhs,
+            rhs,
+        } = base
+    {
+        if let Expression::Const(v) = rhs.as_ref()
+            && *v == mem_base
+        {
+            return Some(format!("{}[{}]", width, format_expression(lhs)));
+        }
+        if let Expression::Const(v) = lhs.as_ref()
+            && *v == mem_base
+        {
+            return Some(format!("{}[{}]", width, format_expression(rhs)));
+        }
+    }
+
+    // Pattern 2: base = var, offset = MEMORY_BASE (e.g., LoadInd { base: var, offset: 327680 })
+    if offset as i64 == mem_base {
+        return Some(format!("{}[{}]", width, format_expression(base)));
+    }
+
+    None
+}
+
 /// Format a pointer dereference as a struct field access if the base is a pointer variable.
 /// Returns `Some("ptr->field_N")` for pointer bases, `None` otherwise.
 fn format_struct_field(base: &Expression, offset: i32) -> Option<String> {
@@ -1812,6 +1916,12 @@ fn format_struct_field(base: &Expression, offset: i32) -> Option<String> {
         && name.starts_with("ptr_")
         && offset >= 0
     {
+        // If offset equals the memory base, this is a linear memory access
+        if let Some(mem_base) = get_memory_base()
+            && offset as u64 == mem_base
+        {
+            return Some(format!("mem[{}]", name));
+        }
         return Some(format!("{}->field_{}", name, offset));
     }
     None
@@ -1878,6 +1988,35 @@ fn format_array_access(base: &Expression, offset: i32, width: MemWidth) -> Optio
     }
 
     None
+}
+
+/// Resolve a known PVM/AssemblyScript global address to a named constant.
+/// Returns `Some("GLOBAL_NAME")` if the absolute address matches a known global.
+fn resolve_named_global(base: &Expression, offset: i32) -> Option<String> {
+    // Compute absolute address from base + offset
+    let addr = match base {
+        Expression::Const(b) => (*b).wrapping_add(offset as i64),
+        _ if offset == 0 => return None, // Non-constant base, can't resolve
+        _ => return None,
+    };
+
+    match addr {
+        196608 => Some("RESULT_PTR".to_string()), // 0x30000
+        196612 => Some("RESULT_LEN".to_string()), // 0x30004
+        196616 => Some("HEAP_PTR".to_string()),   // 0x30008
+        196620 => Some("HEAP_PAGES".to_string()), // 0x3000C
+        _ => {
+            // Check if address falls within linear memory (>= memory_base)
+            if let Some(mem_base) = get_memory_base() {
+                let mem_base_i64 = mem_base as i64;
+                if addr >= mem_base_i64 {
+                    let wasm_offset = addr - mem_base_i64;
+                    return Some(format!("mem[{}]", wasm_offset));
+                }
+            }
+            None
+        }
+    }
 }
 
 /// Format a memory address `base + offset` with clean output.
@@ -3092,7 +3231,10 @@ mod tests {
             declared_vars: HashSet::new(),
             stack_vars: HashMap::new(),
             call_targets: HashMap::new(),
+            indirect_call_targets: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
+            epilogue_blocks: HashMap::new(),
+            memory_base: None,
         };
 
         // Set up two variables for the same register at different PCs
@@ -3167,7 +3309,10 @@ mod tests {
             declared_vars: HashSet::new(),
             stack_vars: HashMap::new(),
             call_targets: HashMap::new(),
+            indirect_call_targets: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
+            epilogue_blocks: HashMap::new(),
+            memory_base: None,
         };
 
         lifted.variables.insert(

@@ -1,6 +1,4 @@
 fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
-    let ptr_0 = r1 - 16
-
     let var_2 = ptr_0 - 40
 
     if (var_1 >=u var_2) {
@@ -10,10 +8,10 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
         let ptr_1_16 = r10
         let ptr_1_24 = r11
         let ptr_1_32 = r12
-        u32[196616] = 1036
+        HEAP_PTR = 1036
     }
 
-    let var_9 = ptr_1 + 40
+    return
 }
 
 fn func_0() {
@@ -22,14 +20,12 @@ fn func_0() {
 
 fn func_1(r1: u64) {
     let var_1 = u64[r1 + 8]
-    let ptr_0 = r1 - 664
-    let ptr_0_40 = u64[r1] - 327680
-    let ptr_0_56 = u32[196616]
-    let var_9 = u32[196616] + 4
+    let ptr_0_40 = wasm_ptr(u64[r1])
+    let ptr_0_56 = HEAP_PTR
+    let var_9 = HEAP_PTR + 4
     let ptr_0_88 = var_9
-    let var_13 = var_9 + 268
-    let ptr_0_112 = var_13
-    let var_15 = u32[196620]
+    let ptr_0_112 = var_9 + 268
+    let var_15 = HEAP_PAGES
     let ptr_0_120 = var_15
     let ptr_0_192 = (var_15 << 16) + 15 & -16
 
@@ -43,7 +39,7 @@ fn func_1(r1: u64) {
 
     ptr_0_400 = ptr_0_120
 
-    let var_81 = u32[196620]
+    let var_81 = HEAP_PAGES
     let var_82 = var_81 + ptr_0_400
 
     if (var_81 <u var_82) {
@@ -52,11 +48,11 @@ fn func_1(r1: u64) {
         if (var_82 <u var_83) goto block_0223;
     }
 
-    u32[196620] = var_82
+    HEAP_PAGES = var_82
     let ptr_8 = sbrk(var_82 - var_81 << 16)
 
     if (var_81 <s 0) {
-        let var_103 = u32[196620]
+        let var_103 = HEAP_PAGES
         let var_104 = var_103 + ptr_0_344
         if (var_103 <u var_104) goto block_02d5;
     }
@@ -64,7 +60,7 @@ fn func_1(r1: u64) {
     if (var_104 <u var_105) {
         let var_109 = -1
     } else {
-        u32[196620] = var_104
+        HEAP_PAGES = var_104
         let ptr_14 = sbrk(var_104 - var_103 << 16)
     }
 
@@ -72,20 +68,22 @@ fn func_1(r1: u64) {
         return
     }
 
-    u32[196616] = ptr_0_112
+    HEAP_PTR = ptr_0_112
     let ptr_0_520 = 0
     let ptr_0_528 = 1
-    let ptr_0_536 = ptr_0_40->field_327680
+    let ptr_0_536 = u32[ptr_0_40]
 
     while (ptr_0_536 >s 0) {
+        let var_136 = ptr_0_528 + ptr_0_520
         ptr_0_520 = var_136 - ptr_0_520
-        ptr_0_528 = ptr_0_528 + ptr_0_520
+        ptr_0_528 = var_136
         ptr_0_536 = ptr_0_536 - 1
     }
 
-    u32[196608] = ptr_0_88
-    u32[196612] = 4
+    RESULT_PTR = ptr_0_88
+    RESULT_LEN = 4
 
-    let var_44 = u32[196608] + 327680 + u32[196612]
+    let var_44 = pvm_addr(RESULT_PTR) + RESULT_LEN
+    halt()
 }
 

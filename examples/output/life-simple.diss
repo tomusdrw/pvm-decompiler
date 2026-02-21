@@ -1,9 +1,8 @@
 fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
-    let ptr_5 = r1 - 1376
-    let var_274 = r7 - 327680
-    u8[327684] = 1
-    u8[327685] = 1
-    u8[327686] = 1
+    let var_274 = wasm_ptr(r7)
+    mem[4] = 1
+    mem[5] = 1
+    mem[6] = 1
     let var_290 = 0
     let var_292 = 4
 
@@ -76,9 +75,8 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
 
     let ptr_0_72 = ptr_0_80
 
-    let var_10 = ptr_0 + 624
+    return
 
-    let var_142 = ptr_2 + 616
 }
 
 fn func_0() {
@@ -86,16 +84,16 @@ fn func_0() {
 }
 
 fn func_1(r1: u64) {
-    u32[525056] = 4
-    u32[525060] = 4
-    let var_2 = u8[524800]
+    mem[197376] = 4
+    mem[197380] = 4
+    let var_2 = mem[197120]
     u64[r1 + 176] = var_2
     let var_4 = 197120
     u64[r1 + 184] = var_4
     let var_6 = var_4 + 1
     u64[r1 + 192] = var_6
     u64[r1 + 200] = var_6
-    let var_7 = u8[var_6 + 327680]
+    let var_7 = u8[var_6]
     u64[r1 + 208] = var_7
     u64[r1 + 216] = var_7
     let var_11 = var_7 << 8
@@ -111,7 +109,7 @@ fn func_1(r1: u64) {
     let var_24 = var_22 + 2
     u64[r1 + 280] = var_24
     u64[r1 + 288] = var_24
-    let var_25 = u8[var_24 + 327680]
+    let var_25 = u8[var_24]
     u64[r1 + 296] = var_25
     u64[r1 + 304] = var_25
     let var_29 = var_25 << 16
@@ -122,7 +120,7 @@ fn func_1(r1: u64) {
     let var_34 = var_32 + 3
     u64[r1 + 336] = var_34
     u64[r1 + 344] = var_34
-    let var_35 = u8[var_34 + 327680]
+    let var_35 = u8[var_34]
     u64[r1 + 352] = var_35
     u64[r1 + 360] = var_35
     let var_39 = var_35 << 24
@@ -138,20 +136,20 @@ fn func_1(r1: u64) {
     let var_55 = var_19 | var_47
     u64[r1 + 432] = var_55
     u64[r1 + 440] = var_55
-    u32[525064] = var_55
+    mem[197384] = var_55
     let var_59 = 197120
     u64[r1 + 456] = var_59
     let var_61 = var_59 + 4
     u64[r1 + 464] = var_61
     u64[r1 + 472] = var_61
-    let var_62 = u8[var_61 + 327680]
+    let var_62 = u8[var_61]
     u64[r1 + 480] = var_62
     let var_64 = 197120
     u64[r1 + 488] = var_64
     let var_66 = var_64 + 5
     u64[r1 + 496] = var_66
     u64[r1 + 504] = var_66
-    let var_67 = u8[var_66 + 327680]
+    let var_67 = u8[var_66]
     u64[r1 + 512] = var_67
     u64[r1 + 520] = var_67
     let var_71 = var_67 << 8
@@ -167,7 +165,7 @@ fn func_1(r1: u64) {
     let var_84 = var_82 + 6
     u64[r1 + 584] = var_84
     u64[r1 + 592] = var_84
-    let var_85 = u8[var_84 + 327680]
+    let var_85 = u8[var_84]
     u64[r1 + 600] = var_85
     u64[r1 + 608] = var_85
     let var_89 = var_85 << 16
@@ -178,7 +176,7 @@ fn func_1(r1: u64) {
     let var_94 = var_92 + 7
     u64[r1 + 640] = var_94
     u64[r1 + 648] = var_94
-    let var_95 = u8[var_94 + 327680]
+    let var_95 = u8[var_94]
     u64[r1 + 656] = var_95
     u64[r1 + 664] = var_95
     let var_99 = var_95 << 24
@@ -194,20 +192,20 @@ fn func_1(r1: u64) {
     let var_115 = var_79 | var_107
     u64[r1 + 736] = var_115
     u64[r1 + 744] = var_115
-    u32[525068] = var_115
+    mem[197388] = var_115
     let var_119 = 197120
     u64[r1 + 760] = var_119
     let var_121 = var_119 + 8
     u64[r1 + 768] = var_121
     u64[r1 + 776] = var_121
-    let var_122 = u8[var_121 + 327680]
+    let var_122 = u8[var_121]
     u64[r1 + 784] = var_122
     let var_124 = 197120
     u64[r1 + 792] = var_124
     let var_126 = var_124 + 9
     u64[r1 + 800] = var_126
     u64[r1 + 808] = var_126
-    let var_127 = u8[var_126 + 327680]
+    let var_127 = u8[var_126]
     u64[r1 + 816] = var_127
     u64[r1 + 824] = var_127
     let var_131 = var_127 << 8
@@ -223,7 +221,7 @@ fn func_1(r1: u64) {
     let var_144 = var_142 + 10
     u64[r1 + 888] = var_144
     u64[r1 + 896] = var_144
-    let var_145 = u8[var_144 + 327680]
+    let var_145 = u8[var_144]
     u64[r1 + 904] = var_145
     u64[r1 + 912] = var_145
     let var_149 = var_145 << 16
@@ -234,7 +232,7 @@ fn func_1(r1: u64) {
     let var_154 = var_152 + 11
     u64[r1 + 944] = var_154
     u64[r1 + 952] = var_154
-    let var_155 = u8[var_154 + 327680]
+    let var_155 = u8[var_154]
     u64[r1 + 960] = var_155
     u64[r1 + 968] = var_155
     let var_159 = var_155 << 24
@@ -250,20 +248,20 @@ fn func_1(r1: u64) {
     let var_175 = var_139 | var_167
     u64[r1 + 1040] = var_175
     u64[r1 + 1048] = var_175
-    u32[525072] = var_175
+    mem[197392] = var_175
     let var_179 = 197120
     u64[r1 + 1064] = var_179
     let var_181 = var_179 + 12
     u64[r1 + 1072] = var_181
     u64[r1 + 1080] = var_181
-    let var_182 = u8[var_181 + 327680]
+    let var_182 = u8[var_181]
     u64[r1 + 1088] = var_182
     let var_184 = 197120
     u64[r1 + 1096] = var_184
     let var_186 = var_184 + 13
     u64[r1 + 1104] = var_186
     u64[r1 + 1112] = var_186
-    let var_187 = u8[var_186 + 327680]
+    let var_187 = u8[var_186]
     u64[r1 + 1120] = var_187
     u64[r1 + 1128] = var_187
     let var_191 = var_187 << 8
@@ -279,7 +277,7 @@ fn func_1(r1: u64) {
     let var_204 = var_202 + 14
     u64[r1 + 1192] = var_204
     u64[r1 + 1200] = var_204
-    let var_205 = u8[var_204 + 327680]
+    let var_205 = u8[var_204]
     u64[r1 + 1208] = var_205
     u64[r1 + 1216] = var_205
     let var_209 = var_205 << 16
@@ -290,7 +288,7 @@ fn func_1(r1: u64) {
     let var_214 = var_212 + 15
     u64[r1 + 1248] = var_214
     u64[r1 + 1256] = var_214
-    let var_215 = u8[var_214 + 327680]
+    let var_215 = u8[var_214]
     u64[r1 + 1264] = var_215
     u64[r1 + 1272] = var_215
     let var_219 = var_215 << 24
@@ -306,9 +304,10 @@ fn func_1(r1: u64) {
     let var_235 = var_199 | var_227
     u64[r1 + 1344] = var_235
     u64[r1 + 1352] = var_235
-    u32[525076] = var_235
+    mem[197396] = var_235
     u64[r1 + 1368] = 103079412480
 
-    let var_243 = u64[r1 + 1368] + 327680 + (u64[r1 + 1368] >>u 32)
+    let var_243 = pvm_addr(u64[r1 + 1368]) + (u64[r1 + 1368] >>u 32)
+    halt()
 }
 

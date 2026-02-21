@@ -17,6 +17,9 @@ pub struct DecodedProgram {
     pub jump_table: Vec<u32>,
     pub instructions: Vec<(usize, Instruction)>, // (PC, Instruction)
     pub code_len: usize,                         // Total byte length of the code section
+    /// Linear memory base address (heap start) derived from the SPI header.
+    /// For raw blob format this is None.
+    pub memory_base: Option<u64>,
 }
 
 #[derive(Debug)]
@@ -144,7 +147,14 @@ pub fn decode_spi(data: &[u8]) -> Result<DecodedProgram, Box<dyn Error>> {
     let code_blob = &blob_data[code_blob_start..code_blob_end];
 
     // 9. Decode the code_blob as a ProgramBlob
-    decode_blob_internal(code_blob)
+    let mut program = decode_blob_internal(code_blob)?;
+
+    // PVM uses fixed memory layout:
+    // 0x10000: read-only data, 0x20000: read-write data,
+    // 0x30000: globals/stdio, 0x40000: stack, 0x50000: heap (linear memory)
+    program.memory_base = Some(0x50000);
+
+    Ok(program)
 }
 
 pub fn decode_blob(data: &[u8]) -> Result<DecodedProgram, Box<dyn Error>> {
@@ -228,6 +238,7 @@ fn decode_blob_internal(blob_data: &[u8]) -> Result<DecodedProgram, Box<dyn Erro
         jump_table,
         instructions,
         code_len: code_len as usize,
+        memory_base: None,
     })
 }
 

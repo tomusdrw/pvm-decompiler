@@ -1,6 +1,4 @@
 fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
-    let ptr_0 = r1 - 16
-
     let var_2 = ptr_0 - 40
 
     if (var_1 >=u var_2) {
@@ -10,10 +8,10 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
         let ptr_1_16 = r10
         let ptr_1_24 = r11
         let ptr_1_32 = r12
-        u32[196620] = 1036
+        HEAP_PAGES = 1036
     }
 
-    let var_9 = ptr_1 + 40
+    return
 }
 
 fn func_0() {
@@ -22,13 +20,11 @@ fn func_0() {
 
 fn func_1(r1: u64) {
     let var_1 = u64[r1 + 8]
-    let ptr_0 = r1 - 928
-    let ptr_0_40 = u64[r1] - 327680
-    let ptr_0_56 = u32[196620]
-    let var_9 = u32[196620] + 4
+    let ptr_0_40 = wasm_ptr(u64[r1])
+    let ptr_0_56 = HEAP_PAGES
+    let var_9 = HEAP_PAGES + 4
     let ptr_0_88 = var_9
-    let var_13 = var_9 + 268
-    let ptr_0_112 = var_13
+    let ptr_0_112 = var_9 + 268
     let var_15 = u32[196624]
     let ptr_0_120 = var_15
     let ptr_0_192 = (var_15 << 16) + 15 & -16
@@ -72,9 +68,9 @@ fn func_1(r1: u64) {
         return
     }
 
-    u32[196620] = ptr_0_112
-    u32[196608] = ptr_0_88
-    let var_100 = ptr_0_40->field_327680
+    HEAP_PAGES = ptr_0_112
+    RESULT_PTR = ptr_0_88
+    let var_100 = u32[ptr_0_40]
     let ptr_0_464 = var_100
     let ptr_0_512 = 2
 
@@ -106,10 +102,11 @@ fn func_1(r1: u64) {
         ptr_0_688 = ptr_0_768
     }
 
-    u32[u32[196608] + 327680] = ptr_0_688
-    u32[196612] = u32[196608]
-    u32[196616] = 4
+    u32[RESULT_PTR] = ptr_0_688
+    RESULT_LEN = RESULT_PTR
+    HEAP_PTR = 4
 
-    let var_44 = u32[196612] + 327680 + u32[196616]
+    let var_44 = pvm_addr(RESULT_LEN) + HEAP_PTR
+    halt()
 }
 

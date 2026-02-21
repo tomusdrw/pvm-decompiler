@@ -286,6 +286,7 @@ mod tests {
                 (9, Instruction::LoadImm { reg: 1, value: 2 }),
                 (13, Instruction::Trap),
             ],
+            memory_base: None,
             code_len: 14,
         };
         let cfg = ControlFlowGraph::build(&program);
@@ -313,6 +314,7 @@ mod tests {
                 (10, Instruction::LoadImm { reg: 1, value: 1 }),
                 (14, Instruction::Trap),
             ],
+            memory_base: None,
             code_len: 15,
         };
         let cfg = ControlFlowGraph::build(&program);
@@ -348,6 +350,7 @@ mod tests {
                 (10, Instruction::LoadImm { reg: 1, value: 2 }),
                 (14, Instruction::Trap),
             ],
+            memory_base: None,
             code_len: 15,
         };
         let cfg = ControlFlowGraph::build(&program);
@@ -365,6 +368,7 @@ mod tests {
         let program = DecodedProgram {
             jump_table: vec![],
             instructions: vec![],
+            memory_base: None,
             code_len: 0,
         };
         let cfg = ControlFlowGraph::build(&program);
@@ -389,6 +393,7 @@ mod tests {
                 (4, Instruction::Trap),
                 (5, Instruction::LoadImm { reg: 1, value: 2 }),
             ],
+            memory_base: None,
             code_len: 9,
         };
         let cfg = ControlFlowGraph::build(&program);
@@ -410,6 +415,7 @@ mod tests {
                 (0, Instruction::LoadImm { reg: 0, value: 1 }),
                 (4, Instruction::Jump { offset: -4 }),
             ],
+            memory_base: None,
             code_len: 9,
         };
         let cfg = ControlFlowGraph::build(&program);

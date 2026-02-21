@@ -15,7 +15,9 @@ mod varint;
 
 use cfg::ControlFlowGraph;
 use dataflow::DataFlowAnalysis;
-use functions::{build_call_graph, build_function_cfg, detect_functions};
+use functions::{
+    build_call_graph, build_function_cfg, detect_epilogues, detect_functions, detect_prologue,
+};
 use lifting::LiftedProgram;
 use structuring::{DominatorTree, FunctionSignature, StructuralAnalysis};
 
@@ -114,6 +116,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Debug: raw instruction dump
     if verbosity >= Verbosity::Debug {
         println!("Jump Table: {:?}", program.jump_table);
+        if let Some(base) = program.memory_base {
+            println!("Memory Base: {:#x} ({})", base, base);
+        }
         println!("\nInstructions:");
         for (pc, instr) in program.instructions.iter() {
             println!("  PC {:#06x}: {:?}", pc, instr);
@@ -148,7 +153,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Build call graph
-    let call_graph = build_call_graph(&cfg, &detected_functions);
+    let call_graph = build_call_graph(&cfg, &detected_functions, &program);
     if verbosity >= Verbosity::Verbose && !call_graph.is_empty() {
         println!("\n=== Call Graph ===");
         for func in &detected_functions {
@@ -167,15 +172,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // This lets the emitter recognize Jump targets that are function entries.
     let mut call_targets: std::collections::HashMap<usize, String> =
         std::collections::HashMap::new();
+    // Build indirect call targets: caller_block_pc → callee_name (for JumpInd-based calls)
+    let mut indirect_call_targets: std::collections::HashMap<usize, String> =
+        std::collections::HashMap::new();
     for calls in call_graph.values() {
         for call in calls {
             call_targets.insert(call.callee_entry_pc, call.callee_name.clone());
+            // Check if the caller block ends with JumpInd (indirect call via jump table)
+            if let Some(block) = cfg.blocks.get(&call.caller_block_pc)
+                && let Some((_, last_instr)) = block.instructions.last()
+                && matches!(last_instr, Instruction::JumpInd { .. })
+            {
+                indirect_call_targets.insert(call.caller_block_pc, call.callee_name.clone());
+            }
         }
     }
 
     // Compute function entry PCs for dispatch switch classification
     let function_entry_pcs: std::collections::HashSet<usize> =
         detected_functions.iter().map(|f| f.entry_pc).collect();
+
+    // Set memory base for expression formatting
+    lifting::set_memory_base(program.memory_base);
 
     // Process each function independently
     for func in &detected_functions {
@@ -184,6 +202,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let dataflow = DataFlowAnalysis::analyze(&func_cfg);
         let mut lifted = LiftedProgram::analyze_with_dom_tree(&func_cfg, &dataflow, &dom_tree);
         lifted.call_targets = call_targets.clone();
+        lifted.indirect_call_targets = indirect_call_targets.clone();
+        lifted.memory_base = program.memory_base;
+
+        // Detect epilogues (return/halt patterns) and prologues (stack guard, frame alloc, reg saves)
+        let epilogues = detect_epilogues(&func_cfg);
+        let prologue_pcs = detect_prologue(&func_cfg, func.entry_pc);
+        for (block_pc, kind) in &epilogues {
+            match kind {
+                functions::EpilogueKind::Return { eliminated_pcs }
+                | functions::EpilogueKind::Halt { eliminated_pcs } => {
+                    for &pc in eliminated_pcs {
+                        lifted.eliminated_pcs.insert(pc);
+                    }
+                }
+            }
+            lifted.epilogue_blocks.insert(*block_pc, kind.clone());
+        }
+        for &pc in &prologue_pcs {
+            lifted.eliminated_pcs.insert(pc);
+        }
+
         let structural = StructuralAnalysis::analyze_with_dom_tree(
             &func_cfg,
             &program,
@@ -231,17 +270,26 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
     let program = decoder::decode_spi(buffer).or_else(|_| decoder::decode_blob(buffer))?;
     let cfg = ControlFlowGraph::build(&program);
     let detected_functions = functions::detect_functions(&cfg);
-    let call_graph = functions::build_call_graph(&cfg, &detected_functions);
+    let call_graph = functions::build_call_graph(&cfg, &detected_functions, &program);
 
     let mut call_targets: HashMap<usize, String> = HashMap::new();
+    let mut indirect_call_targets: HashMap<usize, String> = HashMap::new();
     for calls in call_graph.values() {
         for call in calls {
             call_targets.insert(call.callee_entry_pc, call.callee_name.clone());
+            if let Some(block) = cfg.blocks.get(&call.caller_block_pc)
+                && let Some((_, last_instr)) = block.instructions.last()
+                && matches!(last_instr, Instruction::JumpInd { .. })
+            {
+                indirect_call_targets.insert(call.caller_block_pc, call.callee_name.clone());
+            }
         }
     }
 
     let function_entry_pcs: std::collections::HashSet<usize> =
         detected_functions.iter().map(|f| f.entry_pc).collect();
+
+    lifting::set_memory_base(program.memory_base);
 
     let mut output = String::new();
     for func in &detected_functions {
@@ -251,6 +299,27 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
         let mut lifted =
             lifting::LiftedProgram::analyze_with_dom_tree(&func_cfg, &dataflow, &dom_tree);
         lifted.call_targets = call_targets.clone();
+        lifted.indirect_call_targets = indirect_call_targets.clone();
+        lifted.memory_base = program.memory_base;
+
+        // Detect epilogues and prologues
+        let epilogues = functions::detect_epilogues(&func_cfg);
+        let prologue_pcs = functions::detect_prologue(&func_cfg, func.entry_pc);
+        for (block_pc, kind) in &epilogues {
+            match kind {
+                functions::EpilogueKind::Return { eliminated_pcs }
+                | functions::EpilogueKind::Halt { eliminated_pcs } => {
+                    for &pc in eliminated_pcs {
+                        lifted.eliminated_pcs.insert(pc);
+                    }
+                }
+            }
+            lifted.epilogue_blocks.insert(*block_pc, kind.clone());
+        }
+        for &pc in &prologue_pcs {
+            lifted.eliminated_pcs.insert(pc);
+        }
+
         let structural = structuring::StructuralAnalysis::analyze_with_dom_tree(
             &func_cfg,
             &program,

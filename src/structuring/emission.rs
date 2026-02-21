@@ -659,15 +659,19 @@ impl<'a> Emitter<'a> {
                         }
                     }
                     // Check if this JumpInd targets a known function entry
-                    if let Instruction::JumpInd { reg, .. } = instr
-                        && let Some(callee) = lifted.resolve_indirect_call(*pc, *reg)
-                    {
-                        let _ = writeln!(self.output, "{}{}()", prefix, callee);
-                        continue;
-                    }
-                    // Suppress remaining JumpInd in lifted mode — they're dispatch
-                    // infrastructure or already represented as function calls above.
-                    if matches!(instr, Instruction::JumpInd { .. }) {
+                    if let Instruction::JumpInd { reg, .. } = instr {
+                        // First try: resolve register to a constant PC in call_targets
+                        if let Some(callee) = lifted.resolve_indirect_call(*pc, *reg) {
+                            let _ = writeln!(self.output, "{}{}()", prefix, callee);
+                            continue;
+                        }
+                        // Second try: check if this block is a known indirect call site
+                        if let Some(callee) = lifted.indirect_call_targets.get(&block_pc).cloned() {
+                            let _ = writeln!(self.output, "{}{}()", prefix, callee);
+                            continue;
+                        }
+                        // Suppress remaining JumpInd in lifted mode — they're dispatch
+                        // infrastructure or already represented as function calls above.
                         continue;
                     }
                     // Skip noise instructions in lifted mode.
@@ -711,6 +715,20 @@ impl<'a> Emitter<'a> {
                 }
             }
         }
+        // Emit return/halt for epilogue blocks (after all other instructions).
+        if let Some(ref lifted) = self.lifted
+            && let Some(kind) = lifted.epilogue_blocks.get(&block_pc)
+        {
+            match kind {
+                crate::functions::EpilogueKind::Return { .. } => {
+                    let _ = writeln!(self.output, "{}return", prefix);
+                }
+                crate::functions::EpilogueKind::Halt { .. } => {
+                    let _ = writeln!(self.output, "{}halt()", prefix);
+                }
+            }
+        }
+
         // Blank line between basic blocks when content was emitted.
         if self.output.len() > len_before {
             self.output.push('\n');
@@ -1298,6 +1316,7 @@ mod tests {
         DecodedProgram {
             jump_table: vec![],
             instructions: vec![],
+            memory_base: None,
             code_len: 0,
         }
     }
