@@ -82,6 +82,12 @@ Completed:
 - Suppress redundant `continue` at end of loop body — implicit fall-through makes trailing `continue` unnecessary
 - Eliminate redundant condition variable definitions in if headers — `let cond = x >=s y` suppressed when inlined into `if (x >=s y)`
 - Add LeU/LeS operators and complete comparison inversion — `!(x >s y)` → `x <=s y`, `!(x >=u y)` → `x <u y`
+- Suppress consecutive duplicate `return` statements
+- Extract `eliminate_condition_def` helper to reduce code duplication
+
+### Phase 4e: Structural Improvements (Future)
+- Resolve raw jump instructions in pseudo-code (#39) — branch instructions still appear as `if (...) jump <offset>` when not recognized as if-then-else
+- Improve top-level block label rendering (#40) — detect dispatch loops and structure as `loop { switch { ... } }`
 
 ### Phase 5: LLM Refinement (Future)
 - Prompt engineering for function-level polishing
