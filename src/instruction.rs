@@ -592,8 +592,71 @@ impl InstructionShape {
                 value: *value,
                 offset: *offset,
             },
+            Instruction::BranchLtUImm { reg, value, offset } => Self::BranchImm {
+                cond: "<u",
+                reg: *reg,
+                value: *value,
+                offset: *offset,
+            },
+            Instruction::BranchLeUImm { reg, value, offset } => Self::BranchImm {
+                cond: "<=u",
+                reg: *reg,
+                value: *value,
+                offset: *offset,
+            },
+            Instruction::BranchGeUImm { reg, value, offset } => Self::BranchImm {
+                cond: ">=u",
+                reg: *reg,
+                value: *value,
+                offset: *offset,
+            },
+            Instruction::BranchGtUImm { reg, value, offset } => Self::BranchImm {
+                cond: ">u",
+                reg: *reg,
+                value: *value,
+                offset: *offset,
+            },
+            Instruction::BranchLtSImm { reg, value, offset } => Self::BranchImm {
+                cond: "<s",
+                reg: *reg,
+                value: *value,
+                offset: *offset,
+            },
+            Instruction::BranchLeSImm { reg, value, offset } => Self::BranchImm {
+                cond: "<=s",
+                reg: *reg,
+                value: *value,
+                offset: *offset,
+            },
+            Instruction::BranchGtSImm { reg, value, offset } => Self::BranchImm {
+                cond: ">s",
+                reg: *reg,
+                value: *value,
+                offset: *offset,
+            },
+
+            // Move register
+            Instruction::MoveReg { dst, src } => Self::BinImm {
+                op: BinOp::Add,
+                width: BitWidth::W64,
+                dst: *dst,
+                src: *src,
+                value: 0,
+            },
 
             // Branch with two registers
+            Instruction::BranchEq { reg1, reg2, offset } => Self::BranchReg {
+                cond: "==",
+                reg1: *reg1,
+                reg2: *reg2,
+                offset: *offset,
+            },
+            Instruction::BranchNe { reg1, reg2, offset } => Self::BranchReg {
+                cond: "!=",
+                reg1: *reg1,
+                reg2: *reg2,
+                offset: *offset,
+            },
             Instruction::BranchGeU { reg1, reg2, offset } => Self::BranchReg {
                 cond: ">=u",
                 reg1: *reg1,
@@ -602,6 +665,18 @@ impl InstructionShape {
             },
             Instruction::BranchLtU { reg1, reg2, offset } => Self::BranchReg {
                 cond: "<u",
+                reg1: *reg1,
+                reg2: *reg2,
+                offset: *offset,
+            },
+            Instruction::BranchLtS { reg1, reg2, offset } => Self::BranchReg {
+                cond: "<s",
+                reg1: *reg1,
+                reg2: *reg2,
+                offset: *offset,
+            },
+            Instruction::BranchGeS { reg1, reg2, offset } => Self::BranchReg {
+                cond: ">=s",
                 reg1: *reg1,
                 reg2: *reg2,
                 offset: *offset,

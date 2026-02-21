@@ -166,7 +166,7 @@ impl StructuralAnalysis {
     #[cfg(test)]
     pub fn analyze(cfg: &ControlFlowGraph, program: &DecodedProgram) -> Self {
         let dom_tree = DominatorTree::compute(cfg);
-        Self::analyze_with_dom_tree(cfg, program, dom_tree)
+        Self::analyze_with_dom_tree(cfg, program, dom_tree, HashSet::new())
     }
 
     /// Run structural analysis reusing a pre-computed dominator tree.
@@ -174,6 +174,7 @@ impl StructuralAnalysis {
         cfg: &ControlFlowGraph,
         program: &DecodedProgram,
         dom_tree: DominatorTree,
+        function_entry_pcs: HashSet<usize>,
     ) -> Self {
         if cfg.blocks.is_empty() {
             return StructuralAnalysis {
@@ -201,7 +202,7 @@ impl StructuralAnalysis {
         structures.extend(ifs);
 
         // Detect switch/case patterns
-        let switches = Self::detect_switches(cfg, program);
+        let switches = Self::detect_switches(cfg, program, &function_entry_pcs);
         structures.extend(switches);
 
         StructuralAnalysis {
@@ -404,7 +405,11 @@ impl StructuralAnalysis {
     }
 
     /// Detect switch/case patterns from indirect jumps with jump tables.
-    fn detect_switches(cfg: &ControlFlowGraph, program: &DecodedProgram) -> Vec<Structure> {
+    fn detect_switches(
+        cfg: &ControlFlowGraph,
+        program: &DecodedProgram,
+        function_entry_pcs: &HashSet<usize>,
+    ) -> Vec<Structure> {
         let mut switches = Vec::new();
 
         for block in cfg.blocks.values() {
@@ -425,10 +430,18 @@ impl StructuralAnalysis {
                     .collect();
                 cases.sort_by_key(|(_, target)| *target);
 
+                // In PVM, JumpInd with the global jump table is always dispatch
+                // infrastructure routing between functions. When we have function
+                // detection (function_entry_pcs is non-empty), all JumpInd-based
+                // switches are dispatch. User-level switch/case (br_table) is
+                // compiled to conditional branches, not JumpInd.
+                let is_dispatch = !function_entry_pcs.is_empty();
+
                 switches.push(Structure::Switch {
                     header: block.start_pc,
                     reg: *reg,
                     cases,
+                    is_dispatch,
                 });
             }
         }

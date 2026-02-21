@@ -173,6 +173,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    // Compute function entry PCs for dispatch switch classification
+    let function_entry_pcs: std::collections::HashSet<usize> =
+        detected_functions.iter().map(|f| f.entry_pc).collect();
+
     // Process each function independently
     for func in &detected_functions {
         let func_cfg = build_function_cfg(&cfg, func);
@@ -180,7 +184,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let dataflow = DataFlowAnalysis::analyze(&func_cfg);
         let mut lifted = LiftedProgram::analyze_with_dom_tree(&func_cfg, &dataflow, &dom_tree);
         lifted.call_targets = call_targets.clone();
-        let structural = StructuralAnalysis::analyze_with_dom_tree(&func_cfg, &program, dom_tree);
+        let structural = StructuralAnalysis::analyze_with_dom_tree(
+            &func_cfg,
+            &program,
+            dom_tree,
+            function_entry_pcs.clone(),
+        );
 
         // Compute function signature from live-in registers at entry block
         let mut params: Vec<u8> = dataflow
@@ -231,6 +240,9 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
         }
     }
 
+    let function_entry_pcs: std::collections::HashSet<usize> =
+        detected_functions.iter().map(|f| f.entry_pc).collect();
+
     let mut output = String::new();
     for func in &detected_functions {
         let func_cfg = functions::build_function_cfg(&cfg, func);
@@ -239,8 +251,12 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
         let mut lifted =
             lifting::LiftedProgram::analyze_with_dom_tree(&func_cfg, &dataflow, &dom_tree);
         lifted.call_targets = call_targets.clone();
-        let structural =
-            structuring::StructuralAnalysis::analyze_with_dom_tree(&func_cfg, &program, dom_tree);
+        let structural = structuring::StructuralAnalysis::analyze_with_dom_tree(
+            &func_cfg,
+            &program,
+            dom_tree,
+            function_entry_pcs.clone(),
+        );
 
         let mut params: Vec<u8> = dataflow
             .live_in

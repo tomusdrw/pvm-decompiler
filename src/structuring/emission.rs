@@ -81,7 +81,7 @@ impl StructuralAnalysis {
                     }
                     output.push('\n');
                 }
-                Structure::Switch { header, reg, cases } => {
+                Structure::Switch { header, reg, cases, .. } => {
                     let _ = writeln!(
                         output,
                         "\n  Switch: header={:#06x}, reg=r{}, cases={}",
@@ -147,8 +147,14 @@ impl StructuralAnalysis {
                 Structure::IfThenElse { header, .. } => {
                     if_map.insert(*header, s);
                 }
-                Structure::Switch { header, .. } => {
-                    switch_map.insert(*header, s);
+                Structure::Switch {
+                    header,
+                    is_dispatch,
+                    ..
+                } => {
+                    if !is_dispatch {
+                        switch_map.insert(*header, s);
+                    }
                 }
             }
         }
@@ -340,28 +346,44 @@ impl<'a> Emitter<'a> {
         }
 
         if !else_blocks.is_empty() {
-            // Emit else blocks into a temporary buffer to check if any content is produced.
-            let mut else_output = String::new();
-            std::mem::swap(&mut self.output, &mut else_output);
-            let len_before = else_output.len();
-            std::mem::swap(&mut self.output, &mut else_output);
+            // Check if all else blocks are Trap-only (renders as just `return`).
+            // If so, suppress the else clause entirely.
+            let all_trap_only = else_blocks.iter().all(|&eb| {
+                self.cfg
+                    .blocks
+                    .get(&eb)
+                    .is_some_and(|b| {
+                        b.instructions.len() == 1
+                            && matches!(b.instructions[0].1, Instruction::Trap)
+                    })
+            });
 
-            for &eb in else_blocks {
-                let ctrl = self.emit_block_with_loop_control(eb, indent + 1, loop_context);
-                if let Some(keyword) = ctrl {
-                    let _ = writeln!(self.output, "{}{}", inner_prefix, keyword);
+            if all_trap_only {
+                // Mark else blocks as emitted but don't output them.
+                for &eb in else_blocks {
                     self.emitted.insert(eb);
-                    break; // Suppress unreachable blocks after break/continue
                 }
-                self.emitted.insert(eb);
-            }
+            } else {
+                // Emit else blocks into a temporary buffer to check if any content is produced.
+                let len_before = self.output.len();
 
-            // Only emit the `else` clause if the else blocks produced content.
-            let has_else_content = self.output.len() > len_before;
-            if has_else_content {
-                // Insert "} else {" before the else content
-                self.output
-                    .insert_str(len_before, &format!("{}}} else {{\n", prefix));
+                for &eb in else_blocks {
+                    let ctrl = self.emit_block_with_loop_control(eb, indent + 1, loop_context);
+                    if let Some(keyword) = ctrl {
+                        let _ = writeln!(self.output, "{}{}", inner_prefix, keyword);
+                        self.emitted.insert(eb);
+                        break; // Suppress unreachable blocks after break/continue
+                    }
+                    self.emitted.insert(eb);
+                }
+
+                // Only emit the `else` clause if the else blocks produced content.
+                let has_else_content = self.output.len() > len_before;
+                if has_else_content {
+                    // Insert "} else {" before the else content
+                    self.output
+                        .insert_str(len_before, &format!("{}}} else {{\n", prefix));
+                }
             }
         }
 
@@ -645,6 +667,11 @@ impl<'a> Emitter<'a> {
                         let _ = writeln!(self.output, "{}{}()", prefix, callee);
                         continue;
                     }
+                    // Suppress remaining JumpInd in lifted mode — they're dispatch
+                    // infrastructure or already represented as function calls above.
+                    if matches!(instr, Instruction::JumpInd { .. }) {
+                        continue;
+                    }
                     // Skip noise instructions in lifted mode.
                     if matches!(instr, Instruction::Fallthrough | Instruction::Jump { .. }) {
                         continue;
@@ -831,7 +858,17 @@ impl<'a> Emitter<'a> {
         let switch_var = if let Some(ref mut lifted) = self.lifted {
             if let Some(branch_pc) = last_instruction_pc(self.cfg, block_pc) {
                 if let Some(name) = lifted.var_at_use.get(&(branch_pc, reg)).cloned() {
-                    if lifted.declared_vars.insert(name.clone()) {
+                    // Only emit a forward declaration if the variable has a definition
+                    // PC within the current function's CFG (not an orphaned global ref).
+                    let has_local_def = lifted
+                        .var_name_to_def_pc
+                        .get(&name)
+                        .is_some_and(|def_pc| {
+                            self.cfg.blocks.values().any(|b| {
+                                b.instructions.iter().any(|(pc, _)| pc == def_pc)
+                            })
+                        });
+                    if has_local_def && lifted.declared_vars.insert(name.clone()) {
                         let type_str = lifted
                             .variables
                             .values()
@@ -994,87 +1031,7 @@ fn fix_blank_lines(input: &str) -> String {
         deduped.push(line);
     }
 
-    // Fourth pass: suppress duplicate dispatch switch blocks.
-    // A dispatch switch is a `switch (var) { case N: goto ...; ... }` block.
-    // If the same set of case targets appears multiple times, keep only the first.
-    let mut final_out: Vec<&str> = Vec::new();
-    let mut seen_switches: HashSet<String> = HashSet::new();
-    let mut i = 0;
-    while i < deduped.len() {
-        let trimmed = deduped[i].trim();
-        if trimmed.starts_with("switch (") && trimmed.ends_with('{') {
-            // Collect the switch block lines (cases + closing brace)
-            let switch_start = i;
-            let mut cases = Vec::new();
-            let mut j = i + 1;
-            while j < deduped.len() {
-                let t = deduped[j].trim();
-                if t == "}" {
-                    j += 1;
-                    break;
-                }
-                if t.starts_with("case ") && t.contains("goto") {
-                    cases.push(t.to_string());
-                }
-                j += 1;
-            }
-            // Use sorted cases as fingerprint (ignore switch variable name)
-            cases.sort();
-            let fingerprint = cases.join("|");
-            if !fingerprint.is_empty() && !seen_switches.insert(fingerprint) {
-                // Duplicate dispatch switch — skip it and any preceding setup lines
-                // (typically `let var = expr` lines before the switch).
-                // Walk backwards to remove variable declarations that feed only this switch.
-                while !final_out.is_empty() {
-                    let last = final_out.last().unwrap().trim();
-                    if last.is_empty() || last.starts_with("let ") {
-                        final_out.pop();
-                    } else {
-                        break;
-                    }
-                }
-                i = j;
-                continue;
-            }
-            // Not a duplicate — emit all lines
-            for line in deduped.iter().take(j).skip(switch_start) {
-                final_out.push(line);
-            }
-            i = j;
-        } else {
-            final_out.push(deduped[i]);
-            i += 1;
-        }
-    }
-
-    // Fifth pass: suppress unreachable code after top-level `return`.
-    // Inside a function body (indentation = 4 spaces), code after `return`
-    // that isn't a labeled block header is unreachable dispatch infrastructure.
-    let mut cleaned: Vec<&str> = Vec::new();
-    let mut suppressing = false;
-    for &line in &final_out {
-        let trimmed = line.trim();
-        if suppressing {
-            // Stop suppressing at labeled blocks (goto targets) or function closing brace
-            if trimmed.ends_with(':') && !trimmed.starts_with("case ") {
-                suppressing = false;
-                cleaned.push(line);
-            } else if trimmed == "}" && !line.starts_with("    ") {
-                // Only stop at the function-level closing brace (no indentation)
-                suppressing = false;
-                cleaned.push(line);
-            }
-            // Otherwise skip the line (unreachable)
-            continue;
-        }
-        cleaned.push(line);
-        // Start suppressing after a top-level `return` (indented by exactly 4 spaces)
-        if trimmed == "return" && line.starts_with("    return") && !line.starts_with("        ") {
-            suppressing = true;
-        }
-    }
-
-    let mut out = cleaned.join("\n");
+    let mut out = deduped.join("\n");
     out.push('\n');
     out
 }
@@ -1199,7 +1156,12 @@ fn build_block_labels(_cfg: &ControlFlowGraph, structures: &[Structure]) -> Hash
     let mut goto_targets: HashSet<usize> = HashSet::new();
 
     for s in structures {
-        if let Structure::Switch { cases, .. } = s {
+        if let Structure::Switch {
+            cases,
+            is_dispatch: false,
+            ..
+        } = s
+        {
             for (_, target) in cases {
                 goto_targets.insert(*target);
             }
@@ -2571,40 +2533,4 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_duplicate_dispatch_switch_suppression() {
-        // fix_blank_lines should deduplicate switch blocks that dispatch
-        // to the same set of goto targets.
-        let input = r#"some code
-switch (var_a) {
-    case 0: goto block_0;
-    case 1: goto block_1;
-}
-let var_b = something
-switch (var_b) {
-    case 1: goto block_1;
-    case 0: goto block_0;
-}
-more code
-"#;
-        let output = fix_blank_lines(input);
-        // First switch should be kept
-        assert!(
-            output.contains("switch (var_a)"),
-            "First switch should remain: {}",
-            output
-        );
-        // Second switch (same targets, different variable) should be suppressed
-        assert!(
-            !output.contains("switch (var_b)"),
-            "Duplicate switch should be suppressed: {}",
-            output
-        );
-        // The `let var_b` setup line should also be removed
-        assert!(
-            !output.contains("var_b"),
-            "Setup line for duplicate switch should be removed: {}",
-            output
-        );
-    }
 }

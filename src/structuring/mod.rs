@@ -43,6 +43,7 @@ pub enum Structure {
         header: usize,
         reg: u8,
         cases: Vec<(Vec<u32>, usize)>, // (case values, target block PC)
+        is_dispatch: bool,             // true if this is PVM dispatch infrastructure
     },
 }
 
