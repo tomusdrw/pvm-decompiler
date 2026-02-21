@@ -1233,6 +1233,9 @@ fn detect_for_loop_pattern(
     // Find the last instruction in the init block that defines cond_reg.
     // We deliberately check even eliminated PCs, since the init may have been
     // constant-propagated away but we still want it in the for-header.
+    // Scan backwards through all instructions (not just the last one) because
+    // the init assignment might be followed by other setup instructions
+    // (e.g., initializing a step constant for Sub32-based counting).
     let init_block = cfg.blocks.get(&init_block_pc)?;
     let mut init_result = None;
     for (pc, instr) in init_block.instructions.iter().rev() {
@@ -1250,13 +1253,14 @@ fn detect_for_loop_pattern(
             init_result = Some((format!("{}{}", prefix, raw), *pc));
             break;
         }
-        break; // Only check the last meaningful instruction
     }
 
     let (init_str, init_pc) = init_result?;
 
-    // Find the step: the last non-eliminated instruction in the latch block
-    // that defines cond_reg (e.g., i = i + 1)
+    // Find the step: scan backwards through the latch block for a non-eliminated
+    // instruction that defines cond_reg (e.g., i = i + 1 or i = i - 1).
+    // Scan all instructions (not just the last one) to handle cases where
+    // the step is followed by other instructions in the latch block.
     let latch_block = cfg.blocks.get(&latch_pc)?;
     let mut step_result = None;
     for (pc, instr) in latch_block.instructions.iter().rev() {
@@ -1272,7 +1276,6 @@ fn detect_for_loop_pattern(
             step_result = Some((raw, *pc));
             break;
         }
-        break;
     }
 
     let (step_str, step_pc) = step_result?;
@@ -2313,6 +2316,197 @@ mod tests {
         assert!(
             !pseudo.contains("for ("),
             "Should NOT contain 'for (' without init/step pattern: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_counting_down_for_loop_detection() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // Counting-down for-loop pattern:
+        // block 0: r0 = 10 (init), fallthrough to header
+        // block 10 (header): branch r0 != 0 → body (20) | exit (40)
+        // block 20 (body): r1 = r1 + r0 (work), fallthrough to latch
+        // block 30 (latch): r0 = r0 + (-1) (step = decrement), jump to header
+        // block 40: trap
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 0, value: 10 }),
+                        (4, Instruction::Fallthrough),
+                    ],
+                    vec![10],
+                ),
+                (
+                    10,
+                    vec![(
+                        10,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
+                    vec![20, 40],
+                ),
+                (
+                    20,
+                    vec![
+                        (
+                            20,
+                            Instruction::Add32 {
+                                dst: 1,
+                                src1: 1,
+                                src2: 0,
+                            },
+                        ),
+                        (24, Instruction::Fallthrough),
+                    ],
+                    vec![30],
+                ),
+                (
+                    30,
+                    vec![
+                        (
+                            30,
+                            Instruction::AddImm32 {
+                                dst: 0,
+                                src: 0,
+                                value: -1,
+                            },
+                        ),
+                        (34, Instruction::Jump { offset: -24 }),
+                    ],
+                    vec![10],
+                ),
+                (40, vec![(40, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+
+        assert!(
+            pseudo.contains("for ("),
+            "Counting-down loop should be detected as for-loop: {}",
+            pseudo
+        );
+        assert!(
+            !pseudo.contains("while"),
+            "Should NOT contain 'while' when counting-down for-loop detected: {}",
+            pseudo
+        );
+        // Init should set to 10
+        assert!(
+            pseudo.contains("var_0 = 10"),
+            "For-header should contain init 'var_0 = 10': {}",
+            pseudo
+        );
+        // Condition should be != 0
+        assert!(
+            pseudo.contains("var_0 != 0"),
+            "For-header should contain condition 'var_0 != 0': {}",
+            pseudo
+        );
+        // Step should show decrement: var_0 = var_0 - 1
+        assert!(
+            pseudo.contains("var_0 = var_0 - 1"),
+            "For-header step should show decrement 'var_0 = var_0 - 1': {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_counting_down_for_loop_with_sub32() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // Counting-down for-loop using Sub32 (register subtraction):
+        // block 0: r0 = 10 (init), r2 = 1 (step constant), fallthrough to header
+        // block 10 (header): branch r0 != 0 → body (20) | exit (40)
+        // block 20 (body): r1 = r1 + 1 (work), fallthrough to latch
+        // block 30 (latch): r0 = r0 - r2 (step), jump to header
+        // block 40: trap
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 0, value: 10 }),
+                        (4, Instruction::LoadImm { reg: 2, value: 1 }),
+                        (8, Instruction::Fallthrough),
+                    ],
+                    vec![10],
+                ),
+                (
+                    10,
+                    vec![(
+                        10,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
+                    vec![20, 40],
+                ),
+                (
+                    20,
+                    vec![
+                        (
+                            20,
+                            Instruction::AddImm32 {
+                                dst: 1,
+                                src: 1,
+                                value: 1,
+                            },
+                        ),
+                        (24, Instruction::Fallthrough),
+                    ],
+                    vec![30],
+                ),
+                (
+                    30,
+                    vec![
+                        (
+                            30,
+                            Instruction::Sub32 {
+                                dst: 0,
+                                src1: 0,
+                                src2: 2,
+                            },
+                        ),
+                        (34, Instruction::Jump { offset: -24 }),
+                    ],
+                    vec![10],
+                ),
+                (40, vec![(40, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+
+        assert!(
+            pseudo.contains("for ("),
+            "Counting-down loop with Sub32 should be detected as for-loop: {}",
+            pseudo
+        );
+        // Step should show subtraction
+        assert!(
+            pseudo.contains("var_0 = var_0 - var_2")
+                || pseudo.contains("var_0 = var_0 - 1"),
+            "For-header step should show subtraction: {}",
             pseudo
         );
     }
