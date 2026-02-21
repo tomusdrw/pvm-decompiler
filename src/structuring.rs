@@ -1493,7 +1493,60 @@ fn fix_blank_lines(input: &str) -> String {
         deduped.push(line);
     }
 
-    let mut out = deduped.join("\n");
+    // Fourth pass: suppress duplicate dispatch switch blocks.
+    // A dispatch switch is a `switch (var) { case N: goto ...; ... }` block.
+    // If the same set of case targets appears multiple times, keep only the first.
+    let mut final_out: Vec<&str> = Vec::new();
+    let mut seen_switches: HashSet<String> = HashSet::new();
+    let mut i = 0;
+    while i < deduped.len() {
+        let trimmed = deduped[i].trim();
+        if trimmed.starts_with("switch (") && trimmed.ends_with('{') {
+            // Collect the switch block lines (cases + closing brace)
+            let switch_start = i;
+            let mut cases = Vec::new();
+            let mut j = i + 1;
+            while j < deduped.len() {
+                let t = deduped[j].trim();
+                if t == "}" {
+                    j += 1;
+                    break;
+                }
+                if t.starts_with("case ") && t.contains("goto") {
+                    cases.push(t.to_string());
+                }
+                j += 1;
+            }
+            // Use sorted cases as fingerprint (ignore switch variable name)
+            cases.sort();
+            let fingerprint = cases.join("|");
+            if !fingerprint.is_empty() && !seen_switches.insert(fingerprint) {
+                // Duplicate dispatch switch — skip it and any preceding setup lines
+                // (typically `let var = expr` lines before the switch).
+                // Walk backwards to remove variable declarations that feed only this switch.
+                while !final_out.is_empty() {
+                    let last = final_out.last().unwrap().trim();
+                    if last.is_empty() || last.starts_with("let ") {
+                        final_out.pop();
+                    } else {
+                        break;
+                    }
+                }
+                i = j;
+                continue;
+            }
+            // Not a duplicate — emit all lines
+            for line in deduped.iter().take(j).skip(switch_start) {
+                final_out.push(line);
+            }
+            i = j;
+        } else {
+            final_out.push(deduped[i]);
+            i += 1;
+        }
+    }
+
+    let mut out = final_out.join("\n");
     out.push('\n');
     out
 }
