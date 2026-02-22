@@ -1988,7 +1988,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let selector_name = lifted
             .var_at_use
             .get(&(4, 1))
@@ -2079,7 +2079,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let chosen_name = lifted
             .var_at_use
             .get(&(30, 1))
@@ -2138,7 +2138,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let eliminated_before = lifted.eliminated_pcs.clone();
         let declared_before = lifted.declared_vars.clone();
 
@@ -2194,7 +2194,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
         let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
@@ -2257,7 +2257,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
         let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
@@ -2343,7 +2343,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
         let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
@@ -2441,7 +2441,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let var_at_use_before = lifted.var_at_use.clone();
         let def_index_before = lifted.var_name_to_def_pc.clone();
 
@@ -2519,7 +2519,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
         let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
@@ -2604,7 +2604,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
         let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
@@ -2708,7 +2708,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
         let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
@@ -2752,7 +2752,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
 
         // Compute params from live_in
         let mut params: Vec<u8> = dataflow
@@ -2870,7 +2870,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
 
         let sig = FunctionSignature {
             name: "loopy".to_string(),
@@ -2948,7 +2948,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
         let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
@@ -3013,7 +3013,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
         let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
@@ -3134,10 +3134,10 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
 
-        let mut lifted_a = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted_a = LiftedProgram::analyze(&cfg, &dataflow);
         let pseudo_a = result.pseudo_code(&cfg, Some(&lifted_a), None);
 
-        let mut lifted_b = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted_b = LiftedProgram::analyze(&cfg, &dataflow);
         let pseudo_b = result.pseudo_code(&cfg, Some(&lifted_b), None);
 
         assert_eq!(
@@ -3360,7 +3360,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
         let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
@@ -3408,7 +3408,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
         let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
@@ -3446,7 +3446,7 @@ mod tests {
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
-        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
         let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 

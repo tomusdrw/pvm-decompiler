@@ -993,7 +993,7 @@ mod tests {
             assert_eq!(func_cfg.blocks.len(), func.block_pcs.len());
 
             let dataflow = DataFlowAnalysis::analyze(&func_cfg);
-            let mut lifted = LiftedProgram::analyze(&func_cfg, &dataflow);
+            let lifted = LiftedProgram::analyze(&func_cfg, &dataflow);
             let structural = StructuralAnalysis::analyze(&func_cfg, &program);
             let pseudo = structural.pseudo_code(&func_cfg, Some(&lifted), None);
             assert!(!pseudo.is_empty(), "Pseudo-code should not be empty");
