@@ -39,7 +39,6 @@ pub enum SsaUseSite {
 pub struct SsaProgram {
     pub values: Vec<SsaValue>,
     def_value_by_pc_reg: HashMap<(usize, u8), SsaValueId>,
-    #[allow(dead_code)]
     use_value_by_pc_reg: HashMap<(usize, u8), SsaValueId>,
     uses_by_value: HashMap<SsaValueId, Vec<SsaUseSite>>,
     #[allow(dead_code)]
@@ -284,6 +283,18 @@ impl SsaProgram {
     #[allow(dead_code)]
     pub fn phi_value_for_block_reg(&self, block_pc: usize, reg: u8) -> Option<SsaValueId> {
         self.phi_value_by_block_reg.get(&(block_pc, reg)).copied()
+    }
+
+    pub fn use_mappings(&self) -> &HashMap<(usize, u8), SsaValueId> {
+        &self.use_value_by_pc_reg
+    }
+
+    pub fn value_kind(&self, value: SsaValueId) -> Option<&SsaValueKind> {
+        self.values.get(value).map(|v| &v.kind)
+    }
+
+    pub fn value_operands(&self, value: SsaValueId) -> Option<&[SsaValueId]> {
+        self.values.get(value).map(|v| v.operands.as_slice())
     }
 
     pub fn use_count(&self, value: SsaValueId) -> usize {

@@ -166,6 +166,10 @@ impl LiftedProgram {
         };
 
         lifted.assign_variables(cfg, dataflow);
+        // Build SSA and lower it back into lifted use-site bindings so
+        // expression building uses proof-backed reaching definitions.
+        let ssa = SsaProgram::build(cfg, dom_tree);
+        lifted.lower_ssa_to_lifted_uses(&ssa);
         lifted.build_expressions(cfg);
         lifted.propagate_constants();
         lifted.simplify_all_expressions();
@@ -177,9 +181,6 @@ impl LiftedProgram {
         // Eliminate dead stores while bases are still Var("ptr_*") — folding
         // can inline constants into bases, losing the ptr_ prefix.
         lifted.eliminate_dead_stores();
-        // Build SSA once; later correctness-sensitive passes rely on explicit
-        // defs/uses + merge values for proof-based safety checks.
-        let ssa = SsaProgram::build(cfg, dom_tree);
         lifted.simplify_all_expressions();
         lifted.fold_expressions(cfg);
         lifted.simplify_all_expressions();
@@ -203,6 +204,53 @@ impl LiftedProgram {
         lifted.simplify_all_expressions();
 
         lifted
+    }
+
+    /// Lower SSA value mappings back to non-SSA use bindings (`var_at_use`).
+    /// This keeps existing lifted/emission stages unchanged while making
+    /// use-site naming depend on explicit SSA reaching-definition proofs.
+    fn lower_ssa_to_lifted_uses(&mut self, ssa: &SsaProgram) {
+        for (&(use_pc, use_reg), &value_id) in ssa.use_mappings() {
+            let resolved_name = match ssa.value_kind(value_id) {
+                Some(crate::ir::ssa::SsaValueKind::Instr { pc, reg, .. }) => {
+                    self.variables.get(&(*pc, *reg)).map(|v| v.name.clone())
+                }
+                Some(crate::ir::ssa::SsaValueKind::Phi { .. }) => {
+                    self.resolve_phi_to_single_name(ssa, value_id)
+                }
+                _ => None,
+            };
+            if let Some(name) = resolved_name {
+                self.var_at_use.insert((use_pc, use_reg), name);
+            }
+        }
+    }
+
+    /// If all phi operands resolve to the same concrete definition name,
+    /// reuse that name; otherwise leave the existing mapping unchanged.
+    fn resolve_phi_to_single_name(&self, ssa: &SsaProgram, phi_id: usize) -> Option<String> {
+        let mut unique_name: Option<String> = None;
+        let operands = ssa.value_operands(phi_id)?;
+        if operands.is_empty() {
+            return None;
+        }
+        for &operand in operands {
+            let Some(kind) = ssa.value_kind(operand) else {
+                return None;
+            };
+            let name = match kind {
+                crate::ir::ssa::SsaValueKind::Instr { pc, reg, .. } => {
+                    self.variables.get(&(*pc, *reg)).map(|v| v.name.clone())?
+                }
+                _ => return None,
+            };
+            match &unique_name {
+                Some(existing) if existing != &name => return None,
+                Some(_) => {}
+                None => unique_name = Some(name),
+            }
+        }
+        unique_name
     }
 
     /// Coalesce two variable names: rename all occurrences of `old_name` to `new_name`.
@@ -3608,6 +3656,67 @@ mod tests {
 
         // Unknown variable should return None
         assert!(lifted.expression_for_var("unknown").is_none());
+    }
+
+    #[test]
+    fn test_lower_ssa_to_lifted_uses_rewrites_instr_backed_use_names() {
+        use crate::cfg::build_test_cfg;
+        use crate::ir::ssa::SsaProgram;
+        use crate::structuring::DominatorTree;
+        use wasm_pvm::pvm::Instruction;
+
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (0, Instruction::LoadImm { reg: 1, value: 7 }),
+                    (
+                        4,
+                        Instruction::Add32 {
+                            dst: 2,
+                            src1: 1,
+                            src2: 0,
+                        },
+                    ),
+                    (8, Instruction::Trap),
+                ],
+                vec![],
+            )],
+        );
+        let dom_tree = DominatorTree::compute(&cfg);
+        let ssa = SsaProgram::build(&cfg, &dom_tree);
+
+        let mut lifted = LiftedProgram {
+            variables: HashMap::new(),
+            expressions: HashMap::new(),
+            eliminated_pcs: HashSet::new(),
+            var_at_use: HashMap::new(),
+            declared_vars: HashSet::new(),
+            stack_vars: HashMap::new(),
+            call_targets: HashMap::new(),
+            direct_call_sites: HashMap::new(),
+            var_name_to_def_pc: HashMap::new(),
+            epilogue_blocks: HashMap::new(),
+            suppressed_blocks: HashSet::new(),
+            memory_base: None,
+        };
+        lifted.variables.insert(
+            (0, 1),
+            Variable {
+                name: "var_0".to_string(),
+                var_type: VarType::U64,
+            },
+        );
+        // Deliberately wrong initial name for use-site (4, r1)
+        lifted.var_at_use.insert((4, 1), "wrong_name".to_string());
+
+        lifted.lower_ssa_to_lifted_uses(&ssa);
+        assert_eq!(
+            lifted.var_at_use.get(&(4, 1)).map(String::as_str),
+            Some("var_0"),
+            "SSA lowering should rewrite use-site to the concrete defining variable"
+        );
     }
 
     #[test]
