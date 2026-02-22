@@ -163,6 +163,7 @@ impl StructuralAnalysis {
 
         // Pre-pass: detect for-loops and suppress their init/step PCs from normal emission.
         let mut for_loop_map: HashMap<usize, ForLoopInfo> = HashMap::new();
+        let mut emission_eliminated_pcs: HashSet<usize> = HashSet::new();
         for s in &self.structures {
             if let Structure::Loop {
                 header,
@@ -182,9 +183,8 @@ impl StructuralAnalysis {
             {
                 let mut info = info;
                 // Suppress the init instruction from its block's normal emission
+                emission_eliminated_pcs.insert(info.init_pc);
                 if let Some(ref mut lifted) = lifted {
-                    lifted.eliminated_pcs.insert(info.init_pc);
-
                     // Coalesce init and step variable names so the loop uses
                     // a single name for the induction variable.
                     let init_name = lifted
@@ -222,6 +222,10 @@ impl StructuralAnalysis {
                 *var_use_count.entry(name.clone()).or_insert(0) += 1;
             }
         }
+        let declared_vars = lifted
+            .as_deref()
+            .map(|l| l.declared_vars.clone())
+            .unwrap_or_default();
 
         // Create the emitter with all mutable state.
         let mut em = Emitter {
@@ -238,8 +242,10 @@ impl StructuralAnalysis {
             if_map,
             loop_map,
             for_loop_map,
+            emission_eliminated_pcs,
             pc_to_block,
             var_use_count,
+            declared_vars,
         };
 
         for &block_pc in &self.dom_tree.rpo {
@@ -321,8 +327,10 @@ struct Emitter<'a> {
     if_map: HashMap<usize, &'a Structure>,
     loop_map: HashMap<usize, &'a Structure>,
     for_loop_map: HashMap<usize, ForLoopInfo>,
+    emission_eliminated_pcs: HashSet<usize>,
     pc_to_block: HashMap<usize, usize>,
     var_use_count: HashMap<String, usize>,
+    declared_vars: HashSet<String>,
 }
 
 impl<'a> Emitter<'a> {
@@ -366,7 +374,15 @@ impl<'a> Emitter<'a> {
         self.emit_block_body(header, indent, true);
 
         let cond_str = condition
-            .map(|c| format_condition_maybe_lifted(c, self.cfg, header, self.lifted.as_deref()))
+            .map(|c| {
+                format_condition_maybe_lifted(
+                    c,
+                    self.cfg,
+                    header,
+                    self.lifted.as_deref(),
+                    Some(&self.emission_eliminated_pcs),
+                )
+            })
             .unwrap_or_else(|| "...".to_string());
         let if_start = self.output.len();
         let _ = writeln!(self.output, "{}if ({}) {{", prefix, cond_str);
@@ -442,12 +458,9 @@ impl<'a> Emitter<'a> {
             && let Some((branch_pc, _)) = header_block.instructions.last()
         {
             let def_to_eliminate = self.condition_def_to_eliminate(*branch_pc, cond);
-
-            if let Some(ref mut lifted) = self.lifted {
-                lifted.eliminated_pcs.insert(*branch_pc);
-                if let Some(def_pc) = def_to_eliminate {
-                    lifted.eliminated_pcs.insert(def_pc);
-                }
+            self.emission_eliminated_pcs.insert(*branch_pc);
+            if let Some(def_pc) = def_to_eliminate {
+                self.emission_eliminated_pcs.insert(def_pc);
             }
         }
     }
@@ -745,7 +758,9 @@ impl<'a> Emitter<'a> {
             for (pc, instr) in &block.instructions[..end] {
                 if let Some(ref mut lifted) = self.lifted {
                     // Skip eliminated PCs (folded/propagated).
-                    if lifted.eliminated_pcs.contains(pc) {
+                    if lifted.eliminated_pcs.contains(pc)
+                        || self.emission_eliminated_pcs.contains(pc)
+                    {
                         continue;
                     }
                     // Check if this Jump is a function call
@@ -790,7 +805,13 @@ impl<'a> Emitter<'a> {
                             .cloned()
                             .unwrap_or_else(|| format!("block_{:04x}", target));
                         let cond_str = if let Some(cond) = extract_condition(instr) {
-                            format_condition_maybe_lifted(&cond, self.cfg, block_pc, Some(lifted))
+                            format_condition_maybe_lifted(
+                                &cond,
+                                self.cfg,
+                                block_pc,
+                                Some(lifted),
+                                Some(&self.emission_eliminated_pcs),
+                            )
                         } else {
                             "...".to_string()
                         };
@@ -874,7 +895,15 @@ impl<'a> Emitter<'a> {
         let prefix = "    ".repeat(indent);
         let cond_str = condition
             .as_ref()
-            .map(|c| format_condition_maybe_lifted(c, self.cfg, header_pc, self.lifted.as_deref()))
+            .map(|c| {
+                format_condition_maybe_lifted(
+                    c,
+                    self.cfg,
+                    header_pc,
+                    self.lifted.as_deref(),
+                    Some(&self.emission_eliminated_pcs),
+                )
+            })
             .unwrap_or_else(|| "...".to_string());
 
         // Clone for-loop info to avoid holding a borrow of self.for_loop_map
@@ -931,11 +960,8 @@ impl<'a> Emitter<'a> {
 
             let is_latch = body_pc == latch && for_loop_info.is_some();
             // Suppress step instruction in latch block for for-loops
-            if is_latch
-                && let Some(ref info) = for_loop_info
-                && let Some(ref mut lifted) = self.lifted
-            {
-                lifted.eliminated_pcs.insert(info.step_pc);
+            if is_latch && let Some(ref info) = for_loop_info {
+                self.emission_eliminated_pcs.insert(info.step_pc);
             }
 
             // Check if this body block is a nested loop header
@@ -1027,7 +1053,7 @@ impl<'a> Emitter<'a> {
                                 .values()
                                 .any(|b| b.instructions.iter().any(|(pc, _)| pc == def_pc))
                         });
-                    if has_local_def && lifted.declared_vars.insert(name.clone()) {
+                    if has_local_def && self.declared_vars.insert(name.clone()) {
                         let type_str = lifted
                             .variables
                             .values()
@@ -1370,11 +1396,12 @@ fn format_condition_maybe_lifted(
     cfg: &ControlFlowGraph,
     header_pc: usize,
     lifted: Option<&LiftedProgram>,
+    emission_eliminated_pcs: Option<&HashSet<usize>>,
 ) -> String {
     if let Some(lifted) = lifted
         && let Some(branch_pc) = last_instruction_pc(cfg, header_pc)
     {
-        return format_condition_lifted(cond, branch_pc, lifted);
+        return format_condition_lifted(cond, branch_pc, lifted, emission_eliminated_pcs);
     }
     format_condition(cond)
 }
@@ -1401,7 +1428,12 @@ fn format_condition(cond: &Condition) -> String {
 /// Format a condition using lifted variable names when available.
 /// When the condition is `cond_var != 0` and cond_var was defined by a comparison
 /// expression (e.g. `x <u y`), inline the comparison directly.
-fn format_condition_lifted(cond: &Condition, branch_pc: usize, lifted: &LiftedProgram) -> String {
+fn format_condition_lifted(
+    cond: &Condition,
+    branch_pc: usize,
+    lifted: &LiftedProgram,
+    emission_eliminated_pcs: Option<&HashSet<usize>>,
+) -> String {
     use crate::lifting::format_expression;
 
     // Try to inline boolean variable definitions into conditions.
@@ -1432,8 +1464,8 @@ fn format_condition_lifted(cond: &Condition, branch_pc: usize, lifted: &LiftedPr
         }
     }
 
-    let lhs = format_operand_lifted(&cond.lhs, branch_pc, lifted);
-    let rhs = format_operand_lifted(&cond.rhs, branch_pc, lifted);
+    let lhs = format_operand_lifted(&cond.lhs, branch_pc, lifted, emission_eliminated_pcs);
+    let rhs = format_operand_lifted(&cond.rhs, branch_pc, lifted, emission_eliminated_pcs);
     let op = match cond.op {
         CondOp::Eq => "==",
         CondOp::Ne => "!=",
@@ -1456,7 +1488,12 @@ fn format_operand(op: &Operand) -> String {
     }
 }
 
-fn format_operand_lifted(op: &Operand, branch_pc: usize, lifted: &LiftedProgram) -> String {
+fn format_operand_lifted(
+    op: &Operand,
+    branch_pc: usize,
+    lifted: &LiftedProgram,
+    emission_eliminated_pcs: Option<&HashSet<usize>>,
+) -> String {
     use crate::lifting::format_expression;
     match op {
         Operand::Reg(r) => {
@@ -1466,7 +1503,8 @@ fn format_operand_lifted(op: &Operand, branch_pc: usize, lifted: &LiftedProgram)
                 // they are likely loop induction variables whose initial constant def
                 // was absorbed into a for-loop header but whose name is still live.
                 if let Some(def_pc) = lifted.var_name_to_def_pc.get(name.as_str())
-                    && lifted.eliminated_pcs.contains(def_pc)
+                    && (lifted.eliminated_pcs.contains(def_pc)
+                        || emission_eliminated_pcs.is_some_and(|s| s.contains(def_pc)))
                     && let Some(expr) = lifted.expressions.get(def_pc)
                 {
                     let use_count = lifted
@@ -1939,6 +1977,56 @@ mod tests {
         assert!(
             !lifted.eliminated_pcs.contains(&chosen_def_pc),
             "non-dominating condition def must be preserved"
+        );
+    }
+
+    #[test]
+    fn test_pseudo_code_does_not_mutate_lifted_elimination_set() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // Boolean temp in branch condition should be handled by emitter-local
+        // suppression state, not by mutating LiftedProgram.eliminated_pcs.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (
+                            0,
+                            Instruction::SetLtU {
+                                dst: 1,
+                                src1: 2,
+                                src2: 3,
+                            },
+                        ),
+                        (
+                            4,
+                            Instruction::BranchNeImm {
+                                reg: 1,
+                                value: 0,
+                                offset: 10,
+                            },
+                        ),
+                    ],
+                    vec![10, 20],
+                ),
+                (10, vec![(10, Instruction::Trap)], vec![]),
+                (20, vec![(20, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let eliminated_before = lifted.eliminated_pcs.clone();
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let _pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+
+        assert_eq!(
+            lifted.eliminated_pcs, eliminated_before,
+            "emitter must not mutate lifted elimination state"
         );
     }
 
