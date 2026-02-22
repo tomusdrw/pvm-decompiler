@@ -533,6 +533,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
             body_ordered,
             reachable,
             last_emittable,
+            force_empty_body,
             empty_body_fallback,
         ) = if let Some(plan) = self.plan.loop_plans.get(&header_pc) {
             (
@@ -541,6 +542,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
                 plan.body_order.clone(),
                 plan.reachable.clone(),
                 plan.last_emittable,
+                plan.force_empty_body,
                 plan.empty_body_fallback,
             )
         } else {
@@ -558,6 +560,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
                 body_ordered,
                 reachable,
                 last_emittable,
+                false,
                 EmptyLoopFallback::EmitContinue,
             )
         };
@@ -613,9 +616,6 @@ impl<'a, 'p> Emitter<'a, 'p> {
         } else {
             let _ = writeln!(self.output, "{}while ({}) {{", prefix, cond_str);
         }
-        // Position after the `while/for {` line — body content starts here.
-        let output_after_header_line = self.output.len();
-
         // Emit header block body (before the condition branch)
         self.emit_block_body(header_pc, indent + 1, true);
 
@@ -685,11 +685,8 @@ impl<'a, 'p> Emitter<'a, 'p> {
             self.emitted.insert(body_pc);
         }
 
-        // If the loop body produced no visible output:
-        // - suppress large likely-dispatch loops entirely, keeping only header side effects
-        // - keep small loops but emit an explicit control statement to avoid hollow shells
-        let body_output = &self.output[output_after_header_line..];
-        if body_output.trim().is_empty() {
+        // Empty-loop fallback policy is precomputed in analysis planning.
+        if force_empty_body {
             match empty_body_fallback {
                 EmptyLoopFallback::CollapseToHeaderSideEffects => {
                     self.output.truncate(output_before_loop);
@@ -853,11 +850,12 @@ struct LoopRenderPlan {
     body_order: Vec<usize>,
     reachable: HashSet<usize>,
     last_emittable: Option<usize>,
+    force_empty_body: bool,
     empty_body_fallback: EmptyLoopFallback,
     terminal_actions: HashMap<usize, LoopTerminalAction>,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 enum LoopTerminalAction {
     Break,
     Continue,
@@ -978,7 +976,7 @@ fn build_emission_plan<'a>(
 
     let mut loop_plans = HashMap::new();
     for (&header_pc, structure) in loop_map {
-        let Structure::Loop { body, .. } = *structure else {
+        let Structure::Loop { body, latch, .. } = *structure else {
             continue;
         };
         let mut terminal_actions = HashMap::new();
@@ -1008,6 +1006,24 @@ fn build_emission_plan<'a>(
             .filter(|&pc| pc != header_pc && reachable.contains(&pc))
             .collect();
         let last_emittable = emittable_order.last().copied();
+
+        let static_refs = EmissionStaticRefs {
+            cfg,
+            if_map,
+            loop_map,
+            lifted,
+            emission_eliminated_pcs: &emission_eliminated_pcs,
+        };
+        let plan_inputs = LoopPlanInputs {
+            header_pc,
+            latch_pc: *latch,
+            has_for_latch: for_loop_map.contains_key(&header_pc),
+            body_order: &body_order,
+            reachable: &reachable,
+            last_emittable,
+            terminal_actions: &terminal_actions,
+        };
+        let force_empty_body = is_force_empty_loop_body(&static_refs, &plan_inputs);
         let empty_body_fallback = if non_header_body.len() > 3 {
             EmptyLoopFallback::CollapseToHeaderSideEffects
         } else {
@@ -1022,6 +1038,7 @@ fn build_emission_plan<'a>(
                 body_order,
                 reachable,
                 last_emittable,
+                force_empty_body,
                 empty_body_fallback,
                 terminal_actions,
             },
@@ -1072,6 +1089,164 @@ fn is_trap_only_block(cfg: &ControlFlowGraph, block_pc: usize) -> bool {
     cfg.blocks.get(&block_pc).is_some_and(|b| {
         b.instructions.len() == 1 && matches!(b.instructions[0].1, Instruction::Trap)
     })
+}
+
+struct EmissionStaticRefs<'a, 's> {
+    cfg: &'a ControlFlowGraph,
+    if_map: &'a HashMap<usize, &'s Structure>,
+    loop_map: &'a HashMap<usize, &'s Structure>,
+    lifted: Option<&'a LiftedProgram>,
+    emission_eliminated_pcs: &'a HashSet<usize>,
+}
+
+struct LoopPlanInputs<'a> {
+    header_pc: usize,
+    latch_pc: usize,
+    has_for_latch: bool,
+    body_order: &'a [usize],
+    reachable: &'a HashSet<usize>,
+    last_emittable: Option<usize>,
+    terminal_actions: &'a HashMap<usize, LoopTerminalAction>,
+}
+
+fn is_force_empty_loop_body(
+    refs: &EmissionStaticRefs<'_, '_>,
+    inputs: &LoopPlanInputs<'_>,
+) -> bool {
+    // Header non-branch side effects are part of loop body rendering.
+    if block_may_emit_output(
+        refs.cfg,
+        refs.lifted,
+        refs.emission_eliminated_pcs,
+        inputs.header_pc,
+        /* skip_terminator */ true,
+    ) {
+        return false;
+    }
+
+    for &body_pc in inputs.body_order {
+        if body_pc == inputs.header_pc || !inputs.reachable.contains(&body_pc) {
+            continue;
+        }
+
+        // Nested structures are treated as non-empty unless proven otherwise.
+        if refs.loop_map.contains_key(&body_pc) || refs.if_map.contains_key(&body_pc) {
+            return false;
+        }
+
+        let is_latch = body_pc == inputs.latch_pc && inputs.has_for_latch;
+        if is_latch {
+            if block_may_emit_output(
+                refs.cfg,
+                refs.lifted,
+                refs.emission_eliminated_pcs,
+                body_pc,
+                /* skip_terminator */ true,
+            ) {
+                return false;
+            }
+            continue;
+        }
+
+        if let Some(action) = inputs.terminal_actions.get(&body_pc).copied() {
+            if block_may_emit_output(
+                refs.cfg,
+                refs.lifted,
+                refs.emission_eliminated_pcs,
+                body_pc,
+                /* skip_terminator */ true,
+            ) {
+                return false;
+            }
+            let emits_keyword =
+                !(action == LoopTerminalAction::Continue && inputs.last_emittable == Some(body_pc));
+            if emits_keyword {
+                return false;
+            }
+            continue;
+        }
+
+        if block_may_emit_output(
+            refs.cfg,
+            refs.lifted,
+            refs.emission_eliminated_pcs,
+            body_pc,
+            /* skip_terminator */ false,
+        ) {
+            return false;
+        }
+    }
+
+    true
+}
+
+fn block_may_emit_output(
+    cfg: &ControlFlowGraph,
+    lifted: Option<&LiftedProgram>,
+    emission_eliminated_pcs: &HashSet<usize>,
+    block_pc: usize,
+    skip_terminator: bool,
+) -> bool {
+    if let Some(lifted) = lifted
+        && lifted.suppressed_blocks.contains(&block_pc)
+    {
+        return false;
+    }
+
+    let Some(block) = cfg.blocks.get(&block_pc) else {
+        return false;
+    };
+
+    let len = block.instructions.len();
+    let end = if skip_terminator && len > 0 {
+        len - 1
+    } else {
+        len
+    };
+
+    if let Some(lifted) = lifted {
+        for (pc, instr) in &block.instructions[..end] {
+            if lifted.eliminated_pcs.contains(pc) || emission_eliminated_pcs.contains(pc) {
+                continue;
+            }
+
+            if matches!(instr, Instruction::Fallthrough) {
+                continue;
+            }
+
+            if let Instruction::Jump { offset } = instr {
+                if lifted.direct_call_sites.contains_key(pc) {
+                    return true;
+                }
+                let target = crate::cfg::ControlFlowGraph::compute_jump_target(*pc, *offset);
+                if lifted.call_targets.contains_key(&target) {
+                    return true;
+                }
+                continue;
+            }
+
+            if matches!(instr, Instruction::JumpInd { .. }) {
+                return true;
+            }
+
+            let shape = InstructionShape::classify(instr);
+            if shape.is_conditional_branch() {
+                return true;
+            }
+
+            if lifted.format_pc_raw(*pc, instr).is_some() {
+                return true;
+            }
+        }
+
+        if lifted.epilogue_blocks.contains_key(&block_pc) {
+            return true;
+        }
+
+        false
+    } else {
+        end > 0
+    }
 }
 
 fn if_branches<'a>(
