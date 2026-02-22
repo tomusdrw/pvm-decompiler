@@ -161,64 +161,14 @@ impl StructuralAnalysis {
             }
         }
 
-        // Pre-pass: detect for-loops and suppress their init/step PCs from normal emission.
-        let mut for_loop_map: HashMap<usize, ForLoopInfo> = HashMap::new();
-        let mut emission_eliminated_pcs: HashSet<usize> = HashSet::new();
-        let mut var_aliases: HashMap<String, String> = HashMap::new();
-        for s in &self.structures {
-            if let Structure::Loop {
-                header,
-                body,
-                latch,
-                condition,
-                ..
-            } = s
-                && let Some(info) =
-                    detect_for_loop_pattern(cfg, *header, *latch, body, condition.as_ref(), lifted)
-            {
-                let mut info = info;
-                // Suppress the init instruction from its block's normal emission
-                emission_eliminated_pcs.insert(info.init_pc);
-                if let Some(lifted_ro) = lifted {
-                    // Keep for-loop naming coherent without mutating LiftedProgram.
-                    let init_name = lifted_ro
-                        .variables
-                        .get(&(info.init_pc, info.cond_reg))
-                        .map(|v| v.name.clone());
-                    let step_name = lifted_ro
-                        .variables
-                        .get(&(info.step_pc, info.cond_reg))
-                        .map(|v| v.name.clone());
-                    if let (Some(init_name), Some(step_name)) = (&init_name, &step_name)
-                        && init_name != step_name
-                    {
-                        var_aliases.insert(step_name.clone(), init_name.clone());
-                        info.step_str = replace_identifier(&info.step_str, step_name, init_name);
-                    }
-                }
-                for_loop_map.insert(*header, info);
-            }
-        }
-        // For-loop step is rendered in the for-header; suppress it from body emission.
-        for info in for_loop_map.values() {
-            emission_eliminated_pcs.insert(info.step_pc);
-        }
-
-        let pc_to_block = build_pc_to_block_index(cfg);
-        let mut var_use_count: HashMap<String, usize> = HashMap::new();
-        if let Some(lifted_ro) = lifted {
-            for name in lifted_ro.var_at_use.values() {
-                *var_use_count.entry(name.clone()).or_insert(0) += 1;
-            }
-        }
-        emission_eliminated_pcs.extend(collect_condition_elimination_pcs(
-            &self.structures,
+        let emission_plan = build_emission_plan(
             cfg,
+            &self.structures,
             lifted,
             &self.dom_tree,
-            &pc_to_block,
-            &var_use_count,
-        ));
+            &loop_map,
+            &if_map,
+        );
         let declared_vars = lifted.map(|l| l.declared_vars.clone()).unwrap_or_default();
 
         // Create the emitter with all mutable state.
@@ -234,10 +184,8 @@ impl StructuralAnalysis {
             labels,
             if_map,
             loop_map,
-            for_loop_map,
-            emission_eliminated_pcs,
+            plan: &emission_plan,
             declared_vars,
-            var_aliases,
         };
 
         for &block_pc in &self.dom_tree.rpo {
@@ -309,7 +257,7 @@ impl StructuralAnalysis {
 /// Groups mutable emission state so that emission helper methods have clean signatures.
 ///
 /// Created once inside `pseudo_code` and passed by `&mut self` to the helpers.
-struct Emitter<'a> {
+struct Emitter<'a, 'p> {
     cfg: &'a ControlFlowGraph,
     output: String,
     emitted: HashSet<usize>,
@@ -317,13 +265,11 @@ struct Emitter<'a> {
     labels: HashMap<usize, String>,
     if_map: HashMap<usize, &'a Structure>,
     loop_map: HashMap<usize, &'a Structure>,
-    for_loop_map: HashMap<usize, ForLoopInfo>,
-    emission_eliminated_pcs: HashSet<usize>,
+    plan: &'p EmissionPlan,
     declared_vars: HashSet<String>,
-    var_aliases: HashMap<String, String>,
 }
 
-impl<'a> Emitter<'a> {
+impl<'a, 'p> Emitter<'a, 'p> {
     fn emit_if(
         &mut self,
         header: usize,
@@ -365,11 +311,11 @@ impl<'a> Emitter<'a> {
                     self.cfg,
                     header,
                     self.lifted,
-                    Some(&self.emission_eliminated_pcs),
+                    Some(&self.plan.emission_eliminated_pcs),
                 )
             })
             .unwrap_or_else(|| "...".to_string());
-        let cond_str = apply_aliases(&cond_str, &self.var_aliases);
+        let cond_str = apply_aliases(&cond_str, &self.plan.var_aliases);
         let if_start = self.output.len();
         let _ = writeln!(self.output, "{}if ({}) {{", prefix, cond_str);
         let then_start = self.output.len();
@@ -433,191 +379,6 @@ impl<'a> Emitter<'a> {
         self.emitted.insert(header);
     }
 
-    /// Check if a block would emit break or continue when inside a loop.
-    /// Returns true if the block exits the loop or jumps back to the header.
-    fn is_loop_terminal_block(
-        cfg: &ControlFlowGraph,
-        block_pc: usize,
-        body: &HashSet<usize>,
-        header_pc: usize,
-    ) -> bool {
-        if let Some(block) = cfg.blocks.get(&block_pc) {
-            let exits_loop = block
-                .successors
-                .iter()
-                .any(|s| !body.contains(s) && *s != header_pc);
-            let continues_loop = block.successors.len() == 1 && block.successors[0] == header_pc;
-            let is_trap = block
-                .instructions
-                .last()
-                .is_some_and(|(_, instr)| matches!(instr, Instruction::Trap));
-            !is_trap && (exits_loop || continues_loop)
-        } else {
-            false
-        }
-    }
-
-    /// Compute a topological ordering of body blocks using reverse post-order DFS.
-    /// This ensures blocks are emitted in control-flow order rather than PC order,
-    /// preventing issues like the latch block (with `continue`) appearing before
-    /// inner loop blocks that have higher PCs.
-    fn compute_body_order(&self, body: &HashSet<usize>, header_pc: usize) -> Vec<usize> {
-        let mut visited = HashSet::new();
-        let mut post_order = Vec::new();
-
-        // DFS from header's successors within the body
-        if let Some(header_block) = self.cfg.blocks.get(&header_pc) {
-            // Sort successors by PC for deterministic tie-breaking
-            let mut succs: Vec<usize> = header_block
-                .successors
-                .iter()
-                .copied()
-                .filter(|s| body.contains(s) && *s != header_pc)
-                .collect();
-            succs.sort();
-
-            for succ in succs {
-                self.dfs_body_order(succ, body, header_pc, &mut visited, &mut post_order);
-            }
-        }
-
-        // Reverse post-order gives topological order
-        post_order.reverse();
-        post_order
-    }
-
-    fn dfs_body_order(
-        &self,
-        pc: usize,
-        body: &HashSet<usize>,
-        header_pc: usize,
-        visited: &mut HashSet<usize>,
-        post_order: &mut Vec<usize>,
-    ) {
-        if !visited.insert(pc) {
-            return;
-        }
-
-        // Follow successors within the body (skip header = back-edge)
-        if let Some(block) = self.cfg.blocks.get(&pc) {
-            let mut succs: Vec<usize> = block
-                .successors
-                .iter()
-                .copied()
-                .filter(|s| body.contains(s) && *s != header_pc)
-                .collect();
-            succs.sort();
-
-            for succ in succs {
-                self.dfs_body_order(succ, body, header_pc, visited, post_order);
-            }
-        }
-
-        // Also follow if-then-else branches (they may not be in block.successors)
-        if let Some(Structure::IfThenElse {
-            then_blocks,
-            else_blocks,
-            ..
-        }) = self.if_map.get(&pc)
-        {
-            let mut branches: Vec<usize> = then_blocks
-                .iter()
-                .chain(else_blocks.iter())
-                .copied()
-                .filter(|b| body.contains(b) && *b != header_pc)
-                .collect();
-            branches.sort();
-
-            for b in branches {
-                self.dfs_body_order(b, body, header_pc, visited, post_order);
-            }
-        }
-
-        post_order.push(pc);
-    }
-
-    /// Compute which blocks in a loop body are reachable from the header
-    /// through non-terminal paths (i.e., not through break/continue blocks).
-    /// A block that would emit break or continue is itself reachable, but
-    /// its successors (within the loop body) are not traversed further.
-    fn compute_reachable_in_loop(&self, body: &HashSet<usize>, header_pc: usize) -> HashSet<usize> {
-        let mut reachable = HashSet::new();
-        let mut worklist = VecDeque::new();
-
-        // Start from the header's successors within the body
-        if let Some(header_block) = self.cfg.blocks.get(&header_pc) {
-            for &succ in &header_block.successors {
-                if body.contains(&succ) && succ != header_pc {
-                    worklist.push_back(succ);
-                }
-            }
-        }
-
-        while let Some(pc) = worklist.pop_front() {
-            if !reachable.insert(pc) {
-                continue;
-            }
-
-            let is_terminal = Self::is_loop_terminal_block(self.cfg, pc, body, header_pc);
-
-            // If this block is an if-then-else header, check if ALL branches terminate
-            let if_terminates = if let Some(Structure::IfThenElse {
-                then_blocks,
-                else_blocks,
-                ..
-            }) = self.if_map.get(&pc)
-            {
-                let all_then_terminal = then_blocks
-                    .iter()
-                    .all(|&tb| Self::is_loop_terminal_block(self.cfg, tb, body, header_pc));
-                let all_else_terminal = else_blocks
-                    .iter()
-                    .all(|&eb| Self::is_loop_terminal_block(self.cfg, eb, body, header_pc));
-                !then_blocks.is_empty()
-                    && !else_blocks.is_empty()
-                    && all_then_terminal
-                    && all_else_terminal
-            } else {
-                false
-            };
-
-            // Don't traverse past terminal blocks or if-then-else where all branches terminate
-            if is_terminal || if_terminates {
-                continue;
-            }
-
-            // Follow successors within the loop body
-            if let Some(block) = self.cfg.blocks.get(&pc) {
-                for &succ in &block.successors {
-                    if body.contains(&succ) && succ != header_pc {
-                        worklist.push_back(succ);
-                    }
-                }
-            }
-
-            // Also follow if-then-else branches
-            if let Some(Structure::IfThenElse {
-                then_blocks,
-                else_blocks,
-                ..
-            }) = self.if_map.get(&pc)
-            {
-                for &tb in then_blocks {
-                    if body.contains(&tb) {
-                        worklist.push_back(tb);
-                    }
-                }
-                for &eb in else_blocks {
-                    if body.contains(&eb) {
-                        worklist.push_back(eb);
-                    }
-                }
-            }
-        }
-
-        reachable
-    }
-
     /// Emit a block body, detecting break/continue when inside a loop.
     /// Returns `Some("break")` or `Some("continue")` if the block exits/continues the loop.
     fn emit_block_with_loop_control(
@@ -676,7 +437,7 @@ impl<'a> Emitter<'a> {
                 if let Some(lifted) = self.lifted {
                     // Skip eliminated PCs (folded/propagated).
                     if lifted.eliminated_pcs.contains(pc)
-                        || self.emission_eliminated_pcs.contains(pc)
+                        || self.plan.emission_eliminated_pcs.contains(pc)
                     {
                         continue;
                     }
@@ -706,7 +467,7 @@ impl<'a> Emitter<'a> {
                             *pc,
                             instr,
                             &mut self.declared_vars,
-                            &self.var_aliases,
+                            &self.plan.var_aliases,
                         ) {
                             let _ = writeln!(self.output, "{}{}", prefix, line);
                         }
@@ -733,12 +494,12 @@ impl<'a> Emitter<'a> {
                                 self.cfg,
                                 block_pc,
                                 Some(lifted),
-                                Some(&self.emission_eliminated_pcs),
+                                Some(&self.plan.emission_eliminated_pcs),
                             )
                         } else {
                             "...".to_string()
                         };
-                        let cond_str = apply_aliases(&cond_str, &self.var_aliases);
+                        let cond_str = apply_aliases(&cond_str, &self.plan.var_aliases);
                         let _ = writeln!(
                             self.output,
                             "{}if ({}) goto {};",
@@ -751,7 +512,7 @@ impl<'a> Emitter<'a> {
                         *pc,
                         instr,
                         &mut self.declared_vars,
-                        &self.var_aliases,
+                        &self.plan.var_aliases,
                     ) {
                         let _ = writeln!(self.output, "{}{}", prefix, line);
                     }
@@ -831,19 +592,19 @@ impl<'a> Emitter<'a> {
                     self.cfg,
                     header_pc,
                     self.lifted,
-                    Some(&self.emission_eliminated_pcs),
+                    Some(&self.plan.emission_eliminated_pcs),
                 )
             })
             .unwrap_or_else(|| "...".to_string());
-        let cond_str = apply_aliases(&cond_str, &self.var_aliases);
+        let cond_str = apply_aliases(&cond_str, &self.plan.var_aliases);
 
-        // Clone for-loop info to avoid holding a borrow of self.for_loop_map
+        // Clone for-loop info to avoid holding a borrow of plan data
         // across mutable self calls.
-        let for_loop_info = self.for_loop_map.get(&header_pc).cloned();
+        let for_loop_info = self.plan.for_loop_map.get(&header_pc).cloned();
 
         if let Some(ref info) = for_loop_info {
-            let init_str = apply_aliases(&info.init_str, &self.var_aliases);
-            let step_str = apply_aliases(&info.step_str, &self.var_aliases);
+            let init_str = apply_aliases(&info.init_str, &self.plan.var_aliases);
+            let step_str = apply_aliases(&info.step_str, &self.plan.var_aliases);
             let _ = writeln!(
                 self.output,
                 "{}for ({}; {}; {}) {{",
@@ -858,14 +619,18 @@ impl<'a> Emitter<'a> {
         // Emit header block body (before the condition branch)
         self.emit_block_body(header_pc, indent + 1, true);
 
-        // Compute topological ordering (RPO) of body blocks for control-flow-order emission.
-        // This prevents the latch block (with `continue`) from appearing before inner loop blocks.
-        let body_ordered = self.compute_body_order(body, header_pc);
-
-        // Pre-compute which blocks are reachable from the header through the loop body,
-        // stopping traversal at blocks that would emit break or continue (terminal blocks).
-        // Blocks not reachable this way are unreachable after break/continue and should be suppressed.
-        let reachable = self.compute_reachable_in_loop(body, header_pc);
+        let body_ordered = self
+            .plan
+            .loop_body_order
+            .get(&header_pc)
+            .cloned()
+            .unwrap_or_default();
+        let reachable = self
+            .plan
+            .loop_reachable
+            .get(&header_pc)
+            .cloned()
+            .unwrap_or_else(|| body.iter().copied().filter(|pc| *pc != header_pc).collect());
 
         // Pre-compute which blocks will actually be emitted, to detect the last one.
         let emittable: Vec<usize> = body_ordered
@@ -996,7 +761,7 @@ impl<'a> Emitter<'a> {
         } else {
             format!("r{}", reg)
         };
-        let switch_var = apply_aliases(&switch_var, &self.var_aliases);
+        let switch_var = apply_aliases(&switch_var, &self.plan.var_aliases);
         let _ = writeln!(self.output, "switch ({}) {{", switch_var);
         for (values, target) in cases.iter() {
             let vals: Vec<String> = values.iter().map(|v| format!("{}", v)).collect();
@@ -1076,6 +841,293 @@ impl<'a> Emitter<'a> {
             }
         }
     }
+}
+
+struct EmissionPlan {
+    for_loop_map: HashMap<usize, ForLoopInfo>,
+    emission_eliminated_pcs: HashSet<usize>,
+    var_aliases: HashMap<String, String>,
+    loop_body_order: HashMap<usize, Vec<usize>>,
+    loop_reachable: HashMap<usize, HashSet<usize>>,
+}
+
+fn build_emission_plan<'a>(
+    cfg: &ControlFlowGraph,
+    structures: &[Structure],
+    lifted: Option<&LiftedProgram>,
+    dom_tree: &super::DominatorTree,
+    loop_map: &HashMap<usize, &'a Structure>,
+    if_map: &HashMap<usize, &'a Structure>,
+) -> EmissionPlan {
+    // Precompute all semantic suppression and aliasing decisions outside of `Emitter`.
+    let mut for_loop_map: HashMap<usize, ForLoopInfo> = HashMap::new();
+    let mut emission_eliminated_pcs: HashSet<usize> = HashSet::new();
+    let mut var_aliases: HashMap<String, String> = HashMap::new();
+
+    for s in structures {
+        if let Structure::Loop {
+            header,
+            body,
+            latch,
+            condition,
+            ..
+        } = s
+            && let Some(info) =
+                detect_for_loop_pattern(cfg, *header, *latch, body, condition.as_ref(), lifted)
+        {
+            let mut info = info;
+            // Suppress the init instruction from its block's normal emission.
+            emission_eliminated_pcs.insert(info.init_pc);
+            if let Some(lifted_ro) = lifted {
+                // Keep for-loop naming coherent without mutating LiftedProgram.
+                let init_name = lifted_ro
+                    .variables
+                    .get(&(info.init_pc, info.cond_reg))
+                    .map(|v| v.name.clone());
+                let step_name = lifted_ro
+                    .variables
+                    .get(&(info.step_pc, info.cond_reg))
+                    .map(|v| v.name.clone());
+                if let (Some(init_name), Some(step_name)) = (&init_name, &step_name)
+                    && init_name != step_name
+                {
+                    var_aliases.insert(step_name.clone(), init_name.clone());
+                    info.step_str = replace_identifier(&info.step_str, step_name, init_name);
+                }
+            }
+            for_loop_map.insert(*header, info);
+        }
+    }
+
+    // For-loop step is rendered in the for-header; suppress it from body emission.
+    for info in for_loop_map.values() {
+        emission_eliminated_pcs.insert(info.step_pc);
+    }
+
+    let pc_to_block = build_pc_to_block_index(cfg);
+    let mut var_use_count: HashMap<String, usize> = HashMap::new();
+    if let Some(lifted_ro) = lifted {
+        for name in lifted_ro.var_at_use.values() {
+            *var_use_count.entry(name.clone()).or_insert(0) += 1;
+        }
+    }
+    emission_eliminated_pcs.extend(collect_condition_elimination_pcs(
+        structures,
+        cfg,
+        lifted,
+        dom_tree,
+        &pc_to_block,
+        &var_use_count,
+    ));
+
+    let mut loop_body_order = HashMap::new();
+    let mut loop_reachable = HashMap::new();
+    for (&header_pc, structure) in loop_map {
+        let Structure::Loop { body, .. } = *structure else {
+            continue;
+        };
+        loop_body_order.insert(
+            header_pc,
+            compute_loop_body_order(cfg, if_map, body, header_pc),
+        );
+        loop_reachable.insert(
+            header_pc,
+            compute_loop_reachable(cfg, if_map, body, header_pc),
+        );
+    }
+
+    EmissionPlan {
+        for_loop_map,
+        emission_eliminated_pcs,
+        var_aliases,
+        loop_body_order,
+        loop_reachable,
+    }
+}
+
+fn is_loop_terminal_block(
+    cfg: &ControlFlowGraph,
+    block_pc: usize,
+    body: &HashSet<usize>,
+    header_pc: usize,
+) -> bool {
+    if let Some(block) = cfg.blocks.get(&block_pc) {
+        let exits_loop = block
+            .successors
+            .iter()
+            .any(|s| !body.contains(s) && *s != header_pc);
+        let continues_loop = block.successors.len() == 1 && block.successors[0] == header_pc;
+        let is_trap = block
+            .instructions
+            .last()
+            .is_some_and(|(_, instr)| matches!(instr, Instruction::Trap));
+        !is_trap && (exits_loop || continues_loop)
+    } else {
+        false
+    }
+}
+
+fn if_branches<'a>(
+    if_map: &HashMap<usize, &'a Structure>,
+    block_pc: usize,
+) -> Option<(&'a [usize], &'a [usize])> {
+    let structure = if_map.get(&block_pc)?;
+    if let Structure::IfThenElse {
+        then_blocks,
+        else_blocks,
+        ..
+    } = *structure
+    {
+        return Some((then_blocks, else_blocks));
+    }
+    None
+}
+
+/// Compute a topological ordering of body blocks using reverse post-order DFS.
+/// This keeps loop body emission in control-flow order.
+fn compute_loop_body_order(
+    cfg: &ControlFlowGraph,
+    if_map: &HashMap<usize, &Structure>,
+    body: &HashSet<usize>,
+    header_pc: usize,
+) -> Vec<usize> {
+    let mut visited = HashSet::new();
+    let mut post_order = Vec::new();
+
+    if let Some(header_block) = cfg.blocks.get(&header_pc) {
+        let mut succs: Vec<usize> = header_block
+            .successors
+            .iter()
+            .copied()
+            .filter(|s| body.contains(s) && *s != header_pc)
+            .collect();
+        succs.sort();
+        for succ in succs {
+            dfs_loop_body_order(
+                cfg,
+                if_map,
+                succ,
+                body,
+                header_pc,
+                &mut visited,
+                &mut post_order,
+            );
+        }
+    }
+
+    post_order.reverse();
+    post_order
+}
+
+fn dfs_loop_body_order(
+    cfg: &ControlFlowGraph,
+    if_map: &HashMap<usize, &Structure>,
+    pc: usize,
+    body: &HashSet<usize>,
+    header_pc: usize,
+    visited: &mut HashSet<usize>,
+    post_order: &mut Vec<usize>,
+) {
+    if !visited.insert(pc) {
+        return;
+    }
+
+    if let Some(block) = cfg.blocks.get(&pc) {
+        let mut succs: Vec<usize> = block
+            .successors
+            .iter()
+            .copied()
+            .filter(|s| body.contains(s) && *s != header_pc)
+            .collect();
+        succs.sort();
+        for succ in succs {
+            dfs_loop_body_order(cfg, if_map, succ, body, header_pc, visited, post_order);
+        }
+    }
+
+    if let Some((then_blocks, else_blocks)) = if_branches(if_map, pc) {
+        let mut branches: Vec<usize> = then_blocks
+            .iter()
+            .chain(else_blocks.iter())
+            .copied()
+            .filter(|b| body.contains(b) && *b != header_pc)
+            .collect();
+        branches.sort();
+        for branch_pc in branches {
+            dfs_loop_body_order(cfg, if_map, branch_pc, body, header_pc, visited, post_order);
+        }
+    }
+
+    post_order.push(pc);
+}
+
+/// Compute loop-body reachability while stopping traversal past terminal
+/// break/continue blocks and fully-terminal if/else forks.
+fn compute_loop_reachable(
+    cfg: &ControlFlowGraph,
+    if_map: &HashMap<usize, &Structure>,
+    body: &HashSet<usize>,
+    header_pc: usize,
+) -> HashSet<usize> {
+    let mut reachable = HashSet::new();
+    let mut worklist = VecDeque::new();
+
+    if let Some(header_block) = cfg.blocks.get(&header_pc) {
+        for &succ in &header_block.successors {
+            if body.contains(&succ) && succ != header_pc {
+                worklist.push_back(succ);
+            }
+        }
+    }
+
+    while let Some(pc) = worklist.pop_front() {
+        if !reachable.insert(pc) {
+            continue;
+        }
+
+        let is_terminal = is_loop_terminal_block(cfg, pc, body, header_pc);
+        let if_terminates = if let Some((then_blocks, else_blocks)) = if_branches(if_map, pc) {
+            let all_then_terminal = then_blocks
+                .iter()
+                .all(|&tb| is_loop_terminal_block(cfg, tb, body, header_pc));
+            let all_else_terminal = else_blocks
+                .iter()
+                .all(|&eb| is_loop_terminal_block(cfg, eb, body, header_pc));
+            !then_blocks.is_empty()
+                && !else_blocks.is_empty()
+                && all_then_terminal
+                && all_else_terminal
+        } else {
+            false
+        };
+
+        if is_terminal || if_terminates {
+            continue;
+        }
+
+        if let Some(block) = cfg.blocks.get(&pc) {
+            for &succ in &block.successors {
+                if body.contains(&succ) && succ != header_pc {
+                    worklist.push_back(succ);
+                }
+            }
+        }
+
+        if let Some((then_blocks, else_blocks)) = if_branches(if_map, pc) {
+            for &tb in then_blocks {
+                if body.contains(&tb) {
+                    worklist.push_back(tb);
+                }
+            }
+            for &eb in else_blocks {
+                if body.contains(&eb) {
+                    worklist.push_back(eb);
+                }
+            }
+        }
+    }
+
+    reachable
 }
 
 fn collect_condition_elimination_pcs(
