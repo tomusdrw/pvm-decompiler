@@ -352,7 +352,7 @@ impl<'a> Emitter<'a> {
         }
 
         // If all body blocks are suppressed, skip the entire if-structure.
-        if let Some(ref lifted) = self.lifted {
+        if let Some(lifted) = self.lifted {
             let all_suppressed = then_blocks
                 .iter()
                 .chain(else_blocks.iter())
@@ -379,7 +379,7 @@ impl<'a> Emitter<'a> {
                     c,
                     self.cfg,
                     header,
-                    self.lifted.as_deref(),
+                    self.lifted,
                     Some(&self.emission_eliminated_pcs),
                 )
             })
@@ -466,7 +466,7 @@ impl<'a> Emitter<'a> {
     }
 
     fn condition_def_to_eliminate(&self, branch_pc: usize, cond: &Condition) -> Option<usize> {
-        let lifted = self.lifted.as_deref()?;
+        let lifted = self.lifted?;
 
         let (reg, is_zero_test) = match (&cond.lhs, &cond.rhs, &cond.op) {
             (Operand::Reg(reg), Operand::Imm(0), CondOp::Ne | CondOp::Eq) => (*reg, true),
@@ -740,7 +740,7 @@ impl<'a> Emitter<'a> {
     /// When `lifted` is provided, uses variable names and skips eliminated PCs.
     fn emit_block_body(&mut self, block_pc: usize, indent: usize, skip_terminator: bool) {
         // Skip blocks that are entirely suppressed (e.g., callee code misassigned to caller)
-        if let Some(ref lifted) = self.lifted
+        if let Some(lifted) = self.lifted
             && lifted.suppressed_blocks.contains(&block_pc)
         {
             return;
@@ -847,7 +847,7 @@ impl<'a> Emitter<'a> {
             }
         }
         // Emit return/halt for epilogue blocks (after all other instructions).
-        if let Some(ref lifted) = self.lifted
+        if let Some(lifted) = self.lifted
             && let Some(kind) = lifted.epilogue_blocks.get(&block_pc)
         {
             match kind {
@@ -910,7 +910,7 @@ impl<'a> Emitter<'a> {
                     c,
                     self.cfg,
                     header_pc,
-                    self.lifted.as_deref(),
+                    self.lifted,
                     Some(&self.emission_eliminated_pcs),
                 )
             })
