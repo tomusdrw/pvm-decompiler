@@ -1201,7 +1201,8 @@ mod tests {
 
     #[test]
     fn test_metadata_stripping_and_spi_decode_pvm_jam() {
-        let data = std::fs::read("examples/compiled/pvm.jam").expect("pvm.jam should exist");
+        let data = std::fs::read("examples/compiled/jam-fuzzy-service.pvm")
+            .expect("jam-fuzzy-service.pvm should exist");
         let stripped = try_strip_metadata(&data).expect("metadata stripping should succeed");
         assert!(
             stripped.len() < data.len(),

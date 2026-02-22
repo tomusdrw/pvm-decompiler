@@ -8,19 +8,19 @@ fn func_0() {
 
 fn func_1(r1: u64) {
     let var_1 = u64[r1 + 8]
-    let ptr_0_40 = wasm_ptr(u64[r1])
+    let ptr_0_40 = u64[r1] - 327680
     let ptr_0_56 = HEAP_PTR
     let var_9 = HEAP_PTR + 4
     let ptr_0_88 = var_9
     let ptr_0_112 = var_9 + 268
     let var_15 = HEAP_PAGES
     let ptr_0_120 = var_15
-    let ptr_0_192 = (var_15 << 16) + 15 & -16
+    let var_27 = (var_15 << 16) + 15 & -16
+    let ptr_0_192 = var_27
 
-    if (((var_15 << 16) + 15 & -16) <u var_9 + 268) {
+    if (var_27 <u var_9 + 268) {
         let var_64 = (ptr_0_112 - ptr_0_192 + 65535 & -65536) >>u 16
         let ptr_0_344 = var_64
-        let cond_3 = var_64 <s ptr_0_120
         let ptr_0_400 = var_64
         if (var_64 >=s ptr_0_120) goto block_01ee;
     }
@@ -59,7 +59,7 @@ fn func_1(r1: u64) {
     HEAP_PTR = ptr_0_112
     let ptr_0_520 = 0
     let ptr_0_528 = 1
-    let ptr_0_536 = mem[ptr_0_40]
+    let ptr_0_536 = ptr_0_40->field_327680
 
     while (ptr_0_536 >s 0) {
         let var_136 = ptr_0_528 + ptr_0_520
@@ -71,7 +71,7 @@ fn func_1(r1: u64) {
     RESULT_PTR = ptr_0_88
     RESULT_LEN = 4
 
-    let var_44 = pvm_addr(RESULT_PTR) + RESULT_LEN
+    let var_44 = RESULT_PTR + 327680 + RESULT_LEN
     halt()
 }
 

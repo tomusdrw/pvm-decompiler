@@ -1,0 +1,1212 @@
+fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
+    var_10091 = 1240; jump 39682
+
+    var_17459 = 2328; jump -4964
+
+    let ptr_1065 = r1 - 976
+    u64[ptr_1065 + 528] = 0
+    let var_16443 = ptr_1065 + 552
+    let ptr_1066 = ptr_1065 + 528
+    var_16444 = 2240; jump 2191
+
+    let ptr_1070 = ptr_674 - 112
+
+    if (20359 >>u ptr_675_0 & 1 != 0) {
+        if (fetch() >=u var_16944) goto block_15560;
+    } else {
+        if (45136 >>u ptr_675_0 & 1 == 0) goto block_15523;
+    }
+
+    let var_16931 = 0
+
+    if (...) {
+        let var_17041 = 97576
+    } else {
+        if (var_16944 == 0) goto block_15583;
+    }
+
+    if (var_16944 >=u 137438953440) {
+    }
+
+    let ptr_922 = ptr_15 - 72
+    u64[ptr_922 + 40] = 0
+    let var_15414 = ptr_922 + 56
+    u64[ptr_922 + 16] = 2
+    u64[ptr_922 + 32] = 1
+    let ptr_923 = ptr_922 + 8
+    let ptr_924 = ptr_922 - 72
+    u16[ptr_924 + 64] = 0
+    let var_15423 = ptr_924 + 48
+    let var_15424 = 2178
+
+    while (ptr_1073_0 & 255 != 0) {
+        RESULT_PTR = var_16941
+        u32[206720 & -4] = i32[206720 & -4] | 1 << 32 >>s 32
+    }
+
+    let var_16970 = var_16944 + 31 >>u 5
+    let var_16972 = 1
+    var_16973 = 2246; jump 5372
+
+    let ptr_1141 = ptr_0 - 72
+    let ptr_1141_64 = var_32
+    let ptr_1141_56 = var_8
+    let ptr_1141_48 = ptr_3
+    let ptr_1141_40 = 0
+    let var_17922 = 196664
+
+    if (u64[var_17922 + 9728] == 0) {
+    }
+
+    let ptr_1137 = 207063 & -32
+
+    if (ptr_1137 >=u ptr_1136) {
+        if (ptr_1137 == 0) goto block_16ab7;
+    } else {
+        if (sbrk(ptr_1137 - sbrk(0)) == 0) goto block_16d66;
+    }
+
+    if (ptr_1137 != 0) {
+        if (...) goto block_16a63;
+    }
+
+    if (sbrk(sbrk(0) - (207063 & -32) neg+ 32) == 0) {
+        if (0 != 0) goto block_16adc;
+    } else {
+        mem[9784] = ptr_1137
+        mem[10088] = mem[10088] | -9223372036854775808
+        mem[10096] = 137438953472 | mem[10096]
+        mem[10104] = 1
+        u32[ptr_1137 + 0] = 0
+        u32[ptr_1137 + 8] = 0
+        u32[ptr_1137 + 12] = 0
+        mem[9780] = ptr_1137
+    }
+
+    let var_17921 = 0
+
+    if (var_30 >>u 25 != 0) {
+        let var_17997 = 0
+    } else {
+        let var_17925 = var_30 + 1
+        if (...) goto block_16b13;
+    }
+
+    let var_17939 = ((var_17925 &~ -1 << clz32(var_17925) neg+ 24) >u 0) + (var_17925 >>u clz32(var_17925) neg+ 24 & 127) - (clz32(var_17925) << 7) + 3199
+
+    let ptr_1141_32 = var_17925
+    let var_17940 = u64[var_17922 + 10040]
+    let var_17941 = var_30 >>u 6
+
+    if (var_17940 >>u var_17941 & 1 == 0) {
+        let var_17951 = -1 << var_17941 + 1 & var_17940
+        if (var_17951 == 0) goto block_16bea;
+    } else {
+        let var_17948 = u64[var_17922 + 8192 + (var_17941 << 3) + 1544] & -1 << var_30
+        if (var_17948 != 0) goto block_16b5f;
+    }
+
+    let var_17984 = var_30 >>u 6
+
+    if (var_17940 >>u var_17984 & 1 == 0) {
+        if (-1 << var_17984 + 1 & var_17940 != 0) goto block_16b4e;
+    } else {
+        if (u64[(var_17984 << 3) + var_17922 + 8192 + 1544] & -1 << (var_30 & 63) != 0) goto block_16b5f;
+    }
+
+    let var_17955 = u64[var_17922 + 8192 + (ctz64(var_17951) << 3) + 1544]
+
+    let var_17956 = ctz64(var_17948)
+    let ptr_1146 = var_17922 + ((var_17941 << 6 | var_17956) << 2)
+    let var_17961 = ptr_1147_4 >>u 1
+
+    if (var_17961 >=u var_30) {
+        var_17997 = 0
+    } else {
+        let ptr_1141_16 = var_17922
+        let ptr_1148 = var_17922 + 8192
+        let var_17966 = ptr_1146_0 - ptr_1148_1536
+        let ptr_1141_0 = (var_17966 >>u 5) + 1
+        let ptr_1141_24 = (var_30 ^ -1) + var_17961
+        let ptr_1141_8 = ptr_1148_1856
+        if (var_17971 >=u ptr_1148_1856) goto block_16bce;
+    }
+
+    if (var_17975 >=u var_17974) {
+        let ptr_1151 = ptr_1141_16 + 8192
+    } else {
+        if (sbrk(((var_17966 >>u 5) + 1 + var_30 + ((var_30 ^ -1) + var_17961 >u 0) << 37 >>u 32) - (sbrk(0) - ptr_1148_1536)) == 0) goto block_16c21;
+    }
+
+    let var_17981 = (var_17966 & -32) + ptr_1148_1536
+    let ptr_1146_0 = ptr_1147_8
+
+    if (ptr_1147_8 == 0) {
+        let var_18006 = -2
+        let var_18008 = var_18006 rotl var_17956 & ptr_1153_1544
+        u64[(var_17941 << 3) + ptr_1141_16 + 8192 + 1544] = var_18008
+        if (var_18008 != 0) goto block_16c69;
+    } else {
+        u32[var_17978 + 12] = 0
+    }
+
+    u64[ptr_1141_16 + 10040] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+
+    let cond_128 = ptr_1141_0 <u ptr_1141_8
+    let var_18018 = var_17981 + 32
+    let var_18020 = (ptr_1141_32 << 1) + 1
+    let ptr_1155 = var_17981 << 32 >>u 32
+    let var_18021 = var_18018 + (var_30 << 5)
+
+    if (ptr_1141_24 == 0) {
+        let var_18054 = (ptr_1141_24 << 5) + var_18021
+        let var_18057 = ptr_1141_40 & cond_128
+        if (ptr_1141_16->field_9728 + 1073741824 >=u var_18054) goto block_16d46;
+    } else {
+        if (...) goto block_16cc0;
+    }
+
+    let var_18034 = ((ptr_1141_24 minu 33554432) >>u clz32(ptr_1141_24 minu 33554432) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 33554432) << 7) + 3200
+
+    let var_18035 = ptr_1141_24 - 1
+    let var_18036 = ptr_1141_24 << 1
+    u32[(var_18035 << 2) + ptr_1141_16] = var_18021
+    let var_18039 = var_18035 >>u 6
+    u32[ptr_1158 + 12] = 0
+
+    if (ptr_1156_0 == 0) {
+        u64[(var_18039 << 3) + ptr_1141_16 + 8192 + 1544] = 1 << (var_18035 & 63) | u64[(var_18039 << 3) + ptr_1141_16 + 8192 + 1544]
+        u64[ptr_1141_16 + 10040] = ptr_1141_16->field_10040 | 1 << var_18039
+    }
+
+    let ptr_1162 = var_18054 << 32 >>u 32
+
+    let var_18060 = var_18018 << 32 >>u 32
+
+    if (ptr_1141_40 & cond_128 == 0) {
+        let var_18001 = ptr_1141 + 72
+        func_61()
+    } else {
+        let var_18061 = 0
+        let var_18065 = ptr_1141 + 72
+    }
+
+    if (...) {
+        if (var_3169 + var_3170 <u var_3169) goto block_17ba4;
+    } else {
+        let var_18732 = var_3169 neg+ 0 & 7
+        let ptr_1295 = var_3169 + var_18732
+        if (ptr_1295 >=u var_3169) goto block_17b70;
+    }
+
+    while (var_18732 - 1 != 0) {
+        u8[var_3169] = var_3171
+        let var_18735 = var_3169 + 1
+    }
+
+    let ptr_1297 = (var_3170 - var_18732 & -8) + ptr_1295
+
+    if (ptr_1297 >=u ptr_1295) {
+        if (ptr_1297 + (var_3170 - var_18732 & 7) >=u ptr_1297) goto block_17baf;
+    } else {
+        let var_18742 = (var_3171 << 56) mulhuu 4311810304 << 32 | (var_3171 << 56) mulhuu 4311810304
+    }
+
+    while (ptr_1297 <u ptr_1295 + 8) {
+    }
+
+    while (var_3170 - 1 != 0) {
+        let var_18747 = ptr_1297 + 1
+    }
+
+    func_61()
+
+    let var_16960 = 0
+    u64[ptr_1071 + 0] = 1
+
+    if (20359 >>u ptr_1071_24 & 1 != 0) {
+        if (fetch() >=u var_16994) goto block_15639;
+    } else {
+        if (45136 >>u ptr_1071_24 & 1 == 0) goto block_15622;
+    }
+
+    let var_16982 = 0
+
+    if (fetch() <u fetch()) {
+        let var_17004 = ptr_1074 + 112
+        func_61()
+    } else {
+        if (var_16994 != -1) goto block_156be;
+    }
+
+    if (var_16992 == 0) {
+        let var_16959 = ptr_1071 + 112
+        func_61()
+    }
+
+    while (ptr_1078_0 & 255 != 0) {
+        RESULT_PTR = var_16991
+        u32[206720 & -4] = i32[206720 & -4] | 1 << 32 >>s 32
+    }
+
+    var_17034 = 2252; jump 5872
+
+    let ptr_1163 = ptr_0 - 24
+    let ptr_1163_16 = var_19
+    let ptr_1163_8 = var_8
+    let ptr_1163_0 = ptr_3
+    let var_18069 = ptr_299_0 - 32
+    let var_18070 = 196664
+    let var_18072 = u64[var_18070 + 9728]
+    let ptr_1165 = var_18069 << 32 >>u 32
+    let var_18076 = ptr_1165_4 >>u 1
+
+    if (...) {
+        let var_18114 = var_18072 + 1073741824
+        let var_18116 = (var_18076 << 5) + var_18069
+        if (var_18114 >=u var_18116) goto block_16f43;
+    } else {
+        let var_18078 = var_18069 - (ptr_1165_0 << 5)
+        let ptr_1166 = var_18078 << 32 >>u 32
+        if (ptr_1166_4 & 1 != 0) goto block_16e69;
+    }
+
+    let var_18082 = ptr_1166_4 >>u 1
+
+    if (...) {
+        let var_18093 = (33554432 >>u clz32(33554432) neg+ 24 & 127) - (clz32(33554432) << 7) + 3199
+    } else {
+        if (ptr_1166_4 == 0) goto block_16df2;
+    }
+
+    if (...) {
+        var_18093 = (33554432 >>u clz32(33554432) neg+ 24 & 127) - (clz32(33554432) << 7) + 3199
+    } else {
+        let var_18085 = var_18082 - 1
+    }
+
+    let var_18094 = 0
+
+    let ptr_1167 = var_18070 + (var_18085 << 32 >>u 30)
+
+    if (...) {
+        if (ptr_1166_8 == 0) goto block_16e57;
+    } else {
+        let ptr_1167_0 = ptr_1166_8
+        if (ptr_1166_8 == 0) goto block_16e20;
+    }
+
+    u32[ptr_1168 + 12] = 0
+
+    let var_18099 = var_18085 >>u 6
+    let var_18104 = -2
+    u64[(var_18099 << 3) + var_18070 + 8192 + 1544] = var_18106
+
+    if (var_18106 != 0) {
+        let var_18110 = u64[var_18070 + 9728]
+        let var_18111 = var_18082 + var_18076
+        let var_18113 = var_18069 - (ptr_1166_4 << 4)
+    } else {
+        u64[var_18070 + 10040] = var_18104 rotl var_18099 & u64[var_18070 + 10040]
+    }
+
+    let ptr_1173 = var_18116 << 32 >>u 32
+
+    if (ptr_1173_4 & 1 != 0) {
+        if (var_18076 == 0) goto block_16fcc;
+    } else {
+        let var_18120 = ptr_1173_4 >>u 1
+        if (...) goto block_16ec6;
+    }
+
+    if (ptr_1173_4 == 0) {
+        let ptr_1174 = var_18070 + (ptr_1173_4 << 32 >>u 30)
+        if (...) goto block_16ef0;
+    } else {
+        if (...) goto block_16ec6;
+    }
+
+    let var_18123 = var_18120 - 1
+
+    let var_18128 = clz32(33554432)
+
+    if (...) {
+        let ptr_1174_0 = ptr_1173_8
+        if (ptr_1173_8 == 0) goto block_16f01;
+    } else {
+        if (ptr_1173_8 == 0) goto block_16f3f;
+    }
+
+    let var_18139 = var_18120 + var_18076
+
+    u32[ptr_1175 + 12] = 0
+    let var_18127 = var_18120 + var_18076
+
+    let var_18140 = ptr_1173_4 >>u 6
+    let var_18146 = -2
+    u64[(var_18140 << 3) + var_18070 + 8192 + 1544] = var_18148
+
+    if (var_18148 != 0) {
+        let var_18153 = var_18120 + var_18076
+    } else {
+        u64[var_18070 + 10040] = u64[var_18070 + 10040] & var_18146 rotl var_18140
+        let var_18152 = var_18120 + var_18076
+    }
+
+    if (...) {
+        let var_18166 = var_18076 - 1
+        let var_18167 = var_18076 << 1
+        u32[(var_18166 << 2) + var_18070] = var_18069
+        let var_18170 = var_18166 >>u 6
+        u32[ptr_1183 + 12] = 0
+        if (ptr_1181_0 == 0) goto block_16fa1;
+    } else {
+        let var_18165 = ((var_18076 minu 33554432) >>u clz32(var_18076 minu 33554432) neg+ 24 & 127) - (clz32(var_18076 minu 33554432) << 7) + 3200
+    }
+
+    u64[(var_18170 << 3) + var_18070 + 8192 + 1544] = 1 << (var_18166 & 63) | u64[(var_18170 << 3) + var_18070 + 8192 + 1544]
+    u64[var_18070 + 10040] = u64[var_18070 + 10040] | 1 << var_18170
+
+    let var_18181 = var_18069 + (var_18076 << 5)
+
+    if (var_18114 >=u var_18181) {
+        let var_18186 = ptr_1163 + 24
+        func_61()
+    } else {
+        let ptr_1186 = var_18181 << 32 >>u 32
+    }
+
+    u64[ptr_1074 + 72] = 0
+    u64[ptr_1074 + 48] = 1
+    u64[ptr_1074 + 56] = 8
+    u64[ptr_1074 + 64] = 0
+    let var_17039 = 98064
+    let var_17040 = ptr_1074 + 40
+
+    let ptr_925 = ptr_15 - 48
+    let var_15427 = 92360
+    u64[ptr_925 + 32] = 0
+    u64[ptr_925 + 8] = 1
+    u64[ptr_925 + 16] = 8
+    u64[ptr_925 + 24] = 0
+
+    if (var_16944 != -1) {
+        u64[ptr_1071 + 72] = 0
+        u64[ptr_1071 + 48] = 1
+        u64[ptr_1071 + 56] = 8
+        u64[ptr_1071 + 64] = 0
+        let var_17036 = 98064
+        let var_17037 = ptr_1071 + 40
+    }
+
+    u16[ptr_949 + 16] = 1
+    var_15586 = 2096; jump 13551
+
+    let ptr_1105 = ptr_924 - 352
+    log()
+    let var_17413 = 1
+    u64[var_17401 + 264] = 0
+    let ptr_1106 = 91148
+    let ptr_1107 = var_17401 + 8
+    var_17415 = 2310; jump -95
+
+    if (var_17414 == 0) {
+        let var_17394 = 0
+        func_61()
+    }
+
+    for (let var_17387 = ptr_1107_256; ptr_1107_256 <u 255; ptr_1104 = ptr_1107_256 + ptr_1107) {
+        let var_17391 = ptr_1106 + 1
+        let ptr_1107_256 = ptr_1107_256 + 1
+    }
+}
+
+fn func_0(r1: u64, r5: u64) {
+    u8[var_0 + 1864] = 0
+    let var_2 = u64[r1]
+    let var_3 = r1 + 16
+    func_61()
+}
+
+fn func_1(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
+    let var_0 = u64[r8 + 16]
+    let var_1 = u64[r7]
+
+    if (var_0 << 40 >=s 0) {
+        let var_8 = 127
+        u32[r8 + 16] = var_0 | 8388608
+        let var_9 = ptr_0 + 8
+    } else {
+        if (...) goto block_0503;
+    }
+
+    let var_5 = var_0 | 150994944
+    u16[ptr_1 + 20] = 18
+
+    let var_6 = var_0 | 16777216
+
+    while (var_11 != 0) {
+        let ptr_2 = var_8 + var_9
+        let var_14 = (var_1 & 15) + 87
+        if (cond_0 != 0) var_15 = var_13
+    }
+
+    let var_20 = var_9 + var_8 - 1 + 1
+    let var_21 = var_8 + 1 neg+ 129
+    let var_22 = 91905
+    let var_23 = 2
+    var_24 = 14; jump 74800
+
+    let ptr_14 = ptr_0 - 104
+    let var_81 = u32[r8 + 16]
+    let var_83 = 1114112
+    let var_84 = var_81 & 2097152
+    let var_87 = var_21 + (var_84 >>u 21)
+    let ptr_14_48 = var_23
+
+    if (...) {
+        let ptr_14_40 = var_22
+        if (var_23 == 0) goto block_12a0c;
+    } else {
+        u64[ptr_14 + 40] = 0
+        let var_88 = u16[r8 + 20]
+        if (var_84 != 0) var_89 = 43
+        if (var_88 <u var_87) goto block_12a26;
+    }
+
+    while (...) {
+        let var_103 = i8[var_22] <s -64 ^ 1
+    }
+
+    let var_105 = 1114112
+    if (var_84 != 0) var_108 = var_106
+
+    if (u16[r8 + 20] >=u var_87 + 0) {
+        let var_90 = u64[r8]
+        let var_91 = u64[r8 + 8]
+        var_97 = 2100; jump 547
+    } else {
+        if (...) goto block_12a62;
+    }
+
+    let var_112 = var_81 << 33 >>u 62
+    let ptr_14_16 = var_89
+
+    if (...) {
+        if (var_112 != 2) goto block_12b1e;
+    } else {
+        if (var_112 != 0) goto block_12b1b;
+    }
+
+    let var_114 = 0
+
+    let var_127 = var_88 - var_87 << 48 >>u 49
+
+    let ptr_14_72 = u64[r8]
+    let ptr_14_64 = u64[r8 + 8]
+    let ptr_14_56 = var_81 << 43 >>u 43
+
+    if (zext16(var_114) >=u zext16(0)) {
+        var_152 = 2110; jump 124
+    } else {
+        let var_136 = 1
+        var_139 = 2108; jump_ind var_135
+    }
+
+    ptr_14_56 = var_87
+    u32[r8 + 16] = u64[r8 + 16] & -1612709888 | 536870960
+    ptr_14_72 = u64[r8]
+    ptr_14_64 = u64[r8 + 8]
+    var_124 = 2102; jump 356
+
+    let ptr_17 = ptr_14 - 40
+    let ptr_17_32 = var_97
+    let ptr_17_24 = var_88
+    let ptr_17_16 = 43
+
+    if (...) {
+        if (ptr_14_40 == 0) goto block_12c51;
+    } else {
+        var_158 = 2116; jump_ind var_155
+    }
+
+    let var_173 = ptr_17 + 40
+    func_61()
+
+    let var_174 = 0
+    let var_178 = ptr_17 + 40
+    func_61()
+}
+
+fn func_2(r1: u64, r5: u64) {
+    u64[r5 + 16] = u64[r1]
+    let var_2 = u64[r1 + 144]
+    let var_3 = u64[r1 + 136]
+    let var_4 = r1 + 160
+    func_61()
+}
+
+fn func_3(r1: u64, r5: u64, r6: u64) {
+    let ptr_0 = u64[r1 + 16]
+    let var_1 = u64[r1 + 32]
+    let var_2 = u64[r1 + 24]
+    let var_3 = r1 + 48
+    func_61()
+}
+
+fn func_4(r7: u64, r8: u64) {
+    let var_3 = u64[r8]
+    let var_5 = u8[r7] - 1 & 255
+    let var_8 = u64[var_5 << 3 + 72728]
+    let var_11 = 72776 + i32[var_5 << 2 + 72776]
+    func_61()
+}
+
+fn func_5(r7: u64, r8: u64) {
+    let var_0 = u8[r7]
+    let var_1 = u64[r8]
+    let var_3 = 68388
+    if (var_0 == 0) var_5 = var_2
+    let var_7 = 10 - var_0
+    func_61()
+}
+
+fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
+    let var_0 = u64[r7 + 8]
+    let var_1 = u64[r7 + 16]
+
+    let ptr_10_88 = var_52
+    let ptr_10_80 = r5
+    let ptr_10_72 = r6
+    let var_97 = u32[r8 + 16]
+    let ptr_10_16 = var_0
+
+    if (var_97 & 402653184 == 0) {
+        let var_279 = u64[r8]
+        let var_286 = ptr_10 + 96
+        func_61()
+    } else {
+        if (...) goto block_12cbc;
+    }
+
+    if (...) {
+        let ptr_10_0 = var_97
+        let ptr_10_8 = r8
+        let var_128 = ptr_10_16 + 7 & -8
+        let var_130 = ptr_10_40 + ptr_10_16 - var_128
+        let var_131 = var_130 & 7
+        let var_132 = 0
+        if (...) goto block_12d40;
+    } else {
+        let var_101 = 0
+        if (ptr_10_40 == 0) goto block_12e61;
+    }
+
+    while (...) {
+        let var_106 = var_101 + (ptr_11_0 <s -64 ^ 1)
+    }
+
+    let ptr_10_40 = ptr_10_40
+    let var_108 = u16[r8 + 20]
+
+    if (var_108 <u var_106) {
+        let var_211 = var_108 - var_101
+        let var_213 = var_97 << 33 >>u 62
+        if (...) goto block_12e86;
+    }
+
+    while (...) {
+        let var_136 = var_132 + (ptr_14_0 <s -64 ^ 1)
+    }
+
+    let var_137 = 0
+
+    if (var_131 == 0) {
+        let var_146 = var_137 + var_132
+        let var_147 = 72340172838076673
+        let ptr_10_32 = 71777214294589695
+        let ptr_10_24 = 281479271743489
+    } else {
+        let var_138 = var_130 & -8
+        let var_140 = var_131 + var_128 + var_138
+    }
+
+    while (...) {
+        let var_144 = var_137 + (i8[var_138 + var_128] <s -64 ^ 1)
+    }
+
+    for (let var_145 = var_130 >>u 3; var_145 == 0; var_153 = ptr_10_64 - ptr_10_48) {
+        let var_168 = var_145 minu 192
+        let ptr_10_64 = var_145
+        let ptr_10_56 = var_128
+        let ptr_10_48 = var_168
+        let var_169 = 0
+
+        if (...) {
+            let var_145 = ptr_10_64 - ptr_10_48
+            let var_154 = ptr_10_48 & 3
+            let var_159 = ptr_10_56 + (ptr_10_48 << 3)
+            let var_165 = var_146 + (((var_169 >>u 8 & ptr_10_32) + (var_169 & ptr_10_32)) * ptr_10_24 >>u 48)
+
+            break
+        } else {
+            let var_171 = var_168 >>u 2 << 5
+        }
+
+        while (var_171 - 32 != 0) {
+            let var_200 = ((u64[var_128 + 24] >>u 6 | (u64[var_128 + 24] ^ -1) >>u 7) & var_147) + ((u64[var_128 + 16] >>u 6 | (u64[var_128 + 16] ^ -1) >>u 7) & var_147) + ((u64[var_128 + 8] >>u 6 | (u64[var_128 + 8] ^ -1) >>u 7) & var_147) + ((u64[var_128] >>u 6 | (u64[var_128] ^ -1) >>u 7) & var_147) + var_169
+            let var_201 = var_128 + 32
+        }
+    }
+
+    let ptr_22 = ptr_10_56 + ((ptr_10_48 & 252) << 3)
+    let var_257 = var_154 << 3
+
+    while (var_257 - 8 != 0) {
+        let var_259 = ptr_22 + 8
+        let var_264 = (ptr_22_0 >>u 6 | (ptr_22_0 ^ -1) >>u 7) & var_147
+    }
+
+    let var_275 = var_165 + (((var_264 & ptr_10_32) + (ptr_10_32 & var_264 >>u 8)) * ptr_10_24 >>u 48)
+
+    ptr_10_40 = ptr_10_40
+
+    if (ptr_10_8->field_20 <u var_146) {
+        var_211 = var_108 - var_101
+        var_213 = var_97 << 33 >>u 62
+        if (...) goto block_12e86;
+    } else {
+        var_279 = u64[r8]
+        var_286 = ptr_10 + 96
+        func_61()
+    }
+
+    if (var_109 == 0) {
+        let var_202 = 0
+    }
+
+    while (...) {
+        if (ptr_12_0 >=s 0) {
+            let var_118 = ptr_10_16 + 1
+        } else {
+            let var_123 = ptr_12_0 & 255
+            if (224 <u var_123) goto block_12d09;
+        }
+
+        let var_125 = ptr_10_16 + 2
+
+        if (240 <u var_123) {
+            let var_126 = ptr_10_16 + 3
+        } else {
+            let var_124 = ptr_10_16 + 4
+        }
+
+        let var_121 = var_118 - ptr_10_16
+
+        break
+    }
+
+    let var_206 = var_109 - var_109
+
+    ptr_10_40 = ptr_10_40
+
+    if (u16[r8 + 20] >=u var_101) {
+        var_279 = u64[r8]
+        var_286 = ptr_10 + 96
+        func_61()
+    } else {
+        var_211 = var_108 - var_101
+        var_213 = var_97 << 33 >>u 62
+        if (...) goto block_12e86;
+    }
+
+    if (var_213 == 0) {
+        ptr_10_32 = var_211
+        ptr_10_64 = u64[r8]
+        ptr_10_56 = u64[r8 + 8]
+        ptr_10_48 = var_97 << 43 >>u 43
+        ptr_10_24 = 0
+    }
+
+    if (...) {
+        ptr_10_32 = var_211
+        ptr_10_64 = u64[r8]
+        ptr_10_56 = u64[r8 + 8]
+        ptr_10_48 = var_97 << 43 >>u 43
+        ptr_10_24 = 0
+    } else {
+        let var_219 = var_211 << 48 >>u 49
+    }
+
+    if (zext16(0) >=u zext16(0)) {
+        var_235 = 2120; jump_ind var_231
+    } else {
+        let var_227 = 1
+        var_230 = 2118; jump_ind var_226
+    }
+}
+
+fn func_7(r8: u64) {
+    let var_0 = u64[r8]
+    let var_2 = 68397
+    let var_3 = 11
+    func_61()
+}
+
+fn func_8(r7: u64, r8: u64) {
+    let var_3 = u64[r8]
+    let var_4 = u8[r7] << 3
+    let var_5 = u64[72800 + var_4]
+    let var_6 = u64[var_4 + 96336]
+    func_61()
+}
+
+fn func_9(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
+    if (u8[r7] != 8) {
+        let var_6 = u64[r8]
+        let var_8 = 68410
+        let var_9 = 3
+        var_10 = 66; jump_ind var_7
+    } else {
+        let var_1 = u64[r8]
+        let var_3 = 68408
+        let var_4 = 2
+        var_5 = 62; jump_ind var_2
+    }
+}
+
+fn func_10(r1: u64) {
+    let var_1 = u64[r1 + 88]
+    let var_2 = u64[r1 + 80]
+    let var_3 = r1 + 104
+    func_61()
+}
+
+fn func_11(r7: u64, r8: u64) {
+    let var_3 = u64[r8]
+    let var_5 = (i8[r7] << 3) + 8
+    let var_6 = u64[72864 + var_5]
+    let var_7 = u64[var_5 + 96400]
+    func_61()
+}
+
+fn func_12(r1: u64, r5: u64, r6: u64) {
+    let var_0 = r5 + r6
+    let ptr_0 = u64[r1 + 16]
+    let var_2 = u64[r1 + 40]
+    let var_3 = u64[r1 + 32]
+    let var_4 = r1 + 56
+    func_61()
+}
+
+fn func_13(r1: u64, r5: u64, r6: u64) {
+    let var_0 = u64[r1 + 32]
+    let var_1 = u64[r1 + 40]
+    u64[r1 + 48] = r6 + r5
+    let ptr_0 = u64[r1 + 24]
+    let var_4 = u64[r1 + 72]
+    let var_5 = u64[r1 + 64]
+    let var_6 = r1 + 88
+    func_61()
+}
+
+fn func_14(r1: u64) {
+    u8[var_1 + 1864] = 0
+    let var_3 = 534
+    func_61()
+}
+
+fn func_15(r1: u64) {
+    let var_1 = u64[r1 + 1264]
+    let var_2 = u64[r1 + 1256]
+    let var_3 = r1 + 1280
+    func_61()
+}
+
+fn func_16(r1: u64, r5: u64) {
+    u8[var_0 + 1864] = 0
+    let var_2 = u64[r1 + 56]
+    let var_3 = u64[r1 + 48]
+    let var_4 = r1 + 72
+    func_61()
+}
+
+fn func_17(r1: u64, r6: u64) {
+    u8[var_1 + 1864] = 0
+    let var_4 = u64[r1 + 112]
+    let var_5 = u64[r1 + 104]
+    let var_6 = r1 + 128
+    func_61()
+}
+
+fn func_18(r1: u64) {
+    u8[var_1 + 1864] = 0
+    let var_3 = u64[r1 + 216]
+    let var_4 = u64[r1 + 208]
+    let var_5 = r1 + 232
+    func_61()
+}
+
+fn func_19() {
+    return
+}
+
+fn func_20() {
+    return
+}
+
+fn func_21() {
+    return
+}
+
+fn func_22(r7: u64, r8: u64) {
+    let var_0 = u8[r7]
+    let var_3 = u64[r8]
+    let var_6 = u64[var_0 << 3 + 72960]
+    let var_9 = 73184 + i32[var_0 << 2 + 73184]
+    func_61()
+}
+
+fn func_23(r1: u64, r5: u64) {
+    let var_0 = 32
+    let var_3 = u64[r1 + 1384]
+    let var_4 = u64[r1 + 1376]
+    let var_5 = r1 + 1400
+    func_61()
+}
+
+fn func_24() {
+    return
+}
+
+fn func_25(r8: u64) {
+    let var_0 = u64[r8]
+    let var_2 = 90776
+    let var_3 = 5
+    func_61()
+}
+
+fn func_26(r1: u64, r5: u64) {
+    u8[var_0 + 1864] = 0
+    let var_2 = u64[r1]
+    let var_3 = r1 + 16
+    func_61()
+}
+
+fn func_27(r1: u64, r5: u64, r6: u64) {
+    u64[r6 + 16] = r5 + u64[r1]
+    let var_2 = 0
+    let var_4 = u64[r1 + 16]
+    let var_5 = u64[r1 + 8]
+    let var_6 = r1 + 32
+    func_61()
+}
+
+fn func_28() {
+    return
+}
+
+fn func_29(r1: u64) {
+    let var_1 = u64[r1 + 64]
+    let var_2 = u64[r1 + 56]
+    let var_3 = r1 + 80
+    func_61()
+}
+
+fn func_30(r1: u64, r5: u64, r6: u64, r7: u64) {
+    if (r7 == 0) {
+        let var_7 = u64[r1 + 24]
+        let var_8 = u64[r1 + 32]
+        let var_9 = u64[r1 + 96]
+        let var_10 = u64[r1 + 88]
+        let var_11 = u64[r1 + 80]
+        let var_12 = r1 + 104
+        func_61()
+    } else {
+        let var_0 = 1
+    }
+
+    let var_2 = u64[r1 + 88]
+    let var_3 = u64[r1 + 80]
+    let var_4 = r1 + 104
+    func_61()
+}
+
+fn func_31(r1: u64, r7: u64) {
+    if (r7 == 0) {
+        let var_9 = zext16(u64[r1 + 8] - u64[r1])
+    } else {
+        let var_0 = 1
+        let var_2 = u64[r1 + 88]
+        let var_3 = u64[r1 + 80]
+        let var_4 = r1 + 104
+        func_61()
+    }
+
+    if (var_9 >=u zext16(0)) {
+        let var_21 = 0
+        let var_23 = u64[r1 + 88]
+        let var_24 = u64[r1 + 80]
+        let var_25 = r1 + 104
+        func_61()
+    } else {
+        let var_12 = 1
+        let var_13 = u64[r1 + 72]
+        let var_14 = u64[r1 + 56]
+        var_15 = 2114; jump_ind var_11
+    }
+}
+
+fn func_32(r7: u64) {
+    let var_0 = u64[r7]
+    func_61()
+}
+
+fn func_33(r1: u64) {
+    let var_1 = u64[r1 + 56]
+    let var_2 = u64[r1 + 48]
+    let var_3 = r1 + 72
+    func_61()
+}
+
+fn func_34(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
+    let ptr_0_32 = r0
+    let ptr_0_24 = r5
+    let ptr_0_16 = r6
+    let ptr_1 = u64[r7 + 16]
+    let var_1 = u64[r7]
+    let ptr_2 = u64[r7 + 8]
+
+    if (ptr_1_0 == 0) {
+        let ptr_1_0 = !(var_9 - 10)
+        let var_21 = ptr_0 + 40
+        func_61()
+    } else {
+        let var_3 = 68492
+        let var_4 = 4
+        let var_6 = 68492
+        var_7 = 2166; jump_ind var_2
+    }
+}
+
+fn func_35(r1: u64) {
+    return
+}
+
+fn func_36(r1: u64) {
+    let var_1 = u64[r1 + 8]
+    let var_2 = r1 + 24
+    func_61()
+}
+
+fn func_37() {
+    return
+}
+
+fn func_38() {
+    return
+}
+
+fn func_39(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
+    let var_0 = u64[r8]
+    let var_3 = 39
+    var_5 = 2186; jump_ind var_1
+}
+
+fn func_40(r1: u64, r5: u64, r6: u64) {
+    if (u8[r1 + 20] != 128) {
+        let var_6 = u8[r1 + 30]
+        let var_9 = u8[r1 + 31] - var_6
+        let var_10 = var_6 + r6
+        let var_11 = u64[r1 + 8]
+        var_13 = 2192; jump_ind var_8
+    } else {
+        let var_1 = i32[r1 + 24]
+        let var_2 = u64[r1 + 8]
+        var_5 = 2190; jump_ind var_4
+    }
+}
+
+fn func_41(r1: u64, r5: u64, r7: u64) {
+    if (r7 == 0) {
+        let var_10 = 39
+        var_13 = 2194; jump_ind var_12
+    } else {
+        let var_0 = 1
+        let var_2 = u64[r1 + 40]
+        let var_3 = u64[r1 + 32]
+        let var_4 = r1 + 56
+        func_61()
+    }
+}
+
+fn func_42(r1: u64) {
+    let var_1 = u64[r1 + 40]
+    let var_2 = u64[r1 + 32]
+    let var_3 = r1 + 56
+    func_61()
+}
+
+fn func_43(r1: u64, r5: u64, r7: u64) {
+    if (r7 == 0) {
+        let var_15 = u64[r5]
+        let var_17 = 75938
+        let var_18 = 2
+        var_19 = 2204; jump_ind var_16
+    } else {
+        let var_0 = 1
+        let var_2 = u64[r1 + 144]
+        let var_3 = u64[r1 + 136]
+        let var_4 = r1 + 160
+        func_61()
+    }
+}
+
+fn func_44(r1: u64) {
+    let var_1 = u64[r1 + 144]
+    let var_2 = u64[r1 + 136]
+    let var_3 = r1 + 160
+    func_61()
+}
+
+fn func_45(r1: u64) {
+    let var_1 = u64[r1 + 144]
+    let var_2 = u64[r1 + 136]
+    let var_3 = r1 + 160
+    func_61()
+}
+
+fn func_46(r1: u64) {
+    let var_1 = u64[r1 + 64]
+    let var_2 = u64[r1 + 56]
+    let var_3 = r1 + 80
+    func_61()
+}
+
+fn func_47(r1: u64) {
+    return
+}
+
+fn func_48(r1: u64) {
+    return
+}
+
+fn func_49(r8: u64) {
+    let var_0 = u64[r8]
+    let var_2 = 90672
+    let var_3 = 11
+    func_61()
+}
+
+fn func_50(r7: u64, r8: u64) {
+    let var_0 = u8[r7]
+    let var_3 = u64[r8]
+    let var_6 = u64[var_0 << 3 + 91912]
+    let var_9 = 91976 + i32[var_0 << 2 + 91976]
+    func_61()
+}
+
+fn func_51(r1: u64, r5: u64) {
+    u8[var_0 + 1864] = 0
+    let var_2 = u64[r1 + 96]
+    let var_3 = u64[r1 + 88]
+    let var_4 = r1 + 112
+    func_61()
+}
+
+fn func_52(r1: u64) {
+    let ptr_0 = u64[r1 + 16]
+    let var_2 = u64[r1 + 40]
+    let var_3 = u64[r1 + 32]
+    let var_4 = r1 + 56
+    func_61()
+}
+
+fn func_53(r1: u64) {
+    let ptr_0 = u64[r1 + 8]
+    let var_2 = u64[r1 + 32]
+    let var_3 = u64[r1 + 24]
+    let var_4 = r1 + 48
+    func_61()
+}
+
+fn func_54(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r12: u64) {
+    let var_0 = u64[r1 + 264]
+    let var_2 = r1 + 8
+    log()
+    return
+}
+
+fn func_55(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
+    let ptr_1 = u64[r7]
+    let var_0 = u64[r8]
+    let var_4 = 75984
+    let var_5 = 12
+    var_7 = 2316; jump_ind var_3
+}
+
+fn func_56(r1: u64) {
+    let var_1 = u64[r1 + 128]
+    let var_2 = u64[r1 + 120]
+    let var_3 = r1 + 144
+    func_61()
+}
+
+fn func_57(r0: u64, r1: u64, r7: u64, r8: u64) {
+    u32[ptr_0 + 4] = 0
+
+    if (...) {
+        if (r8 >>u 11 != 0) goto block_15f01;
+    } else {
+        let var_0 = ptr_0 + 5
+    }
+
+    let var_2 = ptr_0 + 6
+    let var_5 = r8 >>u 6 | 192
+    let var_6 = r8 & 63 | 128
+
+    if (r8 >>u 16 != 0) {
+        let var_16 = ptr_0 + 8
+        let var_21 = r8 >>u 18 | 240
+        let var_24 = r8 & 63 | 128
+        let var_25 = (r8 << 46 >>u 58) + 128
+        let var_26 = (r8 << 52 >>u 58) + 128
+    } else {
+        let var_8 = ptr_0 + 7
+        let var_12 = r8 >>u 12 | 224
+        let var_14 = r8 & 63 | 128
+        let var_15 = (r8 << 52 >>u 58) + 128
+    }
+
+    for (let var_27 = u64[r7 + 256]; var_27 <u 255; ptr_2 = var_27 + r7) {
+        u64[r7 + 256] = u64[r7 + 256] + 1
+    }
+
+    let var_33 = 0
+    let var_34 = ptr_0 + 8
+    func_61()
+}
+
+fn func_58(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
+    let var_0 = u64[r8]
+    let var_1 = u64[r7]
+    let var_2 = u64[r7 + 8]
+    let var_4 = 34
+    var_6 = 2332; jump_ind var_3
+}
+
+fn func_59(r1: u64) {
+    return
+}
+
+fn func_60(r1: u64) {
+    let var_1 = u64[r1 + 312]
+    let var_2 = u64[r1 + 304]
+    let var_3 = r1 + 328
+    func_61()
+}
+
+fn func_61(r1: u64) {
+    return
+}
+
