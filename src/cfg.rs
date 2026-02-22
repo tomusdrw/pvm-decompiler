@@ -181,6 +181,7 @@ impl ControlFlowGraph {
                     succs
                 } else if matches!(shape, InstructionShape::NoOp { name: "trap" })
                     || matches!(shape, InstructionShape::JumpInd { .. })
+                    || matches!(shape, InstructionShape::LoadImmJumpInd { .. })
                 {
                     // Trap and indirect jumps have no static successors
                     vec![]

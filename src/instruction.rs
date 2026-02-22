@@ -42,6 +42,32 @@ pub enum BinOp {
     LeU,
     /// Less-than-or-equal signed — produced by inversion of `!(x >s y)`.
     LeS,
+    /// Negate and add: dst = value - src.
+    NegAdd,
+    /// Rotate left.
+    RotL,
+    /// Rotate right.
+    RotR,
+    /// Upper 64 bits of signed×signed 128-bit multiply.
+    MulUpperSS,
+    /// Upper 64 bits of unsigned×unsigned 128-bit multiply.
+    MulUpperUU,
+    /// Upper 64 bits of signed×unsigned 128-bit multiply.
+    MulUpperSU,
+    /// AND with inverted second operand: dst = src1 & ~src2.
+    AndInv,
+    /// OR with inverted second operand: dst = src1 | ~src2.
+    OrInv,
+    /// XNOR: dst = ~(src1 ^ src2).
+    Xnor,
+    /// Signed maximum.
+    Max,
+    /// Unsigned maximum.
+    MaxU,
+    /// Signed minimum.
+    Min,
+    /// Unsigned minimum.
+    MinU,
 }
 
 impl fmt::Display for BinOp {
@@ -68,6 +94,19 @@ impl fmt::Display for BinOp {
             BinOp::GtS => ">s",
             BinOp::LeU => "<=u",
             BinOp::LeS => "<=s",
+            BinOp::NegAdd => "neg+",
+            BinOp::RotL => "rotl",
+            BinOp::RotR => "rotr",
+            BinOp::MulUpperSS => "mulhss",
+            BinOp::MulUpperUU => "mulhuu",
+            BinOp::MulUpperSU => "mulhsu",
+            BinOp::AndInv => "&~",
+            BinOp::OrInv => "|~",
+            BinOp::Xnor => "xnor",
+            BinOp::Max => "max",
+            BinOp::MaxU => "maxu",
+            BinOp::Min => "min",
+            BinOp::MinU => "minu",
         };
         write!(f, "{}", s)
     }
@@ -87,6 +126,8 @@ pub enum UnaryOp {
     Ctz32,
     Ctz64,
     Sbrk,
+    /// Reverse byte order (bswap).
+    Bswap,
 }
 
 impl fmt::Display for UnaryOp {
@@ -103,6 +144,7 @@ impl fmt::Display for UnaryOp {
             UnaryOp::Ctz32 => "ctz32",
             UnaryOp::Ctz64 => "ctz64",
             UnaryOp::Sbrk => "sbrk",
+            UnaryOp::Bswap => "bswap",
         };
         write!(f, "{}", s)
     }
@@ -116,6 +158,7 @@ pub enum MemWidth {
     U16,
     I16,
     U32,
+    I32,
     U64,
 }
 
@@ -125,7 +168,7 @@ impl MemWidth {
         match self {
             MemWidth::U8 | MemWidth::I8 => 1,
             MemWidth::U16 | MemWidth::I16 => 2,
-            MemWidth::U32 => 4,
+            MemWidth::U32 | MemWidth::I32 => 4,
             MemWidth::U64 => 8,
         }
     }
@@ -139,6 +182,7 @@ impl fmt::Display for MemWidth {
             MemWidth::U16 => "u16",
             MemWidth::I16 => "i16",
             MemWidth::U32 => "u32",
+            MemWidth::I32 => "i32",
             MemWidth::U64 => "u64",
         };
         write!(f, "{}", s)
@@ -214,6 +258,65 @@ pub enum InstructionShape {
         reg1: u8,
         reg2: u8,
         offset: i32,
+    },
+    /// Register + immediate binary with reversed operands: dst = value op src.
+    BinImmRev {
+        op: BinOp,
+        width: BitWidth,
+        dst: u8,
+        src: u8,
+        value: i32,
+    },
+    /// Conditional move (three registers): if cond then dst = src.
+    CmovReg {
+        is_zero: bool,
+        dst: u8,
+        src: u8,
+        cond: u8,
+    },
+    /// Conditional move with immediate: if cond then dst = value.
+    CmovImm {
+        is_zero: bool,
+        dst: u8,
+        cond: u8,
+        value: i32,
+    },
+    /// Combined load-immediate + unconditional jump.
+    LoadImmJump {
+        dst: u8,
+        value: i32,
+        offset: i32,
+    },
+    /// Combined load-immediate + indirect jump.
+    LoadImmJumpInd {
+        base: u8,
+        dst: u8,
+        value: i32,
+    },
+    /// Load from absolute address (no base register).
+    LoadAbsolute {
+        width: MemWidth,
+        dst: u8,
+        address: i32,
+    },
+    /// Store to absolute address (no base register).
+    StoreAbsolute {
+        width: MemWidth,
+        src: u8,
+        address: i32,
+    },
+    /// Store immediate to absolute address.
+    StoreImm {
+        width: MemWidth,
+        address: i32,
+        value: i32,
+    },
+    /// Store immediate to [base + offset].
+    StoreImmInd {
+        width: MemWidth,
+        base: u8,
+        offset: i32,
+        value: i32,
     },
     /// External call.
     Ecalli { index: u32 },
@@ -423,6 +526,126 @@ impl InstructionShape {
                 src2: *src2,
             },
 
+            // Conditional moves (three-register)
+            Instruction::CmovIz { dst, src, cond } => Self::CmovReg {
+                is_zero: true,
+                dst: *dst,
+                src: *src,
+                cond: *cond,
+            },
+            Instruction::CmovNz { dst, src, cond } => Self::CmovReg {
+                is_zero: false,
+                dst: *dst,
+                src: *src,
+                cond: *cond,
+            },
+
+            // Upper multiply
+            Instruction::MulUpperSS { dst, src1, src2 } => Self::BinReg {
+                op: BinOp::MulUpperSS,
+                width: BitWidth::W64,
+                dst: *dst,
+                src1: *src1,
+                src2: *src2,
+            },
+            Instruction::MulUpperUU { dst, src1, src2 } => Self::BinReg {
+                op: BinOp::MulUpperUU,
+                width: BitWidth::W64,
+                dst: *dst,
+                src1: *src1,
+                src2: *src2,
+            },
+            Instruction::MulUpperSU { dst, src1, src2 } => Self::BinReg {
+                op: BinOp::MulUpperSU,
+                width: BitWidth::W64,
+                dst: *dst,
+                src1: *src1,
+                src2: *src2,
+            },
+
+            // Rotate (three-register)
+            Instruction::RotL64 { dst, src1, src2 } => Self::BinReg {
+                op: BinOp::RotL,
+                width: BitWidth::W64,
+                dst: *dst,
+                src1: *src1,
+                src2: *src2,
+            },
+            Instruction::RotL32 { dst, src1, src2 } => Self::BinReg {
+                op: BinOp::RotL,
+                width: BitWidth::W32,
+                dst: *dst,
+                src1: *src1,
+                src2: *src2,
+            },
+            Instruction::RotR64 { dst, src1, src2 } => Self::BinReg {
+                op: BinOp::RotR,
+                width: BitWidth::W64,
+                dst: *dst,
+                src1: *src1,
+                src2: *src2,
+            },
+            Instruction::RotR32 { dst, src1, src2 } => Self::BinReg {
+                op: BinOp::RotR,
+                width: BitWidth::W32,
+                dst: *dst,
+                src1: *src1,
+                src2: *src2,
+            },
+
+            // Inverted bitwise
+            Instruction::AndInv { dst, src1, src2 } => Self::BinReg {
+                op: BinOp::AndInv,
+                width: BitWidth::W64,
+                dst: *dst,
+                src1: *src1,
+                src2: *src2,
+            },
+            Instruction::OrInv { dst, src1, src2 } => Self::BinReg {
+                op: BinOp::OrInv,
+                width: BitWidth::W64,
+                dst: *dst,
+                src1: *src1,
+                src2: *src2,
+            },
+            Instruction::Xnor { dst, src1, src2 } => Self::BinReg {
+                op: BinOp::Xnor,
+                width: BitWidth::W64,
+                dst: *dst,
+                src1: *src1,
+                src2: *src2,
+            },
+
+            // Min/Max
+            Instruction::Max { dst, src1, src2 } => Self::BinReg {
+                op: BinOp::Max,
+                width: BitWidth::W64,
+                dst: *dst,
+                src1: *src1,
+                src2: *src2,
+            },
+            Instruction::MaxU { dst, src1, src2 } => Self::BinReg {
+                op: BinOp::MaxU,
+                width: BitWidth::W64,
+                dst: *dst,
+                src1: *src1,
+                src2: *src2,
+            },
+            Instruction::Min { dst, src1, src2 } => Self::BinReg {
+                op: BinOp::Min,
+                width: BitWidth::W64,
+                dst: *dst,
+                src1: *src1,
+                src2: *src2,
+            },
+            Instruction::MinU { dst, src1, src2 } => Self::BinReg {
+                op: BinOp::MinU,
+                width: BitWidth::W64,
+                dst: *dst,
+                src1: *src1,
+                src2: *src2,
+            },
+
             // Register + immediate binary ops
             Instruction::AddImm32 { dst, src, value } => Self::BinImm {
                 op: BinOp::Add,
@@ -438,6 +661,97 @@ impl InstructionShape {
                 src: *src,
                 value: *value,
             },
+            Instruction::AndImm { dst, src, value } => Self::BinImm {
+                op: BinOp::And,
+                width: BitWidth::W64,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::XorImm { dst, src, value } => Self::BinImm {
+                op: BinOp::Xor,
+                width: BitWidth::W64,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::OrImm { dst, src, value } => Self::BinImm {
+                op: BinOp::Or,
+                width: BitWidth::W64,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::MulImm32 { dst, src, value } => Self::BinImm {
+                op: BinOp::Mul,
+                width: BitWidth::W32,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::MulImm64 { dst, src, value } => Self::BinImm {
+                op: BinOp::Mul,
+                width: BitWidth::W64,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::ShloLImm32 { dst, src, value } => Self::BinImm {
+                op: BinOp::Shl,
+                width: BitWidth::W32,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::ShloRImm32 { dst, src, value } => Self::BinImm {
+                op: BinOp::ShrU,
+                width: BitWidth::W32,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::SharRImm32 { dst, src, value } => Self::BinImm {
+                op: BinOp::ShrS,
+                width: BitWidth::W32,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::ShloLImm64 { dst, src, value } => Self::BinImm {
+                op: BinOp::Shl,
+                width: BitWidth::W64,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::ShloRImm64 { dst, src, value } => Self::BinImm {
+                op: BinOp::ShrU,
+                width: BitWidth::W64,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::SharRImm64 { dst, src, value } => Self::BinImm {
+                op: BinOp::ShrS,
+                width: BitWidth::W64,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::NegAddImm32 { dst, src, value } => Self::BinImm {
+                op: BinOp::NegAdd,
+                width: BitWidth::W32,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::NegAddImm64 { dst, src, value } => Self::BinImm {
+                op: BinOp::NegAdd,
+                width: BitWidth::W64,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
             Instruction::SetLtUImm { dst, src, value } => Self::BinImm {
                 op: BinOp::LtU,
                 width: BitWidth::W32,
@@ -448,6 +762,92 @@ impl InstructionShape {
             Instruction::SetLtSImm { dst, src, value } => Self::BinImm {
                 op: BinOp::LtS,
                 width: BitWidth::W32,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::SetGtUImm { dst, src, value } => Self::BinImm {
+                op: BinOp::GtU,
+                width: BitWidth::W32,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::SetGtSImm { dst, src, value } => Self::BinImm {
+                op: BinOp::GtS,
+                width: BitWidth::W32,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::RotRImm32 { dst, src, value } => Self::BinImm {
+                op: BinOp::RotR,
+                width: BitWidth::W32,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::RotRImm64 { dst, src, value } => Self::BinImm {
+                op: BinOp::RotR,
+                width: BitWidth::W64,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+
+            // Reversed-operand immediates: dst = value OP src
+            Instruction::ShloLImmAlt32 { dst, src, value } => Self::BinImmRev {
+                op: BinOp::Shl,
+                width: BitWidth::W32,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::ShloRImmAlt32 { dst, src, value } => Self::BinImmRev {
+                op: BinOp::ShrU,
+                width: BitWidth::W32,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::SharRImmAlt32 { dst, src, value } => Self::BinImmRev {
+                op: BinOp::ShrS,
+                width: BitWidth::W32,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::ShloLImmAlt64 { dst, src, value } => Self::BinImmRev {
+                op: BinOp::Shl,
+                width: BitWidth::W64,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::ShloRImmAlt64 { dst, src, value } => Self::BinImmRev {
+                op: BinOp::ShrU,
+                width: BitWidth::W64,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::SharRImmAlt64 { dst, src, value } => Self::BinImmRev {
+                op: BinOp::ShrS,
+                width: BitWidth::W64,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::RotRImmAlt32 { dst, src, value } => Self::BinImmRev {
+                op: BinOp::RotR,
+                width: BitWidth::W32,
+                dst: *dst,
+                src: *src,
+                value: *value,
+            },
+            Instruction::RotRImmAlt64 { dst, src, value } => Self::BinImmRev {
+                op: BinOp::RotR,
+                width: BitWidth::W64,
                 dst: *dst,
                 src: *src,
                 value: *value,
@@ -504,6 +904,25 @@ impl InstructionShape {
                 dst: *dst,
                 src: *src,
             },
+            Instruction::ReverseBytes { dst, src } => Self::Unary {
+                op: UnaryOp::Bswap,
+                dst: *dst,
+                src: *src,
+            },
+
+            // Conditional move with immediate
+            Instruction::CmovIzImm { dst, cond, value } => Self::CmovImm {
+                is_zero: true,
+                dst: *dst,
+                cond: *cond,
+                value: *value,
+            },
+            Instruction::CmovNzImm { dst, cond, value } => Self::CmovImm {
+                is_zero: false,
+                dst: *dst,
+                cond: *cond,
+                value: *value,
+            },
 
             // Load instructions
             Instruction::LoadIndU8 { dst, base, offset } => Self::Load {
@@ -542,6 +961,12 @@ impl InstructionShape {
                 base: *base,
                 offset: *offset,
             },
+            Instruction::LoadIndI32 { dst, base, offset } => Self::Load {
+                width: MemWidth::I32,
+                dst: *dst,
+                base: *base,
+                offset: *offset,
+            },
 
             // Store instructions
             Instruction::StoreIndU8 { base, src, offset } => Self::Store {
@@ -569,9 +994,126 @@ impl InstructionShape {
                 offset: *offset,
             },
 
+            // Absolute loads (no base register)
+            Instruction::LoadU8 { dst, address } => Self::LoadAbsolute {
+                width: MemWidth::U8,
+                dst: *dst,
+                address: *address,
+            },
+            Instruction::LoadI8 { dst, address } => Self::LoadAbsolute {
+                width: MemWidth::I8,
+                dst: *dst,
+                address: *address,
+            },
+            Instruction::LoadU16 { dst, address } => Self::LoadAbsolute {
+                width: MemWidth::U16,
+                dst: *dst,
+                address: *address,
+            },
+            Instruction::LoadI16 { dst, address } => Self::LoadAbsolute {
+                width: MemWidth::I16,
+                dst: *dst,
+                address: *address,
+            },
+            Instruction::LoadU32 { dst, address } => Self::LoadAbsolute {
+                width: MemWidth::U32,
+                dst: *dst,
+                address: *address,
+            },
+            Instruction::LoadI32 { dst, address } => Self::LoadAbsolute {
+                width: MemWidth::I32,
+                dst: *dst,
+                address: *address,
+            },
+            Instruction::LoadU64 { dst, address } => Self::LoadAbsolute {
+                width: MemWidth::U64,
+                dst: *dst,
+                address: *address,
+            },
+
+            // Absolute stores (no base register)
+            Instruction::StoreU8 { src, address } => Self::StoreAbsolute {
+                width: MemWidth::U8,
+                src: *src,
+                address: *address,
+            },
+            Instruction::StoreU16 { src, address } => Self::StoreAbsolute {
+                width: MemWidth::U16,
+                src: *src,
+                address: *address,
+            },
+            Instruction::StoreU32 { src, address } => Self::StoreAbsolute {
+                width: MemWidth::U32,
+                src: *src,
+                address: *address,
+            },
+            Instruction::StoreU64 { src, address } => Self::StoreAbsolute {
+                width: MemWidth::U64,
+                src: *src,
+                address: *address,
+            },
+
+            // Store immediate to absolute address
+            Instruction::StoreImmU8 { address, value } => Self::StoreImm {
+                width: MemWidth::U8,
+                address: *address,
+                value: *value,
+            },
+            Instruction::StoreImmU16 { address, value } => Self::StoreImm {
+                width: MemWidth::U16,
+                address: *address,
+                value: *value,
+            },
+            Instruction::StoreImmU32 { address, value } => Self::StoreImm {
+                width: MemWidth::U32,
+                address: *address,
+                value: *value,
+            },
+            Instruction::StoreImmU64 { address, value } => Self::StoreImm {
+                width: MemWidth::U64,
+                address: *address,
+                value: *value,
+            },
+
+            // Store immediate to [base + offset]
+            Instruction::StoreImmIndU8 { base, offset, value } => Self::StoreImmInd {
+                width: MemWidth::U8,
+                base: *base,
+                offset: *offset,
+                value: *value,
+            },
+            Instruction::StoreImmIndU16 { base, offset, value } => Self::StoreImmInd {
+                width: MemWidth::U16,
+                base: *base,
+                offset: *offset,
+                value: *value,
+            },
+            Instruction::StoreImmIndU32 { base, offset, value } => Self::StoreImmInd {
+                width: MemWidth::U32,
+                base: *base,
+                offset: *offset,
+                value: *value,
+            },
+            Instruction::StoreImmIndU64 { base, offset, value } => Self::StoreImmInd {
+                width: MemWidth::U64,
+                base: *base,
+                offset: *offset,
+                value: *value,
+            },
+
             // Jumps
             Instruction::Jump { offset } => Self::Jump { offset: *offset },
             Instruction::JumpInd { reg, .. } => Self::JumpInd { reg: *reg },
+            Instruction::LoadImmJump { reg, value, offset } => Self::LoadImmJump {
+                dst: *reg,
+                value: *value,
+                offset: *offset,
+            },
+            Instruction::LoadImmJumpInd { base, dst, value, .. } => Self::LoadImmJumpInd {
+                base: *base,
+                dst: *dst,
+                value: *value,
+            },
 
             // Branch with immediate
             Instruction::BranchEqImm { reg, value, offset } => Self::BranchImm {
@@ -696,8 +1238,14 @@ impl InstructionShape {
             Self::LoadImm { dst, .. }
             | Self::BinReg { dst, .. }
             | Self::BinImm { dst, .. }
+            | Self::BinImmRev { dst, .. }
             | Self::Unary { dst, .. }
-            | Self::Load { dst, .. } => Some(*dst),
+            | Self::Load { dst, .. }
+            | Self::LoadAbsolute { dst, .. }
+            | Self::CmovReg { dst, .. }
+            | Self::CmovImm { dst, .. }
+            | Self::LoadImmJump { dst, .. }
+            | Self::LoadImmJumpInd { dst, .. } => Some(*dst),
             _ => None,
         }
     }
@@ -710,12 +1258,24 @@ impl InstructionShape {
             Self::BinReg {
                 dst, src1, src2, ..
             } => (vec![*dst], vec![*src1, *src2]),
-            Self::BinImm { dst, src, .. } => (vec![*dst], vec![*src]),
+            Self::BinImm { dst, src, .. } | Self::BinImmRev { dst, src, .. } => {
+                (vec![*dst], vec![*src])
+            }
             Self::Unary { dst, src, .. } => (vec![*dst], vec![*src]),
             Self::Load { dst, base, .. } => (vec![*dst], vec![*base]),
             Self::Store { base, src, .. } => (vec![], vec![*base, *src]),
+            Self::LoadAbsolute { dst, .. } => (vec![*dst], vec![]),
+            Self::StoreAbsolute { src, .. } => (vec![], vec![*src]),
+            Self::StoreImm { .. } => (vec![], vec![]),
+            Self::StoreImmInd { base, .. } => (vec![], vec![*base]),
+            Self::CmovReg {
+                dst, src, cond, ..
+            } => (vec![*dst], vec![*src, *cond]),
+            Self::CmovImm { dst, cond, .. } => (vec![*dst], vec![*cond]),
             Self::Jump { .. } => (vec![], vec![]),
             Self::JumpInd { reg, .. } => (vec![], vec![*reg]),
+            Self::LoadImmJump { dst, .. } => (vec![*dst], vec![]),
+            Self::LoadImmJumpInd { base, dst, .. } => (vec![*dst], vec![*base]),
             Self::BranchImm { reg, .. } => (vec![], vec![*reg]),
             Self::BranchReg { reg1, reg2, .. } => (vec![], vec![*reg1, *reg2]),
             Self::Ecalli { .. } | Self::Unknown { .. } => {
@@ -732,6 +1292,8 @@ impl InstructionShape {
             self,
             Self::Jump { .. }
                 | Self::JumpInd { .. }
+                | Self::LoadImmJump { .. }
+                | Self::LoadImmJumpInd { .. }
                 | Self::BranchImm { .. }
                 | Self::BranchReg { .. }
                 | Self::NoOp { name: "trap" }
@@ -741,7 +1303,7 @@ impl InstructionShape {
     /// Get the jump/branch offset, if this is a control-flow instruction with a static target.
     pub fn branch_offset(&self) -> Option<i32> {
         match self {
-            Self::Jump { offset } => Some(*offset),
+            Self::Jump { offset } | Self::LoadImmJump { offset, .. } => Some(*offset),
             Self::BranchImm { offset, .. } => Some(*offset),
             Self::BranchReg { offset, .. } => Some(*offset),
             _ => None,
@@ -805,6 +1367,61 @@ impl InstructionShape {
                 reg2,
                 offset,
             } => format!("if (r{} {} r{}) jump {}", reg1, cond, reg2, offset),
+            Self::BinImmRev {
+                op,
+                width,
+                dst,
+                src,
+                value,
+            } => {
+                let suffix = if *width == BitWidth::W64 { "64" } else { "" };
+                format!("r{} = {} {}{} r{}", dst, value, op, suffix, src)
+            }
+            Self::CmovReg {
+                is_zero,
+                dst,
+                src,
+                cond,
+            } => {
+                let cmp = if *is_zero { "== 0" } else { "!= 0" };
+                format!("if (r{} {}) r{} = r{}", cond, cmp, dst, src)
+            }
+            Self::CmovImm {
+                is_zero,
+                dst,
+                cond,
+                value,
+            } => {
+                let cmp = if *is_zero { "== 0" } else { "!= 0" };
+                format!("if (r{} {}) r{} = {}", cond, cmp, dst, value)
+            }
+            Self::LoadImmJump { dst, value, offset } => {
+                format!("r{} = {}; jump {}", dst, value, offset)
+            }
+            Self::LoadImmJumpInd { base, dst, value } => {
+                format!("r{} = {}; jump_ind r{}", dst, value, base)
+            }
+            Self::LoadAbsolute {
+                width,
+                dst,
+                address,
+            } => format!("r{} = {}[{:#x}]", dst, width, address),
+            Self::StoreAbsolute {
+                width,
+                src,
+                address,
+            } => format!("{}[{:#x}] = r{}", width, address, src),
+            Self::StoreImm {
+                width,
+                address,
+                value,
+            } => format!("{}[{:#x}] = {}", width, address, value),
+            Self::StoreImmInd {
+                width,
+                base,
+                offset,
+                value,
+            } => format!("{}[r{} + {}] = {}", width, base, offset, value),
             Self::Ecalli { index } => format!("ecalli {}", index),
             Self::Unknown { opcode } => format!("/* unknown opcode {:#04x} */", opcode),
         }

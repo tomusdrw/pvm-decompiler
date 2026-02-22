@@ -254,6 +254,18 @@ impl LiftedProgram {
             .flat_map(|block| block.instructions.iter().map(|(pc, instr)| (*pc, instr)))
             .collect();
 
+        // Build a (def_pc, reg) → uses index from chains for O(1) lookup in infer_type.
+        let mut chain_uses_index: HashMap<(usize, u8), Vec<&crate::dataflow::Use>> = HashMap::new();
+        for chains in dataflow.chains.values() {
+            for chain in chains {
+                let key = (chain.definition.pc, chain.definition.reg);
+                chain_uses_index
+                    .entry(key)
+                    .or_default()
+                    .extend(chain.uses.iter());
+            }
+        }
+
         // Collect all definitions in PC order for deterministic naming.
         let mut all_defs: Vec<(usize, u8)> = Vec::new();
         let mut sorted_blocks: Vec<usize> = cfg.blocks.keys().copied().collect();
@@ -273,7 +285,7 @@ impl LiftedProgram {
 
         // Infer types and assign names.
         for &(def_pc, reg) in &all_defs {
-            let var_type = self.infer_type(def_pc, reg, &instruction_at_pc, dataflow);
+            let var_type = self.infer_type(def_pc, reg, &instruction_at_pc, &chain_uses_index);
             let name = match var_type {
                 VarType::Pointer => {
                     let name = format!("ptr_{}", ptr_counter);
@@ -329,9 +341,23 @@ impl LiftedProgram {
         def_pc: usize,
         reg: u8,
         instruction_at_pc: &HashMap<usize, &Instruction>,
-        dataflow: &DataFlowAnalysis,
+        chain_uses_index: &HashMap<(usize, u8), Vec<&crate::dataflow::Use>>,
     ) -> VarType {
         use crate::instruction::BitWidth;
+
+        // Helper: check if any use of this definition is as a base in a load/store.
+        let is_pointer_use = || -> bool {
+            if let Some(uses) = chain_uses_index.get(&(def_pc, reg)) {
+                for u in uses {
+                    if let Some(use_instr) = instruction_at_pc.get(&u.pc) {
+                        if Self::is_used_as_base(use_instr, reg) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            false
+        };
 
         // Check the defining instruction itself.
         if let Some(instr) = instruction_at_pc.get(&def_pc) {
@@ -366,18 +392,8 @@ impl LiftedProgram {
             };
 
             // Check uses: if used as base in a load/store, it's a pointer.
-            for chains in dataflow.chains.values() {
-                for chain in chains {
-                    if chain.definition.pc == def_pc && chain.definition.reg == reg {
-                        for u in &chain.uses {
-                            if let Some(use_instr) = instruction_at_pc.get(&u.pc)
-                                && Self::is_used_as_base(use_instr, reg)
-                            {
-                                return VarType::Pointer;
-                            }
-                        }
-                    }
-                }
+            if is_pointer_use() {
+                return VarType::Pointer;
             }
 
             // Determine type from width and signedness.
@@ -390,18 +406,8 @@ impl LiftedProgram {
         }
 
         // No defining instruction found — check uses for pointer context.
-        for chains in dataflow.chains.values() {
-            for chain in chains {
-                if chain.definition.pc == def_pc && chain.definition.reg == reg {
-                    for u in &chain.uses {
-                        if let Some(use_instr) = instruction_at_pc.get(&u.pc)
-                            && Self::is_used_as_base(use_instr, reg)
-                        {
-                            return VarType::Pointer;
-                        }
-                    }
-                }
-            }
+        if is_pointer_use() {
+            return VarType::Pointer;
         }
 
         VarType::U64
@@ -494,6 +500,80 @@ impl LiftedProgram {
                 self.reg_name(pc, reg2),
                 offset
             )),
+            InstructionShape::BinImmRev { op, src, value, .. } => {
+                self.make_binop_imm_rev(pc, op, src, value as i64)
+            }
+            InstructionShape::CmovReg {
+                is_zero,
+                dst,
+                src,
+                cond,
+            } => {
+                let cond_str = if is_zero { "== 0" } else { "!= 0" };
+                Expression::Raw(format!(
+                    "if ({} {}) {} = {}",
+                    self.reg_name(pc, cond),
+                    cond_str,
+                    self.var_name_for_def(pc, dst),
+                    self.reg_name(pc, src)
+                ))
+            }
+            InstructionShape::CmovImm {
+                is_zero,
+                dst,
+                cond,
+                value,
+            } => {
+                let cond_str = if is_zero { "== 0" } else { "!= 0" };
+                Expression::Raw(format!(
+                    "if ({} {}) {} = {}",
+                    self.reg_name(pc, cond),
+                    cond_str,
+                    self.var_name_for_def(pc, dst),
+                    value
+                ))
+            }
+            InstructionShape::LoadImmJump { dst, value, offset } => Expression::Raw(format!(
+                "{} = {}; jump {}",
+                self.var_name_for_def(pc, dst),
+                value,
+                offset
+            )),
+            InstructionShape::LoadImmJumpInd { base, dst, value } => {
+                Expression::Raw(format!(
+                    "{} = {}; jump_ind {}",
+                    self.var_name_for_def(pc, dst),
+                    value,
+                    self.reg_name(pc, base)
+                ))
+            }
+            InstructionShape::LoadAbsolute {
+                width,
+                dst: _,
+                address,
+            } => self.make_load_absolute(pc, width, address),
+            InstructionShape::StoreAbsolute {
+                width,
+                src,
+                address,
+            } => self.make_store_absolute(pc, width, address, src),
+            InstructionShape::StoreImm {
+                width,
+                address,
+                value,
+            } => Expression::Raw(format!("{}[{:#x}] = {}", width, address, value)),
+            InstructionShape::StoreImmInd {
+                width,
+                base,
+                offset,
+                value,
+            } => Expression::Raw(format!(
+                "{}[{} + {}] = {}",
+                width,
+                self.reg_name(pc, base),
+                offset,
+                value
+            )),
             InstructionShape::Unknown { opcode } => {
                 Expression::Raw(format!("/* unknown opcode {:#04x} */", opcode))
             }
@@ -574,6 +654,38 @@ impl LiftedProgram {
         }
     }
 
+    fn make_binop_imm_rev(&self, pc: usize, op: BinOp, src: u8, value: i64) -> Expression {
+        Expression::BinOp {
+            op,
+            lhs: Box::new(Expression::Const(value)),
+            rhs: Box::new(Expression::Var(self.reg_name(pc, src))),
+        }
+    }
+
+    fn make_load_absolute(&self, _pc: usize, width: MemWidth, address: i32) -> Expression {
+        Expression::Load {
+            width,
+            base: Box::new(Expression::Const(0)),
+            offset: address,
+        }
+    }
+
+    fn make_store_absolute(&self, pc: usize, width: MemWidth, address: i32, src: u8) -> Expression {
+        Expression::Store {
+            width,
+            base: Box::new(Expression::Const(0)),
+            offset: address,
+            value: Box::new(Expression::Var(self.reg_name(pc, src))),
+        }
+    }
+
+    fn var_name_for_def(&self, pc: usize, reg: u8) -> String {
+        self.variables
+            .get(&(pc, reg))
+            .map(|v| v.name.clone())
+            .unwrap_or_else(|| format!("r{}", reg))
+    }
+
     /// Propagate constants: if a definition is LoadImm with a single use,
     /// replace the variable reference in the use-expression with the constant.
     fn propagate_constants(&mut self) {
@@ -635,6 +747,10 @@ impl LiftedProgram {
         while changed {
             changed = false;
 
+            // Build variable-use index for O(1) use-count lookups.
+            let var_use_index =
+                build_var_use_index(&self.expressions, &self.var_at_use, &self.eliminated_pcs);
+
             // Collect candidates: (def_pc, var_name, use_pc) where the def has
             // exactly one use at a later non-eliminated PC in the same block.
             let mut candidates: Vec<(usize, String, usize)> = Vec::new();
@@ -660,21 +776,19 @@ impl LiftedProgram {
                     continue;
                 }
 
-                // Count actual uses by scanning expression trees (not var_at_use,
-                // which becomes stale after folding inlines expressions).
-                let use_count = self.count_var_use_sites(&var.name, def_pc);
+                // O(1) use count via precomputed index.
+                let use_pcs = var_use_index.get(&var.name);
+                let use_count = use_pcs
+                    .map(|pcs| pcs.iter().filter(|&&pc| pc != def_pc).count())
+                    .unwrap_or(0);
                 if use_count != 1 {
                     continue;
                 }
 
                 // Find the use: first later non-eliminated PC in the same block
                 // whose expression references this variable.
-                let use_pc = later_pcs.iter().copied().find(|&pc| {
-                    !self.eliminated_pcs.contains(&pc)
-                        && self
-                            .expressions
-                            .get(&pc)
-                            .is_some_and(|e| count_var_refs(e, &var.name) > 0)
+                let use_pc = later_pcs.iter().copied().find(|pc| {
+                    use_pcs.is_some_and(|pcs| pcs.contains(pc))
                 });
                 let use_pc = match use_pc {
                     Some(pc) => pc,
@@ -741,6 +855,10 @@ impl LiftedProgram {
         while changed {
             changed = false;
 
+            // Build variable-use index for O(1) use-count lookups.
+            let var_use_index =
+                build_var_use_index(&self.expressions, &self.var_at_use, &self.eliminated_pcs);
+
             let mut candidates: Vec<(usize, String, usize)> = Vec::new();
 
             for (&(def_pc, _reg), var) in &self.variables {
@@ -763,14 +881,18 @@ impl LiftedProgram {
                     continue;
                 }
 
-                // Must have exactly one use site.
-                let use_count = self.count_var_use_sites(&var.name, def_pc);
+                // O(1) use count via precomputed index.
+                let use_pcs = var_use_index.get(&var.name);
+                let use_count = use_pcs
+                    .map(|pcs| pcs.iter().filter(|&&pc| pc != def_pc).count())
+                    .unwrap_or(0);
                 if use_count != 1 {
                     continue;
                 }
 
-                // Find the use site PC.
-                let use_pc = self.find_single_use_pc(&var.name, def_pc);
+                // Find the single use site PC from the index.
+                let use_pc = use_pcs
+                    .and_then(|pcs| pcs.iter().copied().find(|&pc| pc != def_pc));
                 let use_pc = match use_pc {
                     Some(pc) => pc,
                     None => continue,
@@ -824,64 +946,6 @@ impl LiftedProgram {
         }
     }
 
-    /// Find the single non-eliminated PC that references a variable.
-    fn find_single_use_pc(&self, var_name: &str, exclude_pc: usize) -> Option<usize> {
-        for (&pc, expr) in &self.expressions {
-            if pc == exclude_pc || self.eliminated_pcs.contains(&pc) {
-                continue;
-            }
-            let has_ref = match expr {
-                Expression::Raw(_) => self
-                    .var_at_use
-                    .iter()
-                    .any(|(&(upc, _), name)| upc == pc && name.as_str() == var_name),
-                _ => count_var_refs(expr, var_name) > 0,
-            };
-            if has_ref {
-                return Some(pc);
-            }
-        }
-        None
-    }
-
-    /// Count distinct instruction sites that reference a variable, across all remaining
-    /// (non-eliminated) expressions and branch conditions.
-    /// Uses expression tree scanning (not var_at_use) for structured expressions,
-    /// and var_at_use for Raw expressions (branches) where names are embedded as strings.
-    fn count_var_use_sites(&self, var_name: &str, exclude_pc: usize) -> usize {
-        let mut count = 0;
-        // Count uses in expression trees
-        for (&pc, expr) in &self.expressions {
-            if pc == exclude_pc || self.eliminated_pcs.contains(&pc) {
-                continue;
-            }
-            let has_ref = match expr {
-                Expression::Raw(_) => self
-                    .var_at_use
-                    .iter()
-                    .any(|(&(upc, _), name)| upc == pc && name.as_str() == var_name),
-                _ => count_var_refs(expr, var_name) > 0,
-            };
-            if has_ref {
-                count += 1;
-            }
-        }
-        // Also count uses in var_at_use for PCs that have NO expression entry
-        // (e.g., branch/terminator instructions that use registers in conditions).
-        let mut branch_use_pcs: HashSet<usize> = HashSet::new();
-        for (&(upc, _), name) in &self.var_at_use {
-            if upc != exclude_pc
-                && !self.eliminated_pcs.contains(&upc)
-                && name.as_str() == var_name
-                && !self.expressions.contains_key(&upc)
-            {
-                branch_use_pcs.insert(upc);
-            }
-        }
-        count += branch_use_pcs.len();
-        count
-    }
-
     /// Simplify all expressions in the program by folding identity operations.
     fn simplify_all_expressions(&mut self) {
         let pcs: Vec<usize> = self.expressions.keys().copied().collect();
@@ -897,14 +961,12 @@ impl LiftedProgram {
     fn propagate_copies(&mut self) {
         // Track which copy definitions we've already processed to avoid infinite loops.
         let mut processed: HashSet<usize> = HashSet::new();
-        let mut changed = true;
-        while changed {
-            changed = false;
+        loop {
+            // Find ALL copy definitions in this iteration and resolve chains.
+            // E.g., if a = b, b = c, resolve a -> c directly.
+            let mut rename_map: HashMap<String, String> = HashMap::new();
+            let mut copy_def_pcs: Vec<usize> = Vec::new();
 
-            // Find definitions that are just Var(other_name).
-            // Include eliminated PCs: their variable names may still be referenced
-            // in live expressions (e.g., folded into branch conditions).
-            let mut copy_defs: Vec<(usize, String, String)> = Vec::new();
             for (&(def_pc, _reg), var) in &self.variables {
                 if processed.contains(&def_pc) {
                     continue;
@@ -912,32 +974,46 @@ impl LiftedProgram {
                 if let Some(Expression::Var(source_name)) = self.expressions.get(&def_pc)
                     && var.name != *source_name
                 {
-                    copy_defs.push((def_pc, var.name.clone(), source_name.clone()));
+                    rename_map.insert(var.name.clone(), source_name.clone());
+                    copy_def_pcs.push(def_pc);
                 }
             }
 
-            for (def_pc, dst_name, src_name) in copy_defs {
+            if rename_map.is_empty() {
+                break;
+            }
+
+            // Resolve transitive chains: if a->b and b->c, resolve a->c.
+            let keys: Vec<String> = rename_map.keys().cloned().collect();
+            for key in &keys {
+                let mut target = rename_map[key].clone();
+                let mut seen = HashSet::new();
+                seen.insert(key.clone());
+                while let Some(next) = rename_map.get(&target) {
+                    if seen.contains(next) {
+                        break; // cycle
+                    }
+                    seen.insert(target.clone());
+                    target = next.clone();
+                }
+                rename_map.insert(key.clone(), target);
+            }
+
+            // Apply all renames in a single traversal per expression.
+            for expr in self.expressions.values_mut() {
+                rename_vars_multi(expr, &rename_map);
+            }
+
+            // Apply all renames in a single pass over var_at_use.
+            for value in self.var_at_use.values_mut() {
+                if let Some(src_name) = rename_map.get(value.as_str()) {
+                    *value = src_name.clone();
+                }
+            }
+
+            for def_pc in copy_def_pcs {
                 processed.insert(def_pc);
-
-                // Replace dst_name with src_name in all var_at_use entries.
-                for value in self.var_at_use.values_mut() {
-                    if *value == dst_name {
-                        *value = src_name.clone();
-                    }
-                }
-
-                // Replace Var(dst_name) with Var(src_name) in all expressions.
-                let replacement = Expression::Var(src_name);
-                let pcs: Vec<usize> = self.expressions.keys().copied().collect();
-                for pc in pcs {
-                    if let Some(expr) = self.expressions.remove(&pc) {
-                        let new_expr = substitute_var(&expr, &dst_name, &replacement);
-                        self.expressions.insert(pc, new_expr);
-                    }
-                }
-
                 self.eliminated_pcs.insert(def_pc);
-                changed = true;
             }
         }
     }
@@ -1550,6 +1626,76 @@ pub fn simplify_expression(expr: Expression) -> Expression {
     }
 }
 
+/// Collect all variable names referenced in an expression.
+fn collect_var_names(expr: &Expression, names: &mut HashSet<String>) {
+    match expr {
+        Expression::Var(n) => {
+            names.insert(n.clone());
+        }
+        Expression::Const(_) | Expression::Raw(_) => {}
+        Expression::BinOp { lhs, rhs, .. } => {
+            collect_var_names(lhs, names);
+            collect_var_names(rhs, names);
+        }
+        Expression::UnaryOp { operand, .. } => {
+            collect_var_names(operand, names);
+        }
+        Expression::Load { base, .. } => {
+            collect_var_names(base, names);
+        }
+        Expression::Store { base, value, .. } => {
+            collect_var_names(base, names);
+            collect_var_names(value, names);
+        }
+        Expression::Call { args, .. } => {
+            for arg in args {
+                collect_var_names(arg, names);
+            }
+        }
+    }
+}
+
+/// Build an index: variable name -> set of PCs whose expression references it.
+/// Also includes PCs from var_at_use for Raw expressions and branch-only uses.
+fn build_var_use_index(
+    expressions: &HashMap<usize, Expression>,
+    var_at_use: &HashMap<(usize, u8), String>,
+    eliminated_pcs: &HashSet<usize>,
+) -> HashMap<String, HashSet<usize>> {
+    let mut index: HashMap<String, HashSet<usize>> = HashMap::new();
+    let mut names_buf = HashSet::new();
+
+    for (&pc, expr) in expressions {
+        if eliminated_pcs.contains(&pc) {
+            continue;
+        }
+        names_buf.clear();
+        collect_var_names(expr, &mut names_buf);
+        for name in &names_buf {
+            index.entry(name.clone()).or_default().insert(pc);
+        }
+    }
+
+    // Add var_at_use entries for PCs without expression entries (branch conditions)
+    // or with Raw expressions (where variable names are embedded as strings and
+    // not captured by collect_var_names).
+    for (&(upc, _), name) in var_at_use {
+        if eliminated_pcs.contains(&upc) {
+            continue;
+        }
+        let needs_var_at_use = match expressions.get(&upc) {
+            None => true,                        // no expression at all
+            Some(Expression::Raw(_)) => true,    // Raw doesn't contain Var nodes
+            _ => false,
+        };
+        if needs_var_at_use {
+            index.entry(name.clone()).or_default().insert(upc);
+        }
+    }
+
+    index
+}
+
 /// Recursively substitute all `Var(name)` nodes with a replacement expression.
 fn substitute_var(expr: &Expression, name: &str, replacement: &Expression) -> Expression {
     match expr {
@@ -1597,6 +1743,37 @@ fn substitute_var(expr: &Expression, name: &str, replacement: &Expression) -> Ex
     }
 }
 
+/// Apply multiple variable renames in a single traversal of an expression tree.
+fn rename_vars_multi(expr: &mut Expression, rename_map: &HashMap<String, String>) {
+    match expr {
+        Expression::Var(n) => {
+            if let Some(new_name) = rename_map.get(n.as_str()) {
+                *n = new_name.clone();
+            }
+        }
+        Expression::Const(_) | Expression::Raw(_) => {}
+        Expression::BinOp { lhs, rhs, .. } => {
+            rename_vars_multi(lhs, rename_map);
+            rename_vars_multi(rhs, rename_map);
+        }
+        Expression::UnaryOp { operand, .. } => {
+            rename_vars_multi(operand, rename_map);
+        }
+        Expression::Load { base, .. } => {
+            rename_vars_multi(base, rename_map);
+        }
+        Expression::Store { base, value, .. } => {
+            rename_vars_multi(base, rename_map);
+            rename_vars_multi(value, rename_map);
+        }
+        Expression::Call { args, .. } => {
+            for arg in args {
+                rename_vars_multi(arg, rename_map);
+            }
+        }
+    }
+}
+
 /// Rename all occurrences of `Var(old_name)` to `Var(new_name)` in-place.
 fn rename_var_in_expression(expr: &mut Expression, old_name: &str, new_name: &str) {
     match expr {
@@ -1621,22 +1798,6 @@ fn rename_var_in_expression(expr: &mut Expression, old_name: &str, new_name: &st
                 rename_var_in_expression(arg, old_name, new_name);
             }
         }
-    }
-}
-
-/// Collect all distinct variable names referenced in an expression tree.
-/// Count occurrences of `Var(name)` in an expression tree.
-fn count_var_refs(expr: &Expression, name: &str) -> usize {
-    match expr {
-        Expression::Var(n) if n == name => 1,
-        Expression::Var(_) | Expression::Const(_) | Expression::Raw(_) => 0,
-        Expression::BinOp { lhs, rhs, .. } => count_var_refs(lhs, name) + count_var_refs(rhs, name),
-        Expression::UnaryOp { operand, .. } => count_var_refs(operand, name),
-        Expression::Load { base, .. } => count_var_refs(base, name),
-        Expression::Store { base, value, .. } => {
-            count_var_refs(base, name) + count_var_refs(value, name)
-        }
-        Expression::Call { args, .. } => args.iter().map(|a| count_var_refs(a, name)).sum(),
     }
 }
 
@@ -2154,9 +2315,9 @@ fn is_commutative(op: BinOp) -> bool {
 /// Simple operator precedence (higher = binds tighter).
 fn op_precedence(op: BinOp) -> u8 {
     match op {
-        BinOp::Or => 1,
-        BinOp::Xor => 2,
-        BinOp::And => 3,
+        BinOp::Or | BinOp::OrInv => 1,
+        BinOp::Xor | BinOp::Xnor => 2,
+        BinOp::And | BinOp::AndInv => 3,
         BinOp::LtU
         | BinOp::LtS
         | BinOp::GeU
@@ -2164,10 +2325,21 @@ fn op_precedence(op: BinOp) -> u8 {
         | BinOp::GtU
         | BinOp::GtS
         | BinOp::LeU
-        | BinOp::LeS => 4,
-        BinOp::Shl | BinOp::ShrU | BinOp::ShrS => 5,
-        BinOp::Add | BinOp::Sub => 6,
-        BinOp::Mul | BinOp::DivU | BinOp::DivS | BinOp::RemU | BinOp::RemS => 7,
+        | BinOp::LeS
+        | BinOp::Max
+        | BinOp::MaxU
+        | BinOp::Min
+        | BinOp::MinU => 4,
+        BinOp::Shl | BinOp::ShrU | BinOp::ShrS | BinOp::RotL | BinOp::RotR => 5,
+        BinOp::Add | BinOp::Sub | BinOp::NegAdd => 6,
+        BinOp::Mul
+        | BinOp::DivU
+        | BinOp::DivS
+        | BinOp::RemU
+        | BinOp::RemS
+        | BinOp::MulUpperSS
+        | BinOp::MulUpperUU
+        | BinOp::MulUpperSU => 7,
     }
 }
 

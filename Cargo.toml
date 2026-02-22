@@ -5,4 +5,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-wasm-pvm = "0.1.0"
+atty = "0.2"
+wasm-pvm = "0.2.0"

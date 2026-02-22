@@ -30,6 +30,7 @@ pub enum DecodeError {
     InvalidVarInt,
     InvalidMask,
     UnsupportedJumpTableEntrySize(u8),
+    TrailingData,
 }
 
 impl fmt::Display for DecodeError {
@@ -46,7 +47,7 @@ impl Error for DecodeError {}
 /// Returns the blob data (with metadata stripped if present).
 /// Uses a heuristic: if the first varint is small and the following bytes
 /// are mostly printable ASCII, treat it as metadata and skip it.
-fn try_strip_metadata(data: &[u8]) -> Result<&[u8], Box<dyn Error>> {
+pub fn try_strip_metadata(data: &[u8]) -> Result<&[u8], Box<dyn Error>> {
     if data.is_empty() {
         return Ok(data);
     }
@@ -97,10 +98,22 @@ fn try_strip_metadata(data: &[u8]) -> Result<&[u8], Box<dyn Error>> {
     Ok(data)
 }
 
-/// Decode SPI format: metadata + SPI header + ro_data + rw_data + code_blob
-/// Format:
-/// [varint: metadata_len]
-/// [metadata_bytes]
+/// PVM memory layout constants (JAM standard).
+const SEGMENT_SIZE: u64 = 0x10000; // 64 KiB
+
+/// Align a value up to the next segment boundary.
+fn align_to_segment_size(value: u32) -> u64 {
+    let v = value as u64;
+    if v == 0 {
+        0
+    } else {
+        (v + SEGMENT_SIZE - 1) / SEGMENT_SIZE * SEGMENT_SIZE
+    }
+}
+
+/// Decode SPI format (matches the reference `decodeSpi` implementation).
+///
+/// Format (no metadata — strip metadata at call site if needed):
 /// [u24: ro_data_len]
 /// [u24: rw_data_len]
 /// [u16: heap_pages]
@@ -110,58 +123,54 @@ fn try_strip_metadata(data: &[u8]) -> Result<&[u8], Box<dyn Error>> {
 /// [u32: code_blob_len]
 /// [code_blob: code_blob_len bytes] ← This is the ProgramBlob!
 pub fn decode_spi(data: &[u8]) -> Result<DecodedProgram, Box<dyn Error>> {
-    // Try to strip metadata prefix if present
-    let blob_data = try_strip_metadata(data)?;
-
-    let mut cursor = Cursor::new(blob_data);
+    let mut cursor = Cursor::new(data);
 
     // Parse SPI header
-    // 1. ro_data_len (u24 = 3 bytes LE)
     let ro_data_len = cursor.read_u24()?;
-
-    // 2. rw_data_len (u24 = 3 bytes LE)
     let rw_data_len = cursor.read_u24()?;
-
-    // 3. heap_pages (u16 = 2 bytes LE)
     let _heap_pages = cursor.read_u16()?;
-
-    // 4. stack_size (u24 = 3 bytes LE)
     let _stack_size = cursor.read_u24()?;
 
-    // 5. Skip ro_data section
+    // Skip ro_data and rw_data sections
+    if cursor.remaining() < ro_data_len as usize {
+        return Err(Box::new(DecodeError::UnexpectedEof));
+    }
     cursor.advance(ro_data_len as usize);
 
-    // 6. Skip rw_data section
+    if cursor.remaining() < rw_data_len as usize {
+        return Err(Box::new(DecodeError::UnexpectedEof));
+    }
     cursor.advance(rw_data_len as usize);
 
-    // 7. Read code_blob_len (u32 LE)
+    // Read code blob
     let code_blob_len = cursor.read_u32()?;
-
-    // 8. Extract code_blob bytes
     if cursor.remaining() < code_blob_len as usize {
         return Err(Box::new(DecodeError::UnexpectedEof));
     }
 
     let code_blob_start = cursor.position;
     let code_blob_end = code_blob_start + code_blob_len as usize;
-    let code_blob = &blob_data[code_blob_start..code_blob_end];
+    let code_blob = &data[code_blob_start..code_blob_end];
+    cursor.advance(code_blob_len as usize);
 
-    // 9. Decode the code_blob as a ProgramBlob
+    // Verify all data was consumed (equivalent to decoder.finish())
+    if cursor.remaining() != 0 {
+        return Err(Box::new(DecodeError::TrailingData));
+    }
+
+    // Decode the code_blob as a ProgramBlob
     let mut program = decode_blob_internal(code_blob)?;
 
-    // PVM uses fixed memory layout:
-    // 0x10000: read-only data, 0x20000: read-write data,
-    // 0x30000: globals/stdio, 0x40000: stack, 0x50000: heap (linear memory)
-    program.memory_base = Some(0x50000);
+    // Compute heap start from the SPI header:
+    //   heapStart = 2 * SEGMENT_SIZE + alignToSegmentSize(roLength)
+    let heap_start = 2 * SEGMENT_SIZE + align_to_segment_size(ro_data_len);
+    program.memory_base = Some(heap_start);
 
     Ok(program)
 }
 
 pub fn decode_blob(data: &[u8]) -> Result<DecodedProgram, Box<dyn Error>> {
-    // Try to strip metadata prefix if present
-    let blob_data = try_strip_metadata(data)?;
-
-    decode_blob_internal(blob_data)
+    decode_blob_internal(data)
 }
 
 fn decode_blob_internal(blob_data: &[u8]) -> Result<DecodedProgram, Box<dyn Error>> {
@@ -229,7 +238,13 @@ fn decode_blob_internal(blob_data: &[u8]) -> Result<DecodedProgram, Box<dyn Erro
         // Find the length of this instruction by scanning for the next set bit in mask
         let instr_len = find_instruction_length(mask_bytes, pc, code_len as usize);
 
-        let (instr, _) = decode_instruction(&code_bytes[pc..pc + instr_len], instr_len)?;
+        let instr = match decode_instruction(&code_bytes[pc..pc + instr_len], instr_len) {
+            Ok((instr, _)) => instr,
+            Err(_) => Instruction::Unknown {
+                opcode: code_bytes[pc],
+                raw_bytes: code_bytes[pc..pc + instr_len].to_vec(),
+            },
+        };
         instructions.push((pc, instr));
         pc += instr_len;
     }
@@ -447,7 +462,7 @@ macro_rules! decode_store_ind {
     }};
 }
 
-/// Branch with immediate: opcode + (imm_len_hi | reg_lo) + variable-length imm + 4-byte offset
+/// Branch with immediate: opcode + (imm_len_hi | reg_lo) + variable-length imm + variable-length offset
 macro_rules! decode_branch_imm {
     ($data:expr, $length:expr, $variant:ident) => {{
         if $length < 2 {
@@ -455,26 +470,84 @@ macro_rules! decode_branch_imm {
         }
         let reg = $data[1] & 0x0F;
         let imm_len = (($data[1] >> 4) & 0x0F) as usize;
-        if $length < 2 + imm_len + 4 {
+        if $length < 2 + imm_len {
             return Err(DecodeError::UnexpectedEof);
         }
         let value = decode_imm_bytes(&$data[2..2 + imm_len]);
         let os = 2 + imm_len;
-        let offset = i32::from_le_bytes([$data[os], $data[os + 1], $data[os + 2], $data[os + 3]]);
+        let offset = decode_imm_bytes(&$data[os..$length]);
         Ok((Instruction::$variant { reg, value, offset }, $length))
     }};
 }
 
-/// Branch with two registers: opcode + (reg1_hi | reg2_lo) + 4-byte offset
+/// Branch with two registers: opcode + (reg1_hi | reg2_lo) + variable-length offset
 macro_rules! decode_branch_reg {
     ($data:expr, $length:expr, $variant:ident) => {{
-        if $length < 6 {
+        if $length < 2 {
             return Err(DecodeError::UnexpectedEof);
         }
         let reg2 = $data[1] & 0x0F;
         let reg1 = ($data[1] >> 4) & 0x0F;
-        let offset = i32::from_le_bytes([$data[2], $data[3], $data[4], $data[5]]);
+        let offset = decode_imm_bytes(&$data[2..$length]);
         Ok((Instruction::$variant { reg1, reg2, offset }, $length))
+    }};
+}
+
+/// Two immediates: opcode + imm1_len_byte + imm1 + imm2 (for StoreImmU8/16/32/64)
+macro_rules! decode_two_imm {
+    ($data:expr, $length:expr, $variant:ident) => {{
+        if $length < 2 {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let imm1_len = ($data[1] & 0x0F) as usize;
+        if $length < 2 + imm1_len {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let address = decode_imm_bytes(&$data[2..2 + imm1_len]);
+        let value = decode_imm_bytes(&$data[2 + imm1_len..$length]);
+        Ok((Instruction::$variant { address, value }, $length))
+    }};
+}
+
+/// One register + one immediate: opcode + reg + variable-length imm
+macro_rules! decode_one_reg_imm {
+    ($data:expr, $length:expr, $variant:ident, $reg_field:ident, $imm_field:ident) => {{
+        if $length < 2 {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let reg = $data[1] & 0x0F;
+        let imm = decode_imm_bytes(&$data[2..$length]);
+        Ok((
+            Instruction::$variant {
+                $reg_field: reg,
+                $imm_field: imm,
+            },
+            $length,
+        ))
+    }};
+}
+
+/// Store immediate indirect: opcode + (imm1_len_hi | base_lo) + imm1(offset) + imm2(value)
+macro_rules! decode_store_imm_ind {
+    ($data:expr, $length:expr, $variant:ident) => {{
+        if $length < 2 {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let base = $data[1] & 0x0F;
+        let imm1_len = (($data[1] >> 4) & 0x0F) as usize;
+        if $length < 2 + imm1_len {
+            return Err(DecodeError::UnexpectedEof);
+        }
+        let offset = decode_imm_bytes(&$data[2..2 + imm1_len]);
+        let value = decode_imm_bytes(&$data[2 + imm1_len..$length]);
+        Ok((
+            Instruction::$variant {
+                base,
+                offset,
+                value,
+            },
+            $length,
+        ))
     }};
 }
 
@@ -509,12 +582,9 @@ fn decode_instruction(data: &[u8], length: usize) -> Result<(Instruction, usize)
             Ok((Instruction::LoadImm { reg, value }, length))
         }
 
-        // Jump: opcode + 4-byte offset
+        // Jump: opcode + variable-length offset
         40 => {
-            if length < 5 {
-                return Err(DecodeError::UnexpectedEof);
-            }
-            let offset = i32::from_le_bytes([data[1], data[2], data[3], data[4]]);
+            let offset = decode_imm_bytes(&data[1..length]);
             Ok((Instruction::Jump { offset }, length))
         }
 
@@ -590,7 +660,14 @@ fn decode_instruction(data: &[u8], length: usize) -> Result<(Instruction, usize)
         // Branch with immediate instructions
         81 => decode_branch_imm!(data, length, BranchEqImm),
         82 => decode_branch_imm!(data, length, BranchNeImm),
+        83 => decode_branch_imm!(data, length, BranchLtUImm),
+        84 => decode_branch_imm!(data, length, BranchLeUImm),
+        85 => decode_branch_imm!(data, length, BranchGeUImm),
+        86 => decode_branch_imm!(data, length, BranchGtUImm),
+        87 => decode_branch_imm!(data, length, BranchLtSImm),
+        88 => decode_branch_imm!(data, length, BranchLeSImm),
         89 => decode_branch_imm!(data, length, BranchGeSImm),
+        90 => decode_branch_imm!(data, length, BranchGtSImm),
 
         // Branch with two registers
         172 => decode_branch_reg!(data, length, BranchLtU),
@@ -601,6 +678,168 @@ fn decode_instruction(data: &[u8], length: usize) -> Result<(Instruction, usize)
             let index = decode_uimm_bytes(&data[1..length]);
             Ok((Instruction::Ecalli { index }, length))
         }
+
+        // LoadImm64: opcode + reg + 8-byte value (already handled above at 20)
+
+        // Store immediate to absolute address (TwoImm)
+        30 => decode_two_imm!(data, length, StoreImmU8),
+        31 => decode_two_imm!(data, length, StoreImmU16),
+        32 => decode_two_imm!(data, length, StoreImmU32),
+        33 => decode_two_imm!(data, length, StoreImmU64),
+
+        // Load/store absolute address (OneRegOneImm)
+        52 => decode_one_reg_imm!(data, length, LoadU8, dst, address),
+        53 => decode_one_reg_imm!(data, length, LoadI8, dst, address),
+        54 => decode_one_reg_imm!(data, length, LoadU16, dst, address),
+        55 => decode_one_reg_imm!(data, length, LoadI16, dst, address),
+        56 => decode_one_reg_imm!(data, length, LoadU32, dst, address),
+        57 => decode_one_reg_imm!(data, length, LoadI32, dst, address),
+        58 => decode_one_reg_imm!(data, length, LoadU64, dst, address),
+        59 => decode_one_reg_imm!(data, length, StoreU8, src, address),
+        60 => decode_one_reg_imm!(data, length, StoreU16, src, address),
+        61 => decode_one_reg_imm!(data, length, StoreU32, src, address),
+        62 => decode_one_reg_imm!(data, length, StoreU64, src, address),
+
+        // Store immediate indirect (OneRegTwoImm)
+        70 => decode_store_imm_ind!(data, length, StoreImmIndU8),
+        71 => decode_store_imm_ind!(data, length, StoreImmIndU16),
+        72 => decode_store_imm_ind!(data, length, StoreImmIndU32),
+        73 => decode_store_imm_ind!(data, length, StoreImmIndU64),
+
+        // LoadImmJump: opcode + (imm_len_hi | reg_lo) + imm + variable-length offset
+        80 => {
+            if length < 2 {
+                return Err(DecodeError::UnexpectedEof);
+            }
+            let reg = data[1] & 0x0F;
+            let imm_len = ((data[1] >> 4) & 0x0F) as usize;
+            if length < 2 + imm_len {
+                return Err(DecodeError::UnexpectedEof);
+            }
+            let value = decode_imm_bytes(&data[2..2 + imm_len]);
+            let os = 2 + imm_len;
+            let offset = decode_imm_bytes(&data[os..length]);
+            Ok((Instruction::LoadImmJump { reg, value, offset }, length))
+        }
+
+        // MoveReg
+        100 => decode_two_reg!(data, length, MoveReg),
+        // ReverseBytes
+        111 => decode_two_reg!(data, length, ReverseBytes),
+
+        // LoadIndI32
+        129 => decode_load_ind!(data, length, LoadIndI32),
+
+        // Additional two-reg-imm instructions
+        132 => decode_two_reg_imm!(data, length, AndImm),
+        133 => decode_two_reg_imm!(data, length, XorImm),
+        134 => decode_two_reg_imm!(data, length, OrImm),
+        135 => decode_two_reg_imm!(data, length, MulImm32),
+        138 => decode_two_reg_imm!(data, length, ShloLImm32),
+        139 => decode_two_reg_imm!(data, length, ShloRImm32),
+        140 => decode_two_reg_imm!(data, length, SharRImm32),
+        141 => decode_two_reg_imm!(data, length, NegAddImm32),
+        142 => decode_two_reg_imm!(data, length, SetGtUImm),
+        143 => decode_two_reg_imm!(data, length, SetGtSImm),
+        144 => decode_two_reg_imm!(data, length, ShloLImmAlt32),
+        145 => decode_two_reg_imm!(data, length, ShloRImmAlt32),
+        146 => decode_two_reg_imm!(data, length, SharRImmAlt32),
+        // CmovIzImm/CmovNzImm: opcode + (cond_hi | dst_lo) + imm
+        147 => {
+            if length < 2 {
+                return Err(DecodeError::UnexpectedEof);
+            }
+            let dst = data[1] & 0x0F;
+            let cond = (data[1] >> 4) & 0x0F;
+            let value = decode_imm_bytes(&data[2..length]);
+            Ok((Instruction::CmovIzImm { dst, cond, value }, length))
+        }
+        148 => {
+            if length < 2 {
+                return Err(DecodeError::UnexpectedEof);
+            }
+            let dst = data[1] & 0x0F;
+            let cond = (data[1] >> 4) & 0x0F;
+            let value = decode_imm_bytes(&data[2..length]);
+            Ok((Instruction::CmovNzImm { dst, cond, value }, length))
+        }
+        150 => decode_two_reg_imm!(data, length, MulImm64),
+        151 => decode_two_reg_imm!(data, length, ShloLImm64),
+        152 => decode_two_reg_imm!(data, length, ShloRImm64),
+        153 => decode_two_reg_imm!(data, length, SharRImm64),
+        154 => decode_two_reg_imm!(data, length, NegAddImm64),
+        155 => decode_two_reg_imm!(data, length, ShloLImmAlt64),
+        156 => decode_two_reg_imm!(data, length, ShloRImmAlt64),
+        157 => decode_two_reg_imm!(data, length, SharRImmAlt64),
+        158 => decode_two_reg_imm!(data, length, RotRImm64),
+        159 => decode_two_reg_imm!(data, length, RotRImmAlt64),
+        160 => decode_two_reg_imm!(data, length, RotRImm32),
+        161 => decode_two_reg_imm!(data, length, RotRImmAlt32),
+
+        // Branch with two registers (additional)
+        170 => decode_branch_reg!(data, length, BranchEq),
+        171 => decode_branch_reg!(data, length, BranchNe),
+        173 => decode_branch_reg!(data, length, BranchLtS),
+        175 => decode_branch_reg!(data, length, BranchGeS),
+
+        // LoadImmJumpInd: opcode + (base_hi | dst_lo) + imm1_len + imm1 + imm2
+        180 => {
+            if length < 3 {
+                return Err(DecodeError::UnexpectedEof);
+            }
+            let dst = data[1] & 0x0F;
+            let base = (data[1] >> 4) & 0x0F;
+            let imm1_len = (data[2] & 0x0F) as usize;
+            if length < 3 + imm1_len {
+                return Err(DecodeError::UnexpectedEof);
+            }
+            let value = decode_imm_bytes(&data[3..3 + imm1_len]);
+            let offset = decode_imm_bytes(&data[3 + imm1_len..length]);
+            Ok((
+                Instruction::LoadImmJumpInd {
+                    base,
+                    dst,
+                    value,
+                    offset,
+                },
+                length,
+            ))
+        }
+
+        // Additional three-register instructions
+        213 => decode_three_reg!(data, length, MulUpperSS),
+        214 => decode_three_reg!(data, length, MulUpperUU),
+        215 => decode_three_reg!(data, length, MulUpperSU),
+        // CmovIz/CmovNz: opcode + (cond_hi | src_lo) + dst
+        218 => {
+            if length < 3 {
+                return Err(DecodeError::UnexpectedEof);
+            }
+            let src = data[1] & 0x0F;
+            let cond = (data[1] >> 4) & 0x0F;
+            let dst = data[2] & 0x0F;
+            Ok((Instruction::CmovIz { dst, src, cond }, length))
+        }
+        219 => {
+            if length < 3 {
+                return Err(DecodeError::UnexpectedEof);
+            }
+            let src = data[1] & 0x0F;
+            let cond = (data[1] >> 4) & 0x0F;
+            let dst = data[2] & 0x0F;
+            Ok((Instruction::CmovNz { dst, src, cond }, length))
+        }
+        220 => decode_three_reg!(data, length, RotL64),
+        221 => decode_three_reg!(data, length, RotL32),
+        222 => decode_three_reg!(data, length, RotR64),
+        223 => decode_three_reg!(data, length, RotR32),
+        224 => decode_three_reg!(data, length, AndInv),
+        225 => decode_three_reg!(data, length, OrInv),
+        226 => decode_three_reg!(data, length, Xnor),
+        227 => decode_three_reg!(data, length, Max),
+        228 => decode_three_reg!(data, length, MaxU),
+        229 => decode_three_reg!(data, length, Min),
+        230 => decode_three_reg!(data, length, MinU),
 
         _ => Ok((
             Instruction::Unknown {
@@ -817,8 +1056,8 @@ mod tests {
 
     #[test]
     fn test_decode_branch_imm_too_short() {
-        // BranchEqImm with imm_len=1 but not enough bytes for the 4-byte offset
-        let result = decode_instruction(&[81, 0x13, 0x00], 3);
+        // BranchEqImm with only 1 byte (no reg/imm byte) should fail
+        let result = decode_instruction(&[81], 1);
         assert!(result.is_err());
     }
 
@@ -958,5 +1197,22 @@ mod tests {
             result.instructions[2],
             (2, Instruction::Fallthrough)
         ));
+    }
+
+    #[test]
+    fn test_metadata_stripping_and_spi_decode_pvm_jam() {
+        let data = std::fs::read("examples/compiled/pvm.jam").expect("pvm.jam should exist");
+        let stripped = try_strip_metadata(&data).expect("metadata stripping should succeed");
+        assert!(
+            stripped.len() < data.len(),
+            "Metadata should be stripped: original={}, stripped={}",
+            data.len(),
+            stripped.len()
+        );
+        let program = decode_spi(stripped)
+            .expect("SPI decode should succeed after stripping metadata");
+        assert!(!program.instructions.is_empty());
+        assert!(!program.jump_table.is_empty());
+        assert!(program.memory_base.is_some());
     }
 }
