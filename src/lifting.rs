@@ -235,9 +235,7 @@ impl LiftedProgram {
             return None;
         }
         for &operand in operands {
-            let Some(kind) = ssa.value_kind(operand) else {
-                return None;
-            };
+            let kind = ssa.value_kind(operand)?;
             let name = match kind {
                 crate::ir::ssa::SsaValueKind::Instr { pc, reg, .. } => {
                     self.variables.get(&(*pc, *reg)).map(|v| v.name.clone())?
