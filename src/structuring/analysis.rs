@@ -183,9 +183,16 @@ impl StructuralAnalysis {
             };
         }
         let mut structures = Vec::new();
+        let sccs = Self::compute_sccs(cfg);
 
-        // Detect loops (back-edges where target dominates source)
-        let loops = Self::detect_loops(cfg, &dom_tree);
+        // Detect switches early so dispatch infrastructure can be excluded from
+        // user loop recovery.
+        let switches = Self::detect_switches(cfg, program, &function_entry_pcs);
+        let dispatch_scc_blocks = Self::collect_dispatch_scc_blocks(&switches, &sccs);
+
+        // Detect reducible loops (back-edges where target dominates source),
+        // skipping SCCs marked as dispatch infrastructure.
+        let loops = Self::detect_loops(cfg, &dom_tree, &dispatch_scc_blocks);
         structures.extend(loops);
 
         // Collect loop headers for exclusion in if-then-else detection
@@ -202,7 +209,6 @@ impl StructuralAnalysis {
         structures.extend(ifs);
 
         // Detect switch/case patterns
-        let switches = Self::detect_switches(cfg, program, &function_entry_pcs);
         structures.extend(switches);
 
         StructuralAnalysis {
@@ -211,8 +217,118 @@ impl StructuralAnalysis {
         }
     }
 
-    /// Detect natural loops by finding back-edges.
-    fn detect_loops(cfg: &ControlFlowGraph, dom_tree: &DominatorTree) -> Vec<Structure> {
+    /// Compute strongly connected components using iterative Kosaraju.
+    /// Components are sorted by their minimum block PC for determinism.
+    fn compute_sccs(cfg: &ControlFlowGraph) -> Vec<HashSet<usize>> {
+        let mut nodes: Vec<usize> = cfg.blocks.keys().copied().collect();
+        nodes.sort_unstable();
+
+        // Precompute sorted adjacency lists once; avoids repeatedly cloning
+        // successors/predecessors while traversing large graphs.
+        let mut succ_index: HashMap<usize, Vec<usize>> = HashMap::with_capacity(nodes.len());
+        let mut pred_index: HashMap<usize, Vec<usize>> = HashMap::with_capacity(nodes.len());
+        for &node in &nodes {
+            let mut succs = cfg
+                .blocks
+                .get(&node)
+                .map(|b| b.successors.clone())
+                .unwrap_or_default();
+            succs.sort_unstable();
+            succ_index.insert(node, succs);
+
+            let mut preds = cfg
+                .blocks
+                .get(&node)
+                .map(|b| b.predecessors.clone())
+                .unwrap_or_default();
+            preds.sort_unstable();
+            pred_index.insert(node, preds);
+        }
+
+        let mut visited = HashSet::new();
+        let mut finish_order = Vec::new();
+
+        for &start in &nodes {
+            if !visited.insert(start) {
+                continue;
+            }
+            let mut stack: Vec<(usize, usize)> = vec![(start, 0)];
+            while let Some((node, idx)) = stack.last_mut() {
+                let succs = succ_index.get(node).map(Vec::as_slice).unwrap_or(&[]);
+                if *idx < succs.len() {
+                    let succ = succs[*idx];
+                    *idx += 1;
+                    if visited.insert(succ) {
+                        stack.push((succ, 0));
+                    }
+                } else {
+                    let n = *node;
+                    stack.pop();
+                    finish_order.push(n);
+                }
+            }
+        }
+
+        let mut assigned = HashSet::new();
+        let mut sccs = Vec::<HashSet<usize>>::new();
+        for &start in finish_order.iter().rev() {
+            if !assigned.insert(start) {
+                continue;
+            }
+            let mut component = HashSet::new();
+            let mut stack = vec![start];
+            while let Some(node) = stack.pop() {
+                component.insert(node);
+                let preds = pred_index.get(&node).map(Vec::as_slice).unwrap_or(&[]);
+                for &pred in preds {
+                    if assigned.insert(pred) {
+                        stack.push(pred);
+                    }
+                }
+            }
+            sccs.push(component);
+        }
+
+        sccs.sort_by_key(|scc| scc.iter().min().copied().unwrap_or(usize::MAX));
+        sccs
+    }
+
+    /// Expand dispatch switch headers to their whole SCCs so loop recovery can
+    /// skip dispatch infrastructure regions explicitly.
+    fn collect_dispatch_scc_blocks(
+        switches: &[Structure],
+        sccs: &[HashSet<usize>],
+    ) -> HashSet<usize> {
+        let dispatch_headers: HashSet<usize> = switches
+            .iter()
+            .filter_map(|s| match s {
+                Structure::Switch {
+                    header,
+                    is_dispatch: true,
+                    ..
+                } => Some(*header),
+                _ => None,
+            })
+            .collect();
+        if dispatch_headers.is_empty() {
+            return HashSet::new();
+        }
+
+        let mut blocks = HashSet::new();
+        for scc in sccs {
+            if scc.iter().any(|b| dispatch_headers.contains(b)) {
+                blocks.extend(scc.iter().copied());
+            }
+        }
+        blocks
+    }
+
+    /// Detect reducible natural loops by finding back-edges.
+    fn detect_loops(
+        cfg: &ControlFlowGraph,
+        dom_tree: &DominatorTree,
+        dispatch_scc_blocks: &HashSet<usize>,
+    ) -> Vec<Structure> {
         let mut loops = Vec::new();
 
         for block in cfg.blocks.values() {
@@ -227,6 +343,12 @@ impl StructuralAnalysis {
 
                     // Collect loop body via predecessor walk from latch to header
                     let body = Self::collect_loop_body(cfg, header, latch);
+                    if !Self::is_reducible_loop_region(cfg, dom_tree, header, &body) {
+                        continue;
+                    }
+                    if body.iter().all(|b| dispatch_scc_blocks.contains(b)) {
+                        continue;
+                    }
 
                     // Extract condition from header's terminator
                     let condition = cfg
@@ -250,7 +372,43 @@ impl StructuralAnalysis {
             Structure::Loop { header, .. } => *header,
             _ => 0,
         });
+        loops.dedup_by_key(|l| match l {
+            Structure::Loop { header, .. } => *header,
+            _ => 0,
+        });
         loops
+    }
+
+    /// A loop region is reducible iff it has exactly one entry edge from outside
+    /// and that entry is the loop header, which also dominates all loop nodes.
+    /// For loops headed at the CFG entry block, zero external entries is valid.
+    fn is_reducible_loop_region(
+        cfg: &ControlFlowGraph,
+        dom_tree: &DominatorTree,
+        header: usize,
+        body: &HashSet<usize>,
+    ) -> bool {
+        if body.is_empty() || !body.contains(&header) {
+            return false;
+        }
+        if body.iter().any(|&n| !dom_tree.dominates(header, n)) {
+            return false;
+        }
+
+        let mut entry_nodes = HashSet::new();
+        for &node in body {
+            if let Some(block) = cfg.blocks.get(&node)
+                && block.predecessors.iter().any(|pred| !body.contains(pred))
+            {
+                entry_nodes.insert(node);
+            }
+        }
+
+        if header == cfg.entry_pc && entry_nodes.is_empty() {
+            return true;
+        }
+
+        entry_nodes.len() == 1 && entry_nodes.contains(&header)
     }
 
     /// Collect loop body blocks by walking predecessors from latch to header.
@@ -644,6 +802,56 @@ mod tests {
     }
 
     #[test]
+    fn test_entry_header_loop_is_reducible() {
+        // Entry-header loop:
+        // 0 (header) -> 8 (exit) or 4 (body)
+        // 4 -> 0 (back-edge)
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 8,
+                        },
+                    )],
+                    vec![8, 4],
+                ),
+                (4, vec![(4, Instruction::Jump { offset: -4 })], vec![0]),
+                (8, vec![(8, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+
+        let loops: Vec<&Structure> = result
+            .structures
+            .iter()
+            .filter(|s| matches!(s, Structure::Loop { .. }))
+            .collect();
+        assert_eq!(loops.len(), 1);
+
+        if let Structure::Loop {
+            header,
+            latch,
+            body,
+            ..
+        } = loops[0]
+        {
+            assert_eq!(*header, 0);
+            assert_eq!(*latch, 4);
+            assert!(body.contains(&0));
+            assert!(body.contains(&4));
+        } else {
+            panic!("Expected Loop");
+        }
+    }
+
+    #[test]
     fn test_nested_loops() {
         // 0 -> 10 -> 20 -> 30 -> 20 (inner back-edge)
         //       ^              |
@@ -711,6 +919,65 @@ mod tests {
             .iter()
             .find(|l| matches!(l, Structure::Loop { header: 10, .. }));
         assert!(outer.is_some(), "Outer loop at header=10 not found");
+    }
+
+    #[test]
+    fn test_dispatch_switch_scc_blocks_are_excluded_from_loop_recovery() {
+        // Dispatch-like SCC:
+        // 0 (JumpInd dispatch switch) -> 4 and 8
+        // 4 -> 0 (back-edge inside dispatch infrastructure)
+        // 8 -> trap
+        //
+        // With non-empty function entries this switch is marked dispatch; the
+        // SCC {0,4} must be excluded from user loop recovery.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(0, Instruction::JumpInd { reg: 3, offset: 0 })],
+                    vec![4, 8],
+                ),
+                (4, vec![(4, Instruction::Jump { offset: -4 })], vec![0]),
+                (8, vec![(8, Instruction::Trap)], vec![]),
+            ],
+        );
+        let dom_tree = DominatorTree::compute(&cfg);
+        let program = DecodedProgram {
+            jump_table: vec![4, 8, 4],
+            instructions: vec![(0, Instruction::JumpInd { reg: 3, offset: 0 })],
+            memory_base: None,
+            code_len: 9,
+        };
+        let function_entry_pcs: HashSet<usize> = [0].into_iter().collect();
+
+        let result =
+            StructuralAnalysis::analyze_with_dom_tree(&cfg, &program, dom_tree, function_entry_pcs);
+
+        let loop_count = result
+            .structures
+            .iter()
+            .filter(|s| matches!(s, Structure::Loop { .. }))
+            .count();
+        assert_eq!(
+            loop_count, 0,
+            "Dispatch SCC loop should not be recovered as user loop"
+        );
+
+        let dispatch_switch = result.structures.iter().find(|s| {
+            matches!(
+                s,
+                Structure::Switch {
+                    header: 0,
+                    is_dispatch: true,
+                    ..
+                }
+            )
+        });
+        assert!(
+            dispatch_switch.is_some(),
+            "Dispatch switch should still be recorded"
+        );
     }
 
     // --- If-then-else tests ---
