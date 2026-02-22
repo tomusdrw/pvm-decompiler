@@ -277,7 +277,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
         else_blocks: &[usize],
         condition: Option<&Condition>,
         indent: usize,
-        loop_context: Option<(&HashSet<usize>, usize)>,
+        loop_context: Option<usize>,
     ) {
         let prefix = "    ".repeat(indent);
         let inner_prefix = "    ".repeat(indent + 1);
@@ -385,29 +385,13 @@ impl<'a, 'p> Emitter<'a, 'p> {
         &mut self,
         block_pc: usize,
         indent: usize,
-        loop_context: Option<(&HashSet<usize>, usize)>,
+        loop_context: Option<usize>,
     ) -> Option<&'static str> {
-        if let Some((loop_body, loop_header)) = loop_context
-            && let Some(block) = self.cfg.blocks.get(&block_pc)
+        if let Some(loop_header) = loop_context
+            && let Some(action) = self.plan.loop_terminal_action(loop_header, block_pc)
         {
-            let exits_loop = block
-                .successors
-                .iter()
-                .any(|s| !loop_body.contains(s) && *s != loop_header);
-            let continues_loop = block.successors.len() == 1 && block.successors[0] == loop_header;
-            let is_trap = block
-                .instructions
-                .last()
-                .is_some_and(|(_, instr)| matches!(instr, Instruction::Trap));
-
-            if !is_trap && (exits_loop || continues_loop) {
-                self.emit_block_body(block_pc, indent, true);
-                if exits_loop {
-                    return Some("break");
-                } else {
-                    return Some("continue");
-                }
-            }
+            self.emit_block_body(block_pc, indent, true);
+            return Some(action.keyword());
         }
         self.emit_block_body(block_pc, indent, false);
         None
@@ -685,7 +669,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
                     else_blocks,
                     condition.as_ref(),
                     indent + 1,
-                    Some((body, header_pc)),
+                    Some(header_pc),
                 );
                 continue;
             }
@@ -694,8 +678,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
             if is_latch {
                 self.emit_block_body(body_pc, indent + 1, true);
             } else {
-                let ctrl =
-                    self.emit_block_with_loop_control(body_pc, indent + 1, Some((body, header_pc)));
+                let ctrl = self.emit_block_with_loop_control(body_pc, indent + 1, Some(header_pc));
                 if let Some(keyword) = ctrl {
                     // Suppress `continue` at the very end of the loop body — it's implicit.
                     let is_last = last_emittable == Some(body_pc);
@@ -849,6 +832,35 @@ struct EmissionPlan {
     var_aliases: HashMap<String, String>,
     loop_body_order: HashMap<usize, Vec<usize>>,
     loop_reachable: HashMap<usize, HashSet<usize>>,
+    loop_terminal_actions: HashMap<usize, HashMap<usize, LoopTerminalAction>>,
+}
+
+impl EmissionPlan {
+    fn loop_terminal_action(
+        &self,
+        loop_header: usize,
+        block_pc: usize,
+    ) -> Option<LoopTerminalAction> {
+        self.loop_terminal_actions
+            .get(&loop_header)
+            .and_then(|m| m.get(&block_pc))
+            .copied()
+    }
+}
+
+#[derive(Copy, Clone)]
+enum LoopTerminalAction {
+    Break,
+    Continue,
+}
+
+impl LoopTerminalAction {
+    fn keyword(self) -> &'static str {
+        match self {
+            Self::Break => "break",
+            Self::Continue => "continue",
+        }
+    }
 }
 
 fn build_emission_plan<'a>(
@@ -922,10 +934,17 @@ fn build_emission_plan<'a>(
 
     let mut loop_body_order = HashMap::new();
     let mut loop_reachable = HashMap::new();
+    let mut loop_terminal_actions = HashMap::new();
     for (&header_pc, structure) in loop_map {
         let Structure::Loop { body, .. } = *structure else {
             continue;
         };
+        let mut terminal_actions: HashMap<usize, LoopTerminalAction> = HashMap::new();
+        for &block_pc in cfg.blocks.keys() {
+            if let Some(action) = loop_terminal_action(cfg, block_pc, body, header_pc) {
+                terminal_actions.insert(block_pc, action);
+            }
+        }
         loop_body_order.insert(
             header_pc,
             compute_loop_body_order(cfg, if_map, body, header_pc),
@@ -934,6 +953,7 @@ fn build_emission_plan<'a>(
             header_pc,
             compute_loop_reachable(cfg, if_map, body, header_pc),
         );
+        loop_terminal_actions.insert(header_pc, terminal_actions);
     }
 
     EmissionPlan {
@@ -942,15 +962,16 @@ fn build_emission_plan<'a>(
         var_aliases,
         loop_body_order,
         loop_reachable,
+        loop_terminal_actions,
     }
 }
 
-fn is_loop_terminal_block(
+fn loop_terminal_action(
     cfg: &ControlFlowGraph,
     block_pc: usize,
     body: &HashSet<usize>,
     header_pc: usize,
-) -> bool {
+) -> Option<LoopTerminalAction> {
     if let Some(block) = cfg.blocks.get(&block_pc) {
         let exits_loop = block
             .successors
@@ -961,9 +982,17 @@ fn is_loop_terminal_block(
             .instructions
             .last()
             .is_some_and(|(_, instr)| matches!(instr, Instruction::Trap));
-        !is_trap && (exits_loop || continues_loop)
+        if is_trap {
+            None
+        } else if exits_loop {
+            Some(LoopTerminalAction::Break)
+        } else if continues_loop {
+            Some(LoopTerminalAction::Continue)
+        } else {
+            None
+        }
     } else {
-        false
+        None
     }
 }
 
@@ -1085,14 +1114,14 @@ fn compute_loop_reachable(
             continue;
         }
 
-        let is_terminal = is_loop_terminal_block(cfg, pc, body, header_pc);
+        let is_terminal = loop_terminal_action(cfg, pc, body, header_pc).is_some();
         let if_terminates = if let Some((then_blocks, else_blocks)) = if_branches(if_map, pc) {
             let all_then_terminal = then_blocks
                 .iter()
-                .all(|&tb| is_loop_terminal_block(cfg, tb, body, header_pc));
+                .all(|&tb| loop_terminal_action(cfg, tb, body, header_pc).is_some());
             let all_else_terminal = else_blocks
                 .iter()
-                .all(|&eb| is_loop_terminal_block(cfg, eb, body, header_pc));
+                .all(|&eb| loop_terminal_action(cfg, eb, body, header_pc).is_some());
             !then_blocks.is_empty()
                 && !else_blocks.is_empty()
                 && all_then_terminal
