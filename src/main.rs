@@ -577,6 +577,27 @@ mod integration_tests {
         })
     }
 
+    fn assert_no_placeholders_or_raw_jumps(output: &str, fixture_name: &str) {
+        assert!(
+            !output.contains("if (...)"),
+            "{} should not contain placeholder conditions: {}",
+            fixture_name,
+            output
+        );
+        assert!(
+            !output.contains("while (...)"),
+            "{} should not contain placeholder loop conditions: {}",
+            fixture_name,
+            output
+        );
+        assert!(
+            !output.contains("jump <"),
+            "{} should not contain raw jump offsets: {}",
+            fixture_name,
+            output
+        );
+    }
+
     #[test]
     fn test_fibonacci_full_pipeline() {
         let buffer = std::fs::read("examples/compiled/fibonacci.pvm")
@@ -623,6 +644,8 @@ mod integration_tests {
             .expect("br-table.pvm fixture should exist");
         let output = decompile_bytes(&buffer).expect("decompilation should succeed");
 
+        assert_no_placeholders_or_raw_jumps(&output, "br-table");
+
         for line in output.lines() {
             let Some(var) = condition_lhs_var(line) else {
                 continue;
@@ -634,6 +657,18 @@ mod integration_tests {
                 output
             );
         }
+
+        // Golden-style checks for selector definition/flow.
+        assert!(
+            output.contains("let var_1 = u32[r7]"),
+            "br-table should keep selector definition: {}",
+            output
+        );
+        assert!(
+            output.contains("if (var_1 == 0)") && output.contains("if (var_1 == 2)"),
+            "br-table should preserve selector-based branching flow: {}",
+            output
+        );
     }
 
     #[test]
@@ -660,6 +695,8 @@ mod integration_tests {
         let buffer = std::fs::read("examples/compiled/life-simple.pvm")
             .expect("life-simple.pvm fixture should exist");
         let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        assert_no_placeholders_or_raw_jumps(&output, "life-simple");
 
         let main_calls = count_non_signature_main_calls(&output);
         assert_eq!(
@@ -716,5 +753,27 @@ mod integration_tests {
                 fixture
             );
         }
+    }
+
+    #[test]
+    fn test_jam_fuzzy_service_subset_without_placeholders() {
+        let buffer = match std::fs::read("examples/compiled/pvm.jam") {
+            Ok(b) => b,
+            Err(_) => return, // Skip when fixture is unavailable in this environment.
+        };
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        // Keep this focused to a stable prefix so it acts like a targeted golden subset.
+        let subset = output.lines().take(600).collect::<Vec<_>>().join("\n");
+        assert!(
+            !subset.contains("if (...)") && !subset.contains("while (...)"),
+            "jam-fuzzy-service subset should be placeholder-free: {}",
+            subset
+        );
+        assert!(
+            !subset.contains("jump <"),
+            "jam-fuzzy-service subset should not contain raw jumps: {}",
+            subset
+        );
     }
 }

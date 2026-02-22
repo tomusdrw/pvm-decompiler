@@ -38,3 +38,9 @@ jobs:
 
     - name: Run Tests
       run: cargo test
+
+    - name: Regenerate Example Outputs
+      run: ./run_examples.sh
+
+    - name: Enforce Output Quality Thresholds
+      run: ./scripts/check_output_quality.sh
