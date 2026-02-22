@@ -283,22 +283,16 @@ impl<'a, 'p> Emitter<'a, 'p> {
         let inner_prefix = "    ".repeat(indent + 1);
 
         // If all body blocks are suppressed, skip the entire if-structure.
-        if let Some(lifted) = self.lifted {
-            let all_suppressed = then_blocks
-                .iter()
-                .chain(else_blocks.iter())
-                .all(|bp| lifted.suppressed_blocks.contains(bp));
-            if all_suppressed && !then_blocks.is_empty() {
-                // Still emit the header body (non-branch instructions)
-                self.emit_block_body(header, indent, true);
-                for &tb in then_blocks {
-                    self.emitted.insert(tb);
-                }
-                for &eb in else_blocks {
-                    self.emitted.insert(eb);
-                }
-                return;
+        if self.plan.fully_suppressed_if_headers.contains(&header) {
+            // Still emit the header body (non-branch instructions)
+            self.emit_block_body(header, indent, true);
+            for &tb in then_blocks {
+                self.emitted.insert(tb);
             }
+            for &eb in else_blocks {
+                self.emitted.insert(eb);
+            }
+            return;
         }
 
         // Emit header block instructions (before the branch)
@@ -333,15 +327,8 @@ impl<'a, 'p> Emitter<'a, 'p> {
 
         let mut has_else_content = false;
         if !else_blocks.is_empty() {
-            // Check if all else blocks are Trap-only (renders as just `return`).
-            // If so, suppress the else clause entirely.
-            let all_trap_only = else_blocks.iter().all(|&eb| {
-                self.cfg.blocks.get(&eb).is_some_and(|b| {
-                    b.instructions.len() == 1 && matches!(b.instructions[0].1, Instruction::Trap)
-                })
-            });
-
-            if all_trap_only {
+            // If all else blocks are trap-only, suppress the else clause entirely.
+            if self.plan.trap_only_else_headers.contains(&header) {
                 // Mark else blocks as emitted but don't output them.
                 for &eb in else_blocks {
                     self.emitted.insert(eb);
@@ -833,6 +820,8 @@ struct EmissionPlan {
     loop_body_order: HashMap<usize, Vec<usize>>,
     loop_reachable: HashMap<usize, HashSet<usize>>,
     loop_terminal_actions: HashMap<usize, HashMap<usize, LoopTerminalAction>>,
+    fully_suppressed_if_headers: HashSet<usize>,
+    trap_only_else_headers: HashSet<usize>,
 }
 
 impl EmissionPlan {
@@ -875,39 +864,68 @@ fn build_emission_plan<'a>(
     let mut for_loop_map: HashMap<usize, ForLoopInfo> = HashMap::new();
     let mut emission_eliminated_pcs: HashSet<usize> = HashSet::new();
     let mut var_aliases: HashMap<String, String> = HashMap::new();
+    let mut fully_suppressed_if_headers: HashSet<usize> = HashSet::new();
+    let mut trap_only_else_headers: HashSet<usize> = HashSet::new();
 
     for s in structures {
-        if let Structure::Loop {
-            header,
-            body,
-            latch,
-            condition,
-            ..
-        } = s
-            && let Some(info) =
-                detect_for_loop_pattern(cfg, *header, *latch, body, condition.as_ref(), lifted)
-        {
-            let mut info = info;
-            // Suppress the init instruction from its block's normal emission.
-            emission_eliminated_pcs.insert(info.init_pc);
-            if let Some(lifted_ro) = lifted {
-                // Keep for-loop naming coherent without mutating LiftedProgram.
-                let init_name = lifted_ro
-                    .variables
-                    .get(&(info.init_pc, info.cond_reg))
-                    .map(|v| v.name.clone());
-                let step_name = lifted_ro
-                    .variables
-                    .get(&(info.step_pc, info.cond_reg))
-                    .map(|v| v.name.clone());
-                if let (Some(init_name), Some(step_name)) = (&init_name, &step_name)
-                    && init_name != step_name
+        match s {
+            Structure::Loop {
+                header,
+                body,
+                latch,
+                condition,
+                ..
+            } => {
+                if let Some(info) =
+                    detect_for_loop_pattern(cfg, *header, *latch, body, condition.as_ref(), lifted)
                 {
-                    var_aliases.insert(step_name.clone(), init_name.clone());
-                    info.step_str = replace_identifier(&info.step_str, step_name, init_name);
+                    let mut info = info;
+                    // Suppress the init instruction from its block's normal emission.
+                    emission_eliminated_pcs.insert(info.init_pc);
+                    if let Some(lifted_ro) = lifted {
+                        // Keep for-loop naming coherent without mutating LiftedProgram.
+                        let init_name = lifted_ro
+                            .variables
+                            .get(&(info.init_pc, info.cond_reg))
+                            .map(|v| v.name.clone());
+                        let step_name = lifted_ro
+                            .variables
+                            .get(&(info.step_pc, info.cond_reg))
+                            .map(|v| v.name.clone());
+                        if let (Some(init_name), Some(step_name)) = (&init_name, &step_name)
+                            && init_name != step_name
+                        {
+                            var_aliases.insert(step_name.clone(), init_name.clone());
+                            info.step_str =
+                                replace_identifier(&info.step_str, step_name, init_name);
+                        }
+                    }
+                    for_loop_map.insert(*header, info);
                 }
             }
-            for_loop_map.insert(*header, info);
+            Structure::IfThenElse {
+                header,
+                then_blocks,
+                else_blocks,
+                ..
+            } => {
+                if !then_blocks.is_empty()
+                    && lifted.is_some_and(|l| {
+                        then_blocks
+                            .iter()
+                            .chain(else_blocks.iter())
+                            .all(|bp| l.suppressed_blocks.contains(bp))
+                    })
+                {
+                    fully_suppressed_if_headers.insert(*header);
+                }
+                if !else_blocks.is_empty()
+                    && else_blocks.iter().all(|&bp| is_trap_only_block(cfg, bp))
+                {
+                    trap_only_else_headers.insert(*header);
+                }
+            }
+            _ => {}
         }
     }
 
@@ -963,6 +981,8 @@ fn build_emission_plan<'a>(
         loop_body_order,
         loop_reachable,
         loop_terminal_actions,
+        fully_suppressed_if_headers,
+        trap_only_else_headers,
     }
 }
 
@@ -994,6 +1014,12 @@ fn loop_terminal_action(
     } else {
         None
     }
+}
+
+fn is_trap_only_block(cfg: &ControlFlowGraph, block_pc: usize) -> bool {
+    cfg.blocks.get(&block_pc).is_some_and(|b| {
+        b.instructions.len() == 1 && matches!(b.instructions[0].1, Instruction::Trap)
+    })
 }
 
 fn if_branches<'a>(
