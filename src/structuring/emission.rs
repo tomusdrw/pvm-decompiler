@@ -527,20 +527,50 @@ impl<'a, 'p> Emitter<'a, 'p> {
         condition: &Option<Condition>,
         indent: usize,
     ) {
+        let (
+            non_header_body,
+            lifted_suppressed_non_header,
+            body_ordered,
+            reachable,
+            last_emittable,
+            empty_body_fallback,
+        ) = if let Some(plan) = self.plan.loop_plans.get(&header_pc) {
+            (
+                plan.non_header_body.clone(),
+                plan.lifted_suppressed_non_header.clone(),
+                plan.body_order.clone(),
+                plan.reachable.clone(),
+                plan.last_emittable,
+                plan.empty_body_fallback,
+            )
+        } else {
+            let non_header_body: Vec<usize> =
+                body.iter().copied().filter(|&bp| bp != header_pc).collect();
+            let body_ordered = compute_loop_body_order(self.cfg, &self.if_map, body, header_pc);
+            let reachable = compute_loop_reachable(self.cfg, &self.if_map, body, header_pc);
+            let last_emittable = body_ordered
+                .iter()
+                .copied()
+                .filter(|&pc| pc != header_pc && reachable.contains(&pc))
+                .next_back();
+            (
+                non_header_body,
+                HashSet::new(),
+                body_ordered,
+                reachable,
+                last_emittable,
+                EmptyLoopFallback::EmitContinue,
+            )
+        };
+
         // Suppress loops whose body blocks are all already emitted or suppressed.
         // This happens when callee blocks get assigned to the caller but are not
         // actually part of the caller's logic. Self-loops (body = {header}) are
         // always rendered since they represent genuine tight loops.
-        let non_header_body: Vec<usize> =
-            body.iter().copied().filter(|&bp| bp != header_pc).collect();
         let has_unemitted_body = non_header_body.is_empty()
-            || non_header_body.iter().any(|&bp| {
-                !self.emitted.contains(&bp)
-                    && !self
-                        .lifted
-                        .as_ref()
-                        .is_some_and(|l| l.suppressed_blocks.contains(&bp))
-            });
+            || non_header_body
+                .iter()
+                .any(|bp| !self.emitted.contains(bp) && !lifted_suppressed_non_header.contains(bp));
         if !has_unemitted_body {
             // Mark all body blocks as emitted so they don't get rendered as top-level blocks.
             self.emitted.insert(header_pc);
@@ -589,27 +619,6 @@ impl<'a, 'p> Emitter<'a, 'p> {
 
         // Emit header block body (before the condition branch)
         self.emit_block_body(header_pc, indent + 1, true);
-
-        let body_ordered = self
-            .plan
-            .loop_body_order
-            .get(&header_pc)
-            .cloned()
-            .unwrap_or_default();
-        let reachable = self
-            .plan
-            .loop_reachable
-            .get(&header_pc)
-            .cloned()
-            .unwrap_or_else(|| body.iter().copied().filter(|pc| *pc != header_pc).collect());
-
-        // Pre-compute which blocks will actually be emitted, to detect the last one.
-        let emittable: Vec<usize> = body_ordered
-            .iter()
-            .copied()
-            .filter(|&pc| pc != header_pc && reachable.contains(&pc))
-            .collect();
-        let last_emittable = emittable.last().copied();
 
         for &body_pc in &body_ordered {
             if body_pc == header_pc || self.emitted.contains(&body_pc) {
@@ -682,13 +691,16 @@ impl<'a, 'p> Emitter<'a, 'p> {
         // - keep small loops but emit an explicit control statement to avoid hollow shells
         let body_output = &self.output[output_after_header_line..];
         if body_output.trim().is_empty() {
-            if non_header_body.len() > 3 {
-                self.output.truncate(output_before_loop);
-                self.emit_block_body(header_pc, indent, true);
-            } else {
-                let inner_prefix = "    ".repeat(indent + 1);
-                let _ = writeln!(self.output, "{}continue", inner_prefix);
-                let _ = writeln!(self.output, "{}}}", prefix);
+            match empty_body_fallback {
+                EmptyLoopFallback::CollapseToHeaderSideEffects => {
+                    self.output.truncate(output_before_loop);
+                    self.emit_block_body(header_pc, indent, true);
+                }
+                EmptyLoopFallback::EmitContinue => {
+                    let inner_prefix = "    ".repeat(indent + 1);
+                    let _ = writeln!(self.output, "{}continue", inner_prefix);
+                    let _ = writeln!(self.output, "{}}}", prefix);
+                }
             }
         } else {
             let _ = writeln!(self.output, "{}}}", prefix);
@@ -817,9 +829,7 @@ struct EmissionPlan {
     for_loop_map: HashMap<usize, ForLoopInfo>,
     emission_eliminated_pcs: HashSet<usize>,
     var_aliases: HashMap<String, String>,
-    loop_body_order: HashMap<usize, Vec<usize>>,
-    loop_reachable: HashMap<usize, HashSet<usize>>,
-    loop_terminal_actions: HashMap<usize, HashMap<usize, LoopTerminalAction>>,
+    loop_plans: HashMap<usize, LoopRenderPlan>,
     fully_suppressed_if_headers: HashSet<usize>,
     trap_only_else_headers: HashSet<usize>,
 }
@@ -830,11 +840,22 @@ impl EmissionPlan {
         loop_header: usize,
         block_pc: usize,
     ) -> Option<LoopTerminalAction> {
-        self.loop_terminal_actions
+        self.loop_plans
             .get(&loop_header)
-            .and_then(|m| m.get(&block_pc))
+            .and_then(|p| p.terminal_actions.get(&block_pc))
             .copied()
     }
+}
+
+#[derive(Clone)]
+struct LoopRenderPlan {
+    non_header_body: Vec<usize>,
+    lifted_suppressed_non_header: HashSet<usize>,
+    body_order: Vec<usize>,
+    reachable: HashSet<usize>,
+    last_emittable: Option<usize>,
+    empty_body_fallback: EmptyLoopFallback,
+    terminal_actions: HashMap<usize, LoopTerminalAction>,
 }
 
 #[derive(Copy, Clone)]
@@ -850,6 +871,12 @@ impl LoopTerminalAction {
             Self::Continue => "continue",
         }
     }
+}
+
+#[derive(Copy, Clone)]
+enum EmptyLoopFallback {
+    CollapseToHeaderSideEffects,
+    EmitContinue,
 }
 
 fn build_emission_plan<'a>(
@@ -950,37 +977,63 @@ fn build_emission_plan<'a>(
         &var_use_count,
     ));
 
-    let mut loop_body_order = HashMap::new();
-    let mut loop_reachable = HashMap::new();
-    let mut loop_terminal_actions = HashMap::new();
+    let mut loop_plans = HashMap::new();
     for (&header_pc, structure) in loop_map {
         let Structure::Loop { body, .. } = *structure else {
             continue;
         };
-        let mut terminal_actions: HashMap<usize, LoopTerminalAction> = HashMap::new();
+        let mut terminal_actions = HashMap::new();
         for &block_pc in cfg.blocks.keys() {
             if let Some(action) = loop_terminal_action(cfg, block_pc, body, header_pc) {
                 terminal_actions.insert(block_pc, action);
             }
         }
-        loop_body_order.insert(
+
+        let mut non_header_body: Vec<usize> =
+            body.iter().copied().filter(|&bp| bp != header_pc).collect();
+        non_header_body.sort();
+        let lifted_suppressed_non_header: HashSet<usize> = lifted
+            .map(|l| {
+                non_header_body
+                    .iter()
+                    .copied()
+                    .filter(|bp| l.suppressed_blocks.contains(bp))
+                    .collect()
+            })
+            .unwrap_or_default();
+        let body_order = compute_loop_body_order(cfg, if_map, body, header_pc);
+        let reachable = compute_loop_reachable(cfg, if_map, body, header_pc);
+        let emittable_order: Vec<usize> = body_order
+            .iter()
+            .copied()
+            .filter(|&pc| pc != header_pc && reachable.contains(&pc))
+            .collect();
+        let last_emittable = emittable_order.last().copied();
+        let empty_body_fallback = if non_header_body.len() > 3 {
+            EmptyLoopFallback::CollapseToHeaderSideEffects
+        } else {
+            EmptyLoopFallback::EmitContinue
+        };
+
+        loop_plans.insert(
             header_pc,
-            compute_loop_body_order(cfg, if_map, body, header_pc),
+            LoopRenderPlan {
+                non_header_body,
+                lifted_suppressed_non_header,
+                body_order,
+                reachable,
+                last_emittable,
+                empty_body_fallback,
+                terminal_actions,
+            },
         );
-        loop_reachable.insert(
-            header_pc,
-            compute_loop_reachable(cfg, if_map, body, header_pc),
-        );
-        loop_terminal_actions.insert(header_pc, terminal_actions);
     }
 
     EmissionPlan {
         for_loop_map,
         emission_eliminated_pcs,
         var_aliases,
-        loop_body_order,
-        loop_reachable,
-        loop_terminal_actions,
+        loop_plans,
         fully_suppressed_if_headers,
         trap_only_else_headers,
     }
