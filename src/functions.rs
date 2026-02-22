@@ -1359,7 +1359,13 @@ mod tests {
                 (
                     0,
                     vec![
-                        (0, Instruction::LoadImm { reg: 5, value: 0x100 }),
+                        (
+                            0,
+                            Instruction::LoadImm {
+                                reg: 5,
+                                value: 0x100,
+                            },
+                        ),
                         (4, Instruction::JumpInd { reg: 5, offset: 0 }),
                     ],
                     vec![],
