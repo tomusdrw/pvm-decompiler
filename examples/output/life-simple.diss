@@ -4,6 +4,7 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     mem[131077] = 1
     mem[131078] = 1
     let var_290 = 0
+    let var_291 = 197120
     let var_292 = 4
     func_1()
 }

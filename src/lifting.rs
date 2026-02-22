@@ -9,6 +9,7 @@
 use crate::cfg::ControlFlowGraph;
 use crate::dataflow::DataFlowAnalysis;
 use crate::instruction::{BinOp, InstructionShape, MemWidth, UnaryOp};
+use crate::ir::ssa::SsaProgram;
 use crate::structuring::DominatorTree;
 use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
@@ -176,6 +177,9 @@ impl LiftedProgram {
         // Eliminate dead stores while bases are still Var("ptr_*") — folding
         // can inline constants into bases, losing the ptr_ prefix.
         lifted.eliminate_dead_stores();
+        // Build SSA once; later correctness-sensitive passes rely on explicit
+        // defs/uses + merge values for proof-based safety checks.
+        let ssa = SsaProgram::build(cfg, dom_tree);
         lifted.simplify_all_expressions();
         lifted.fold_expressions(cfg);
         lifted.simplify_all_expressions();
@@ -184,7 +188,7 @@ impl LiftedProgram {
         lifted.fold_expressions(cfg);
         lifted.simplify_all_expressions();
         // Cross-block expression folding: inline SDSU values across block boundaries.
-        lifted.fold_expressions_cross_block(cfg, dom_tree);
+        lifted.fold_expressions_cross_block(cfg, dom_tree, &ssa);
         lifted.simplify_all_expressions();
         // Name stack memory slots as local variables, replacing Load/Store patterns.
         lifted.recover_stack_variables();
@@ -831,7 +835,12 @@ impl LiftedProgram {
     ///    (prevents circular expressions from loop-carried dependencies).
     /// 3. The expression must not have side effects (no Load/Store — these can't be
     ///    safely moved across blocks).
-    fn fold_expressions_cross_block(&mut self, cfg: &ControlFlowGraph, dom_tree: &DominatorTree) {
+    fn fold_expressions_cross_block(
+        &mut self,
+        cfg: &ControlFlowGraph,
+        dom_tree: &DominatorTree,
+        ssa: &SsaProgram,
+    ) {
         if cfg.blocks.len() <= 1 {
             return;
         }
@@ -854,13 +863,9 @@ impl LiftedProgram {
         while changed {
             changed = false;
 
-            // Build variable-use index for O(1) use-count lookups.
-            let var_use_index =
-                build_var_use_index(&self.expressions, &self.var_at_use, &self.eliminated_pcs);
-
             let mut candidates: Vec<(usize, String, usize)> = Vec::new();
 
-            for (&(def_pc, _reg), var) in &self.variables {
+            for (&(def_pc, reg), var) in &self.variables {
                 if self.eliminated_pcs.contains(&def_pc) {
                     continue;
                 }
@@ -880,21 +885,23 @@ impl LiftedProgram {
                     continue;
                 }
 
-                // O(1) use count via precomputed index.
-                let use_pcs = var_use_index.get(&var.name);
-                let use_count = use_pcs
-                    .map(|pcs| pcs.iter().filter(|&&pc| pc != def_pc).count())
-                    .unwrap_or(0);
-                if use_count != 1 {
+                // Proof obligation #1: definition must have exactly one SSA use.
+                let Some(ssa_value) = ssa.value_for_def_pc_reg(def_pc, reg) else {
+                    continue;
+                };
+                if ssa.use_count(ssa_value) != 1 {
                     continue;
                 }
 
-                // Find the single use site PC from the index.
-                let use_pc = use_pcs.and_then(|pcs| pcs.iter().copied().find(|&pc| pc != def_pc));
-                let use_pc = match use_pc {
+                // Proof obligation #2: use must be a single instruction use
+                // (not a phi-merge operand).
+                let use_pc = match ssa.single_instruction_use_pc(ssa_value) {
                     Some(pc) => pc,
                     None => continue,
                 };
+                if use_pc == def_pc || self.eliminated_pcs.contains(&use_pc) {
+                    continue;
+                }
 
                 // Must be in different blocks.
                 let def_block = match pc_to_block.get(&def_pc) {
@@ -909,8 +916,8 @@ impl LiftedProgram {
                     continue; // Intra-block folding is handled by fold_expressions.
                 }
 
-                // Dominance check: def's block must dominate use's block.
-                if !dom_tree.dominates(def_block, use_block) {
+                // Proof obligation #3: SSA def must dominate the use.
+                if !ssa.value_definition_dominates_use_pc(ssa_value, use_pc, dom_tree) {
                     continue;
                 }
 

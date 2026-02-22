@@ -1,12 +1,18 @@
 fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
-    if (4277993472 >=u r1 - 272 - 3760) {
+    if (4277993472 >=u r1 - 16 - 256) {
+        let ptr_1088 = ptr_992 - 256
+    }
+
+    if (4277993472 >=u ptr_1088 - 3760) {
+        let ptr_45 = ptr_1088 - 3760
         RESULT_PTR = 19964
         let var_883 = 1856
         let var_884 = 0
         let var_885 = 0
     }
 
-    if (4277993472 >=u r1 - 4032 - 192) {
+    if (4277993472 >=u ptr_45 - 192) {
+        let ptr_12 = ptr_45 - 192
         let var_210 = 17
         func_13()
     }
@@ -394,6 +400,7 @@ fn func_22() {
 
 fn func_23(r1: u64, r7: u64) {
     u64[r1 + 208] = r7
+    let ptr_0 = r7 + 393216
 
     if (var_9 == 0) {
         let ptr_1 = u64[r1 + 112]
@@ -405,7 +412,7 @@ fn func_23(r1: u64, r7: u64) {
         u64[r1 + 248] = var_19
         u32[var_19 + 393216] = u64[r1 + 40]
     } else {
-        let var_10 = r7 + 393217
+        let var_10 = ptr_0 + 1
         if (u64[r1 + 40] - 1 != 0) goto block_7969;
     }
 
@@ -3710,10 +3717,11 @@ fn func_115() {
 
 fn func_116(r1: u64, r7: u64) {
     u64[r1 + 104] = r7
+    let ptr_0 = r7 + 393216
 
     if (var_9 == 0) {
     } else {
-        let var_10 = r7 + 393217
+        let var_10 = ptr_0 + 1
         if (u64[r1 + 40] - 1 != 0) goto block_1a4e1;
     }
 
@@ -5662,6 +5670,7 @@ fn func_184() {
 
 fn func_185(r1: u64, r7: u64) {
     u64[r1 + 216] = r7
+    let ptr_0 = r7 + 393216
 
     if (var_9 == 0) {
         let ptr_1 = u64[r1 + 48]
@@ -5676,7 +5685,7 @@ fn func_185(r1: u64, r7: u64) {
         u64[r1 + 272] = var_23
         u32[var_23 + 393216] = u64[r1 + 40]
     } else {
-        let var_10 = r7 + 393217
+        let var_10 = ptr_0 + 1
         if (u64[r1 + 208] - 1 != 0) goto block_28237;
     }
 
@@ -5694,10 +5703,11 @@ fn func_187() {
 
 fn func_188(r1: u64, r7: u64) {
     u64[r1 + 128] = r7
+    let ptr_0 = r7 + 393216
 
     if (var_9 == 0) {
     } else {
-        let var_10 = r7 + 393217
+        let var_10 = ptr_0 + 1
         if (u64[r1 + 120] - 1 != 0) goto block_2853d;
     }
 

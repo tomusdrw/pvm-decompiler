@@ -9,6 +9,7 @@ mod dataflow;
 mod decoder;
 mod functions;
 mod instruction;
+mod ir;
 mod lifting;
 mod structuring;
 mod varint;
