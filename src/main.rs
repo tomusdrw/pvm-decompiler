@@ -515,20 +515,32 @@ fn write_cfg(cfg: &ControlFlowGraph, out: &mut String) {
 
     for block_pc in block_pcs {
         if let Some(block) = cfg.blocks.get(&block_pc) {
-            let _ = writeln!(out, "\nBlock @ {:#06x} - {:#06x}:", block.start_pc, block.end_pc);
+            let _ = writeln!(
+                out,
+                "\nBlock @ {:#06x} - {:#06x}:",
+                block.start_pc, block.end_pc
+            );
             for (pc, instr) in &block.instructions {
                 let _ = writeln!(out, "    {:#06x}: {:?}", pc, instr);
             }
 
             if !block.successors.is_empty() {
-                let succs: Vec<String> = block.successors.iter().map(|s| format!("{:#06x}", s)).collect();
+                let succs: Vec<String> = block
+                    .successors
+                    .iter()
+                    .map(|s| format!("{:#06x}", s))
+                    .collect();
                 let _ = writeln!(out, "  Successors: {}", succs.join(", "));
             } else {
                 let _ = writeln!(out, "  Successors: (none)");
             }
 
             if !block.predecessors.is_empty() {
-                let preds: Vec<String> = block.predecessors.iter().map(|p| format!("{:#06x}", p)).collect();
+                let preds: Vec<String> = block
+                    .predecessors
+                    .iter()
+                    .map(|p| format!("{:#06x}", p))
+                    .collect();
                 let _ = writeln!(out, "  Predecessors: {}", preds.join(", "));
             }
         }

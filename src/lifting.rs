@@ -539,14 +539,12 @@ impl LiftedProgram {
                 value,
                 offset
             )),
-            InstructionShape::LoadImmJumpInd { base, dst, value } => {
-                Expression::Raw(format!(
-                    "{} = {}; jump_ind {}",
-                    self.var_name_for_def(pc, dst),
-                    value,
-                    self.reg_name(pc, base)
-                ))
-            }
+            InstructionShape::LoadImmJumpInd { base, dst, value } => Expression::Raw(format!(
+                "{} = {}; jump_ind {}",
+                self.var_name_for_def(pc, dst),
+                value,
+                self.reg_name(pc, base)
+            )),
             InstructionShape::LoadAbsolute {
                 width,
                 dst: _,
@@ -787,9 +785,10 @@ impl LiftedProgram {
 
                 // Find the use: first later non-eliminated PC in the same block
                 // whose expression references this variable.
-                let use_pc = later_pcs.iter().copied().find(|pc| {
-                    use_pcs.is_some_and(|pcs| pcs.contains(pc))
-                });
+                let use_pc = later_pcs
+                    .iter()
+                    .copied()
+                    .find(|pc| use_pcs.is_some_and(|pcs| pcs.contains(pc)));
                 let use_pc = match use_pc {
                     Some(pc) => pc,
                     None => continue,
@@ -891,8 +890,7 @@ impl LiftedProgram {
                 }
 
                 // Find the single use site PC from the index.
-                let use_pc = use_pcs
-                    .and_then(|pcs| pcs.iter().copied().find(|&pc| pc != def_pc));
+                let use_pc = use_pcs.and_then(|pcs| pcs.iter().copied().find(|&pc| pc != def_pc));
                 let use_pc = match use_pc {
                     Some(pc) => pc,
                     None => continue,
@@ -1684,8 +1682,8 @@ fn build_var_use_index(
             continue;
         }
         let needs_var_at_use = match expressions.get(&upc) {
-            None => true,                        // no expression at all
-            Some(Expression::Raw(_)) => true,    // Raw doesn't contain Var nodes
+            None => true,                     // no expression at all
+            Some(Expression::Raw(_)) => true, // Raw doesn't contain Var nodes
             _ => false,
         };
         if needs_var_at_use {

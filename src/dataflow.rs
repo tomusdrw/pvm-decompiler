@@ -195,19 +195,13 @@ impl DataFlowAnalysis {
         // Iterative DFS using an explicit stack.
         // Stack entries: (pc, next_successor_index). When all successors are
         // processed we push the pc onto postorder.
-        let dfs_from = |start: usize,
-                            visited: &mut HashSet<usize>,
-                            postorder: &mut Vec<usize>| {
+        let dfs_from = |start: usize, visited: &mut HashSet<usize>, postorder: &mut Vec<usize>| {
             if !visited.insert(start) {
                 return;
             }
             let mut stack: Vec<(usize, usize)> = vec![(start, 0)];
             while let Some((pc, idx)) = stack.last_mut() {
-                let succs = cfg
-                    .blocks
-                    .get(pc)
-                    .map(|b| &b.successors[..])
-                    .unwrap_or(&[]);
+                let succs = cfg.blocks.get(pc).map(|b| &b.successors[..]).unwrap_or(&[]);
                 if *idx < succs.len() {
                     let succ = succs[*idx];
                     *idx += 1;

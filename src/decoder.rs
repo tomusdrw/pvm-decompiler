@@ -1209,8 +1209,8 @@ mod tests {
             data.len(),
             stripped.len()
         );
-        let program = decode_spi(stripped)
-            .expect("SPI decode should succeed after stripping metadata");
+        let program =
+            decode_spi(stripped).expect("SPI decode should succeed after stripping metadata");
         assert!(!program.instructions.is_empty());
         assert!(!program.jump_table.is_empty());
         assert!(program.memory_base.is_some());

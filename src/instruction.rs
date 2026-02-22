@@ -282,17 +282,9 @@ pub enum InstructionShape {
         value: i32,
     },
     /// Combined load-immediate + unconditional jump.
-    LoadImmJump {
-        dst: u8,
-        value: i32,
-        offset: i32,
-    },
+    LoadImmJump { dst: u8, value: i32, offset: i32 },
     /// Combined load-immediate + indirect jump.
-    LoadImmJumpInd {
-        base: u8,
-        dst: u8,
-        value: i32,
-    },
+    LoadImmJumpInd { base: u8, dst: u8, value: i32 },
     /// Load from absolute address (no base register).
     LoadAbsolute {
         width: MemWidth,
@@ -1076,25 +1068,41 @@ impl InstructionShape {
             },
 
             // Store immediate to [base + offset]
-            Instruction::StoreImmIndU8 { base, offset, value } => Self::StoreImmInd {
+            Instruction::StoreImmIndU8 {
+                base,
+                offset,
+                value,
+            } => Self::StoreImmInd {
                 width: MemWidth::U8,
                 base: *base,
                 offset: *offset,
                 value: *value,
             },
-            Instruction::StoreImmIndU16 { base, offset, value } => Self::StoreImmInd {
+            Instruction::StoreImmIndU16 {
+                base,
+                offset,
+                value,
+            } => Self::StoreImmInd {
                 width: MemWidth::U16,
                 base: *base,
                 offset: *offset,
                 value: *value,
             },
-            Instruction::StoreImmIndU32 { base, offset, value } => Self::StoreImmInd {
+            Instruction::StoreImmIndU32 {
+                base,
+                offset,
+                value,
+            } => Self::StoreImmInd {
                 width: MemWidth::U32,
                 base: *base,
                 offset: *offset,
                 value: *value,
             },
-            Instruction::StoreImmIndU64 { base, offset, value } => Self::StoreImmInd {
+            Instruction::StoreImmIndU64 {
+                base,
+                offset,
+                value,
+            } => Self::StoreImmInd {
                 width: MemWidth::U64,
                 base: *base,
                 offset: *offset,
@@ -1109,7 +1117,9 @@ impl InstructionShape {
                 value: *value,
                 offset: *offset,
             },
-            Instruction::LoadImmJumpInd { base, dst, value, .. } => Self::LoadImmJumpInd {
+            Instruction::LoadImmJumpInd {
+                base, dst, value, ..
+            } => Self::LoadImmJumpInd {
                 base: *base,
                 dst: *dst,
                 value: *value,
@@ -1268,9 +1278,7 @@ impl InstructionShape {
             Self::StoreAbsolute { src, .. } => (vec![], vec![*src]),
             Self::StoreImm { .. } => (vec![], vec![]),
             Self::StoreImmInd { base, .. } => (vec![], vec![*base]),
-            Self::CmovReg {
-                dst, src, cond, ..
-            } => (vec![*dst], vec![*src, *cond]),
+            Self::CmovReg { dst, src, cond, .. } => (vec![*dst], vec![*src, *cond]),
             Self::CmovImm { dst, cond, .. } => (vec![*dst], vec![*cond]),
             Self::Jump { .. } => (vec![], vec![]),
             Self::JumpInd { reg, .. } => (vec![], vec![*reg]),
