@@ -185,7 +185,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
     if (ptr_1141_40 & cond_128 == 0) {
         let var_18001 = ptr_1141 + 72
-        func_61()
+        call_indirect(var_17998)
     } else {
         let var_18061 = 0
         let var_18065 = ptr_1141 + 72
@@ -219,7 +219,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
         let var_18747 = ptr_1297 + 1
     }
 
-    func_61()
+    call_indirect(var_3172)
 
     let var_16960 = 0
     u64[ptr_1071 + 0] = 1
@@ -234,14 +234,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
     if (fetch() <u fetch()) {
         let var_17004 = ptr_1074 + 112
-        func_61()
+        call_indirect(var_17001)
     } else {
         if (var_16994 != -1) goto block_156be;
     }
 
     if (var_16992 == 0) {
         let var_16959 = ptr_1071 + 112
-        func_61()
+        call_indirect(var_16956)
     }
 
     while (ptr_1078_0 & 255 != 0) {
@@ -371,7 +371,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
     if (var_18114 >=u var_18181) {
         let var_18186 = ptr_1163 + 24
-        func_61()
+        call_indirect(var_18183)
     } else {
         let ptr_1186 = var_18181 << 32 >>u 32
     }
@@ -412,7 +412,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
     if (var_17414 == 0) {
         let var_17394 = 0
-        func_61()
+        call_indirect(var_17415)
     }
 
     for (let var_17387 = ptr_1107_256; ptr_1107_256 <u 255; ptr_1104 = ptr_1107_256 + ptr_1107) {
@@ -425,7 +425,7 @@ fn func_0(r1: u64, r5: u64) {
     u8[var_0 + 1864] = 0
     let var_2 = u64[r1]
     let var_3 = r1 + 16
-    func_61()
+    call_indirect(var_1)
 }
 
 fn func_1(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
@@ -531,11 +531,11 @@ fn func_1(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     }
 
     let var_173 = ptr_17 + 40
-    func_61()
+    call_indirect(var_166)
 
     let var_174 = 0
     let var_178 = ptr_17 + 40
-    func_61()
+    call_indirect(var_175)
 }
 
 fn func_2(r1: u64, r5: u64) {
@@ -543,7 +543,7 @@ fn func_2(r1: u64, r5: u64) {
     let var_2 = u64[r1 + 144]
     let var_3 = u64[r1 + 136]
     let var_4 = r1 + 160
-    func_61()
+    call_indirect(var_1)
 }
 
 fn func_3(r1: u64, r5: u64, r6: u64) {
@@ -551,7 +551,7 @@ fn func_3(r1: u64, r5: u64, r6: u64) {
     let var_1 = u64[r1 + 32]
     let var_2 = u64[r1 + 24]
     let var_3 = r1 + 48
-    func_61()
+    call_indirect(var_0)
 }
 
 fn func_4(r7: u64, r8: u64) {
@@ -559,7 +559,7 @@ fn func_4(r7: u64, r8: u64) {
     let var_5 = u8[r7] - 1 & 255
     let var_8 = u64[var_5 << 3 + 72728]
     let var_11 = 72776 + i32[var_5 << 2 + 72776]
-    func_61()
+    call_indirect(var_10)
 }
 
 fn func_5(r7: u64, r8: u64) {
@@ -568,7 +568,7 @@ fn func_5(r7: u64, r8: u64) {
     let var_3 = 68388
     if (var_0 == 0) var_5 = var_2
     let var_7 = 10 - var_0
-    func_61()
+    call_indirect(var_4)
 }
 
 fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
@@ -584,7 +584,7 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     if (var_97 & 402653184 == 0) {
         let var_279 = u64[r8]
         let var_286 = ptr_10 + 96
-        func_61()
+        call_indirect(var_280)
     } else {
         if (...) goto block_12cbc;
     }
@@ -678,7 +678,7 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     } else {
         var_279 = u64[r8]
         var_286 = ptr_10 + 96
-        func_61()
+        call_indirect(var_280)
     }
 
     if (var_109 == 0) {
@@ -713,7 +713,7 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     if (u16[r8 + 20] >=u var_101) {
         var_279 = u64[r8]
         var_286 = ptr_10 + 96
-        func_61()
+        call_indirect(var_280)
     } else {
         var_211 = var_108 - var_101
         var_213 = var_97 << 33 >>u 62
@@ -750,7 +750,7 @@ fn func_7(r8: u64) {
     let var_0 = u64[r8]
     let var_2 = 68397
     let var_3 = 11
-    func_61()
+    call_indirect(var_1)
 }
 
 fn func_8(r7: u64, r8: u64) {
@@ -758,7 +758,7 @@ fn func_8(r7: u64, r8: u64) {
     let var_4 = u8[r7] << 3
     let var_5 = u64[72800 + var_4]
     let var_6 = u64[var_4 + 96336]
-    func_61()
+    call_indirect(var_7)
 }
 
 fn func_9(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
@@ -779,7 +779,7 @@ fn func_10(r1: u64) {
     let var_1 = u64[r1 + 88]
     let var_2 = u64[r1 + 80]
     let var_3 = r1 + 104
-    func_61()
+    call_indirect(var_0)
 }
 
 fn func_11(r7: u64, r8: u64) {
@@ -787,7 +787,7 @@ fn func_11(r7: u64, r8: u64) {
     let var_5 = (i8[r7] << 3) + 8
     let var_6 = u64[72864 + var_5]
     let var_7 = u64[var_5 + 96400]
-    func_61()
+    call_indirect(var_8)
 }
 
 fn func_12(r1: u64, r5: u64, r6: u64) {
@@ -796,7 +796,7 @@ fn func_12(r1: u64, r5: u64, r6: u64) {
     let var_2 = u64[r1 + 40]
     let var_3 = u64[r1 + 32]
     let var_4 = r1 + 56
-    func_61()
+    call_indirect(var_1)
 }
 
 fn func_13(r1: u64, r5: u64, r6: u64) {
@@ -807,20 +807,20 @@ fn func_13(r1: u64, r5: u64, r6: u64) {
     let var_4 = u64[r1 + 72]
     let var_5 = u64[r1 + 64]
     let var_6 = r1 + 88
-    func_61()
+    call_indirect(var_3)
 }
 
 fn func_14(r1: u64) {
     u8[var_1 + 1864] = 0
     let var_3 = 534
-    func_61()
+    call_indirect(var_2)
 }
 
 fn func_15(r1: u64) {
     let var_1 = u64[r1 + 1264]
     let var_2 = u64[r1 + 1256]
     let var_3 = r1 + 1280
-    func_61()
+    call_indirect(var_0)
 }
 
 fn func_16(r1: u64, r5: u64) {
@@ -828,7 +828,7 @@ fn func_16(r1: u64, r5: u64) {
     let var_2 = u64[r1 + 56]
     let var_3 = u64[r1 + 48]
     let var_4 = r1 + 72
-    func_61()
+    call_indirect(var_1)
 }
 
 fn func_17(r1: u64, r6: u64) {
@@ -836,7 +836,7 @@ fn func_17(r1: u64, r6: u64) {
     let var_4 = u64[r1 + 112]
     let var_5 = u64[r1 + 104]
     let var_6 = r1 + 128
-    func_61()
+    call_indirect(var_3)
 }
 
 fn func_18(r1: u64) {
@@ -844,7 +844,7 @@ fn func_18(r1: u64) {
     let var_3 = u64[r1 + 216]
     let var_4 = u64[r1 + 208]
     let var_5 = r1 + 232
-    func_61()
+    call_indirect(var_2)
 }
 
 fn func_19() {
@@ -864,7 +864,7 @@ fn func_22(r7: u64, r8: u64) {
     let var_3 = u64[r8]
     let var_6 = u64[var_0 << 3 + 72960]
     let var_9 = 73184 + i32[var_0 << 2 + 73184]
-    func_61()
+    call_indirect(var_8)
 }
 
 fn func_23(r1: u64, r5: u64) {
@@ -872,7 +872,7 @@ fn func_23(r1: u64, r5: u64) {
     let var_3 = u64[r1 + 1384]
     let var_4 = u64[r1 + 1376]
     let var_5 = r1 + 1400
-    func_61()
+    call_indirect(var_2)
 }
 
 fn func_24() {
@@ -883,14 +883,14 @@ fn func_25(r8: u64) {
     let var_0 = u64[r8]
     let var_2 = 90776
     let var_3 = 5
-    func_61()
+    call_indirect(var_1)
 }
 
 fn func_26(r1: u64, r5: u64) {
     u8[var_0 + 1864] = 0
     let var_2 = u64[r1]
     let var_3 = r1 + 16
-    func_61()
+    call_indirect(var_1)
 }
 
 fn func_27(r1: u64, r5: u64, r6: u64) {
@@ -899,7 +899,7 @@ fn func_27(r1: u64, r5: u64, r6: u64) {
     let var_4 = u64[r1 + 16]
     let var_5 = u64[r1 + 8]
     let var_6 = r1 + 32
-    func_61()
+    call_indirect(var_3)
 }
 
 fn func_28() {
@@ -910,7 +910,7 @@ fn func_29(r1: u64) {
     let var_1 = u64[r1 + 64]
     let var_2 = u64[r1 + 56]
     let var_3 = r1 + 80
-    func_61()
+    call_indirect(var_0)
 }
 
 fn func_30(r1: u64, r5: u64, r6: u64, r7: u64) {
@@ -921,7 +921,7 @@ fn func_30(r1: u64, r5: u64, r6: u64, r7: u64) {
         let var_10 = u64[r1 + 88]
         let var_11 = u64[r1 + 80]
         let var_12 = r1 + 104
-        func_61()
+        call_indirect(var_5)
     } else {
         let var_0 = 1
     }
@@ -929,7 +929,7 @@ fn func_30(r1: u64, r5: u64, r6: u64, r7: u64) {
     let var_2 = u64[r1 + 88]
     let var_3 = u64[r1 + 80]
     let var_4 = r1 + 104
-    func_61()
+    call_indirect(var_1)
 }
 
 fn func_31(r1: u64, r7: u64) {
@@ -940,7 +940,7 @@ fn func_31(r1: u64, r7: u64) {
         let var_2 = u64[r1 + 88]
         let var_3 = u64[r1 + 80]
         let var_4 = r1 + 104
-        func_61()
+        call_indirect(var_1)
     }
 
     if (var_9 >=u zext16(0)) {
@@ -948,7 +948,7 @@ fn func_31(r1: u64, r7: u64) {
         let var_23 = u64[r1 + 88]
         let var_24 = u64[r1 + 80]
         let var_25 = r1 + 104
-        func_61()
+        call_indirect(var_22)
     } else {
         let var_12 = 1
         let var_13 = u64[r1 + 72]
@@ -959,14 +959,14 @@ fn func_31(r1: u64, r7: u64) {
 
 fn func_32(r7: u64) {
     let var_0 = u64[r7]
-    func_61()
+    call_indirect(var_1)
 }
 
 fn func_33(r1: u64) {
     let var_1 = u64[r1 + 56]
     let var_2 = u64[r1 + 48]
     let var_3 = r1 + 72
-    func_61()
+    call_indirect(var_0)
 }
 
 fn func_34(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
@@ -980,7 +980,7 @@ fn func_34(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     if (ptr_1_0 == 0) {
         let ptr_1_0 = !(var_9 - 10)
         let var_21 = ptr_0 + 40
-        func_61()
+        call_indirect(var_16)
     } else {
         let var_3 = 68492
         let var_4 = 4
@@ -996,7 +996,7 @@ fn func_35(r1: u64) {
 fn func_36(r1: u64) {
     let var_1 = u64[r1 + 8]
     let var_2 = r1 + 24
-    func_61()
+    call_indirect(var_0)
 }
 
 fn func_37() {
@@ -1036,7 +1036,7 @@ fn func_41(r1: u64, r5: u64, r7: u64) {
         let var_2 = u64[r1 + 40]
         let var_3 = u64[r1 + 32]
         let var_4 = r1 + 56
-        func_61()
+        call_indirect(var_1)
     }
 }
 
@@ -1044,7 +1044,7 @@ fn func_42(r1: u64) {
     let var_1 = u64[r1 + 40]
     let var_2 = u64[r1 + 32]
     let var_3 = r1 + 56
-    func_61()
+    call_indirect(var_0)
 }
 
 fn func_43(r1: u64, r5: u64, r7: u64) {
@@ -1058,7 +1058,7 @@ fn func_43(r1: u64, r5: u64, r7: u64) {
         let var_2 = u64[r1 + 144]
         let var_3 = u64[r1 + 136]
         let var_4 = r1 + 160
-        func_61()
+        call_indirect(var_1)
     }
 }
 
@@ -1066,21 +1066,21 @@ fn func_44(r1: u64) {
     let var_1 = u64[r1 + 144]
     let var_2 = u64[r1 + 136]
     let var_3 = r1 + 160
-    func_61()
+    call_indirect(var_0)
 }
 
 fn func_45(r1: u64) {
     let var_1 = u64[r1 + 144]
     let var_2 = u64[r1 + 136]
     let var_3 = r1 + 160
-    func_61()
+    call_indirect(var_0)
 }
 
 fn func_46(r1: u64) {
     let var_1 = u64[r1 + 64]
     let var_2 = u64[r1 + 56]
     let var_3 = r1 + 80
-    func_61()
+    call_indirect(var_0)
 }
 
 fn func_47(r1: u64) {
@@ -1095,7 +1095,7 @@ fn func_49(r8: u64) {
     let var_0 = u64[r8]
     let var_2 = 90672
     let var_3 = 11
-    func_61()
+    call_indirect(var_1)
 }
 
 fn func_50(r7: u64, r8: u64) {
@@ -1103,7 +1103,7 @@ fn func_50(r7: u64, r8: u64) {
     let var_3 = u64[r8]
     let var_6 = u64[var_0 << 3 + 91912]
     let var_9 = 91976 + i32[var_0 << 2 + 91976]
-    func_61()
+    call_indirect(var_8)
 }
 
 fn func_51(r1: u64, r5: u64) {
@@ -1111,7 +1111,7 @@ fn func_51(r1: u64, r5: u64) {
     let var_2 = u64[r1 + 96]
     let var_3 = u64[r1 + 88]
     let var_4 = r1 + 112
-    func_61()
+    call_indirect(var_1)
 }
 
 fn func_52(r1: u64) {
@@ -1119,7 +1119,7 @@ fn func_52(r1: u64) {
     let var_2 = u64[r1 + 40]
     let var_3 = u64[r1 + 32]
     let var_4 = r1 + 56
-    func_61()
+    call_indirect(var_1)
 }
 
 fn func_53(r1: u64) {
@@ -1127,7 +1127,7 @@ fn func_53(r1: u64) {
     let var_2 = u64[r1 + 32]
     let var_3 = u64[r1 + 24]
     let var_4 = r1 + 48
-    func_61()
+    call_indirect(var_1)
 }
 
 fn func_54(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r12: u64) {
@@ -1149,7 +1149,7 @@ fn func_56(r1: u64) {
     let var_1 = u64[r1 + 128]
     let var_2 = u64[r1 + 120]
     let var_3 = r1 + 144
-    func_61()
+    call_indirect(var_0)
 }
 
 fn func_57(r0: u64, r1: u64, r7: u64, r8: u64) {
@@ -1184,7 +1184,7 @@ fn func_57(r0: u64, r1: u64, r7: u64, r8: u64) {
 
     let var_33 = 0
     let var_34 = ptr_0 + 8
-    func_61()
+    call_indirect(r0)
 }
 
 fn func_58(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
@@ -1203,7 +1203,7 @@ fn func_60(r1: u64) {
     let var_1 = u64[r1 + 312]
     let var_2 = u64[r1 + 304]
     let var_3 = r1 + 328
-    func_61()
+    call_indirect(var_0)
 }
 
 fn func_61(r1: u64) {

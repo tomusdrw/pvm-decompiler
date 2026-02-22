@@ -676,6 +676,10 @@ impl<'a> Emitter<'a> {
                     }
                     // Check if this Jump is a function call
                     if let Instruction::Jump { offset } = instr {
+                        if let Some(callee) = lifted.direct_call_sites.get(pc).cloned() {
+                            let _ = writeln!(self.output, "{}{}()", prefix, callee);
+                            continue;
+                        }
                         let target =
                             crate::cfg::ControlFlowGraph::compute_jump_target(*pc, *offset);
                         if let Some(callee) = lifted.call_targets.get(&target) {
@@ -690,13 +694,10 @@ impl<'a> Emitter<'a> {
                             let _ = writeln!(self.output, "{}{}()", prefix, callee);
                             continue;
                         }
-                        // Second try: check if this block is a known indirect call site
-                        if let Some(callee) = lifted.indirect_call_targets.get(&block_pc).cloned() {
-                            let _ = writeln!(self.output, "{}{}()", prefix, callee);
-                            continue;
+                        // Unresolved indirect jumps are rendered explicitly.
+                        if let Some(line) = lifted.format_pc(*pc, instr) {
+                            let _ = writeln!(self.output, "{}{}", prefix, line);
                         }
-                        // Suppress remaining JumpInd in lifted mode — they're dispatch
-                        // infrastructure or already represented as function calls above.
                         continue;
                     }
                     // Skip noise instructions in lifted mode.
@@ -2382,6 +2383,49 @@ mod tests {
             pseudo.contains("target_func()"),
             "Should render JumpInd to known function as call: {}",
             pseudo
+        );
+    }
+
+    #[test]
+    fn test_unresolved_indirect_call_rendering_is_explicit_and_stable() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (
+                        0,
+                        Instruction::LoadImm {
+                            reg: 3,
+                            value: 0x1234,
+                        },
+                    ),
+                    (4, Instruction::JumpInd { reg: 3, offset: 0 }),
+                ],
+                vec![],
+            )],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+
+        let mut lifted_a = LiftedProgram::analyze(&cfg, &dataflow);
+        let pseudo_a = result.pseudo_code(&cfg, Some(&mut lifted_a), None);
+
+        let mut lifted_b = LiftedProgram::analyze(&cfg, &dataflow);
+        let pseudo_b = result.pseudo_code(&cfg, Some(&mut lifted_b), None);
+
+        assert_eq!(
+            pseudo_a, pseudo_b,
+            "Unresolved indirect-call rendering must be deterministic"
+        );
+        assert!(
+            pseudo_a.contains("call_indirect("),
+            "Unknown JumpInd target should render explicitly as indirect call: {}",
+            pseudo_a
         );
     }
 

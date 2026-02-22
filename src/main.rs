@@ -193,8 +193,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // This lets the emitter recognize Jump targets that are function entries.
     let mut call_targets: std::collections::HashMap<usize, String> =
         std::collections::HashMap::new();
-    // Build indirect call targets: caller_block_pc → callee_name (for JumpInd-based calls)
-    let mut indirect_call_targets: std::collections::HashMap<usize, String> =
+    // Build exact direct-call mapping: Jump PC → callee name.
+    let mut direct_call_sites: std::collections::HashMap<usize, String> =
         std::collections::HashMap::new();
     // PCs to eliminate from output (e.g., LoadImm64 setting return address in call patterns)
     let mut call_pattern_eliminated_pcs: std::collections::HashSet<usize> =
@@ -202,18 +202,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for calls in call_graph.values() {
         for call in calls {
             call_targets.insert(call.callee_entry_pc, call.callee_name.clone());
-            // Check if the caller block ends with JumpInd (indirect call via jump table)
-            if let Some(block) = cfg.blocks.get(&call.caller_block_pc)
-                && let Some((_, last_instr)) = block.instructions.last()
-                && matches!(last_instr, Instruction::JumpInd { .. })
-            {
-                indirect_call_targets.insert(call.caller_block_pc, call.callee_name.clone());
-            }
         }
     }
-    // Add direct call pattern targets: map the Jump target PC to the callee name
+    // Add direct call pattern sites: map Jump instruction PC to callee name.
     for pat in &direct_call_patterns {
-        call_targets.insert(pat.jump_target_pc, pat.callee_name.clone());
+        direct_call_sites.insert(pat.jump_pc, pat.callee_name.clone());
         call_pattern_eliminated_pcs.insert(pat.load_imm_pc);
     }
 
@@ -279,7 +272,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         let mut lifted = LiftedProgram::analyze_with_dom_tree(&func_cfg, &dataflow, &dom_tree);
         lifted.call_targets = call_targets.clone();
-        lifted.indirect_call_targets = indirect_call_targets.clone();
+        lifted.direct_call_sites = direct_call_sites.clone();
         lifted.memory_base = program.memory_base;
 
         // Detect epilogues (return/halt patterns) and prologues (stack guard, frame alloc, reg saves)
@@ -400,22 +393,16 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
         functions::detect_direct_call_patterns(&cfg, &detected_functions, &program);
 
     let mut call_targets: HashMap<usize, String> = HashMap::new();
-    let mut indirect_call_targets: HashMap<usize, String> = HashMap::new();
+    let mut direct_call_sites: HashMap<usize, String> = HashMap::new();
     let mut call_pattern_eliminated_pcs: std::collections::HashSet<usize> =
         std::collections::HashSet::new();
     for calls in call_graph.values() {
         for call in calls {
             call_targets.insert(call.callee_entry_pc, call.callee_name.clone());
-            if let Some(block) = cfg.blocks.get(&call.caller_block_pc)
-                && let Some((_, last_instr)) = block.instructions.last()
-                && matches!(last_instr, Instruction::JumpInd { .. })
-            {
-                indirect_call_targets.insert(call.caller_block_pc, call.callee_name.clone());
-            }
         }
     }
     for pat in &direct_call_patterns {
-        call_targets.insert(pat.jump_target_pc, pat.callee_name.clone());
+        direct_call_sites.insert(pat.jump_pc, pat.callee_name.clone());
         call_pattern_eliminated_pcs.insert(pat.load_imm_pc);
     }
 
@@ -432,7 +419,7 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
         let mut lifted =
             lifting::LiftedProgram::analyze_with_dom_tree(&func_cfg, &dataflow, &dom_tree);
         lifted.call_targets = call_targets.clone();
-        lifted.indirect_call_targets = indirect_call_targets.clone();
+        lifted.direct_call_sites = direct_call_sites.clone();
         lifted.memory_base = program.memory_base;
 
         // Detect epilogues and prologues

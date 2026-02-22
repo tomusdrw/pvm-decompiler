@@ -117,9 +117,9 @@ pub struct LiftedProgram {
     pub stack_vars: HashMap<(String, i32), String>,
     /// Call targets: maps callee_entry_pc → callee function name (for direct Jump calls).
     pub call_targets: HashMap<usize, String>,
-    /// Indirect call targets: maps caller_block_pc → callee function name
-    /// (for JumpInd-based calls resolved through the jump table).
-    pub indirect_call_targets: HashMap<usize, String>,
+    /// Direct call sites: maps Jump instruction PC → callee function name.
+    /// Used for exact callsite labeling when shared jump targets are ambiguous.
+    pub direct_call_sites: HashMap<usize, String>,
     /// Reverse index: variable name → definition PC for O(1) lookups.
     pub var_name_to_def_pc: HashMap<String, usize>,
     /// Epilogue blocks: maps block_pc → epilogue kind (Return or Halt).
@@ -157,7 +157,7 @@ impl LiftedProgram {
             declared_vars: HashSet::new(),
             stack_vars: HashMap::new(),
             call_targets: HashMap::new(),
-            indirect_call_targets: HashMap::new(),
+            direct_call_sites: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
@@ -3481,7 +3481,7 @@ mod tests {
             declared_vars: HashSet::new(),
             stack_vars: HashMap::new(),
             call_targets: HashMap::new(),
-            indirect_call_targets: HashMap::new(),
+            direct_call_sites: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
@@ -3560,7 +3560,7 @@ mod tests {
             declared_vars: HashSet::new(),
             stack_vars: HashMap::new(),
             call_targets: HashMap::new(),
-            indirect_call_targets: HashMap::new(),
+            direct_call_sites: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
@@ -3947,7 +3947,7 @@ mod tests {
             declared_vars: HashSet::new(),
             stack_vars: HashMap::new(),
             call_targets: HashMap::new(),
-            indirect_call_targets: HashMap::new(),
+            direct_call_sites: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),

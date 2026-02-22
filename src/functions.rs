@@ -354,62 +354,15 @@ pub struct CallSite {
     pub callee_name: String,
 }
 
-/// Check if a block is a return epilogue (ends with JumpInd r0 preceded by sp restore).
-/// These should not be treated as indirect call sites.
-fn is_return_epilogue(block: &crate::cfg::BasicBlock) -> bool {
-    let len = block.instructions.len();
-    if len < 3 {
-        return false;
-    }
-    let (_, last) = &block.instructions[len - 1];
-    let (_, second_last) = &block.instructions[len - 2];
-    let (_, third_last) = &block.instructions[len - 3];
-
-    // Return pattern: restore r0, sp += N, JumpInd r0
-    matches!(last, Instruction::JumpInd { reg: 0, offset: 0 })
-        && matches!(second_last, Instruction::AddImm64 { dst: 1, src: 1, value } if *value > 0)
-        && matches!(
-            third_last,
-            Instruction::LoadIndU64 {
-                dst: 0,
-                base: 1,
-                ..
-            }
-        )
-}
-
-/// Check if a block is a halt epilogue (ends with LoadImm reg=-65536 + JumpInd reg).
-fn is_halt_epilogue(block: &crate::cfg::BasicBlock) -> bool {
-    let len = block.instructions.len();
-    if len < 2 {
-        return false;
-    }
-    let (_, last) = &block.instructions[len - 1];
-    let (_, second_last) = &block.instructions[len - 2];
-
-    if let Instruction::JumpInd { reg: jump_reg, .. } = last
-        && let Instruction::LoadImm {
-            reg: load_reg,
-            value: -65536,
-        } = second_last
-    {
-        jump_reg == load_reg
-    } else {
-        false
-    }
-}
-
 /// Build a call graph: find all cross-function edges and map them to call sites.
 /// Returns a map from caller function entry PC → list of call sites.
 ///
-/// Detection methods:
+/// Detection method:
 /// 1. Direct CFG edges from one function to another function's entry
-/// 2. Indirect calls through jump table: when a JumpInd instruction in a function
-///    can reach another function's entry via jump_table entries
 pub fn build_call_graph(
     cfg: &ControlFlowGraph,
     functions: &[Function],
-    program: &DecodedProgram,
+    _program: &DecodedProgram,
 ) -> HashMap<usize, Vec<CallSite>> {
     // Build a lookup: block_pc → function entry_pc
     let mut block_to_func: HashMap<usize, usize> = HashMap::new();
@@ -424,9 +377,6 @@ pub fn build_call_graph(
         .iter()
         .map(|f| (f.entry_pc, f.name.clone()))
         .collect();
-
-    // Build a set of function entry PCs for quick lookup
-    let func_entry_pcs: HashSet<usize> = functions.iter().map(|f| f.entry_pc).collect();
 
     let mut call_graph: HashMap<usize, Vec<CallSite>> = HashMap::new();
 
@@ -450,40 +400,6 @@ pub fn build_call_graph(
                         });
                     }
                 }
-
-                // Method 2: JumpInd instructions can reach other functions via jump table
-                // Skip blocks that are return epilogues (JumpInd r0 after sp restore)
-                if let Some((_, last_instr)) = block.instructions.last()
-                    && matches!(last_instr, Instruction::JumpInd { .. })
-                    && !is_return_epilogue(block)
-                    && !is_halt_epilogue(block)
-                {
-                    // Check which jump table entries point to OTHER function entries
-                    for &entry in &program.jump_table {
-                        let target_pc = entry as usize;
-                        if func_entry_pcs.contains(&target_pc) && target_pc != func.entry_pc {
-                            let callee_name = func_names
-                                .get(&target_pc)
-                                .cloned()
-                                .unwrap_or_else(|| format!("func_at_{:#06x}", target_pc));
-                            // Avoid duplicate call sites
-                            let already_added =
-                                call_graph.get(&func.entry_pc).is_some_and(|calls| {
-                                    calls.iter().any(|c| {
-                                        c.callee_entry_pc == target_pc
-                                            && c.caller_block_pc == block_pc
-                                    })
-                                });
-                            if !already_added {
-                                call_graph.entry(func.entry_pc).or_default().push(CallSite {
-                                    caller_block_pc: block_pc,
-                                    callee_entry_pc: target_pc,
-                                    callee_name,
-                                });
-                            }
-                        }
-                    }
-                }
             }
         }
     }
@@ -503,6 +419,8 @@ pub struct DirectCallPattern {
     pub caller_block_pc: usize,
     /// PC of the LoadImm64 instruction (to mark as eliminated).
     pub load_imm_pc: usize,
+    /// PC of the Jump instruction performing the call.
+    pub jump_pc: usize,
     /// PC of the Jump target (callee entry or stack guard).
     pub jump_target_pc: usize,
     /// PC where execution continues after the callee returns.
@@ -610,6 +528,7 @@ pub fn detect_direct_call_patterns(
                     patterns.push(DirectCallPattern {
                         caller_block_pc: block.start_pc,
                         load_imm_pc: *load_pc,
+                        jump_pc: *jump_pc,
                         jump_target_pc: jump_target,
                         return_pc,
                         callee_name,
@@ -1431,6 +1350,51 @@ mod tests {
     }
 
     #[test]
+    fn test_build_call_graph_does_not_guess_jumpind_targets() {
+        // Main has a JumpInd callsite and jump_table points at func_0 entry,
+        // but without proof this must not become a concrete call edge.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 5, value: 0x100 }),
+                        (4, Instruction::JumpInd { reg: 5, offset: 0 }),
+                    ],
+                    vec![],
+                ),
+                (0x100, vec![(0x100, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let functions = vec![
+            Function {
+                entry_pc: 0,
+                block_pcs: [0].into_iter().collect(),
+                name: "main".to_string(),
+            },
+            Function {
+                entry_pc: 0x100,
+                block_pcs: [0x100].into_iter().collect(),
+                name: "func_0".to_string(),
+            },
+        ];
+
+        let program = DecodedProgram {
+            jump_table: vec![0x100],
+            instructions: vec![],
+            memory_base: None,
+            code_len: 0,
+        };
+        let call_graph = build_call_graph(&cfg, &functions, &program);
+        assert!(
+            call_graph.get(&0usize).is_none(),
+            "JumpInd should not be guessed to all jump-table function entries"
+        );
+    }
+
+    #[test]
     fn test_detect_direct_call_pattern() {
         // Build a program with:
         // Block 0: LoadImm64 r0, 2 + Jump to block 100 (callee entry)
@@ -1482,6 +1446,7 @@ mod tests {
         let patterns = detect_direct_call_patterns(&cfg, &functions, &program);
         assert_eq!(patterns.len(), 1, "Should detect one call pattern");
         assert_eq!(patterns[0].caller_block_pc, 0);
+        assert_eq!(patterns[0].jump_pc, 10);
         assert_eq!(patterns[0].jump_target_pc, 100);
         assert_eq!(patterns[0].return_pc, 60);
         assert_eq!(patterns[0].callee_name, "func_1");
@@ -1536,6 +1501,7 @@ mod tests {
 
         let patterns = detect_direct_call_patterns(&cfg, &functions, &program);
         assert_eq!(patterns.len(), 1, "Should resolve trampoline call");
+        assert_eq!(patterns[0].jump_pc, 10);
         assert_eq!(patterns[0].jump_target_pc, 100);
         assert_eq!(patterns[0].return_pc, 50);
         assert_eq!(patterns[0].callee_name, "func_1");
