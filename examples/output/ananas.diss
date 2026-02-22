@@ -1144,7 +1144,7 @@ fn func_57(r1: u64) {
     u64[r1 + 328] = var_73
     u64[r1 + 336] = u32[var_73 + 393216]
 
-    for (let ptr_3 = var_73; cond_5 <u 0; var_155 = u64[r1 + 472]) {
+    for (let ptr_3 = var_73; cond_5 <u 0; ptr_3 = u64[r1 + 472]) {
         let var_113 = 12 + u64[r1 + 336]
         u64[r1 + 480] = var_113
         let var_114 = u32[var_113 + 393216]
@@ -5347,7 +5347,7 @@ fn func_171(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
         let ptr_0_48 = mem[211420]
     }
 
-    for (let ptr_1 = 14812; var_16 >>u (var_16 << (255 & ptr_0_48)) <u ptr_0_64 <u 0; var_86 = 32 >>u (32 << 1 + ptr_0_64)) {
+    for (let ptr_1 = 14812; var_16 >>u (var_16 << (255 & ptr_0_48)) <u ptr_0_64 <u 0; ptr_1 = 32 >>u (32 << 1 + ptr_0_64)) {
         let var_16 = 32
 
         let var_42 = 32

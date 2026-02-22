@@ -253,6 +253,7 @@ impl LiftedProgram {
 
     /// Coalesce two variable names: rename all occurrences of `old_name` to `new_name`.
     /// Used to unify loop induction variable names across init/step definitions.
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn coalesce_variable(&mut self, old_name: &str, new_name: &str) {
         if old_name == new_name {
             return;
@@ -1841,6 +1842,7 @@ fn rename_vars_multi(expr: &mut Expression, rename_map: &HashMap<String, String>
 }
 
 /// Rename all occurrences of `Var(old_name)` to `Var(new_name)` in-place.
+#[cfg_attr(not(test), allow(dead_code))]
 fn rename_var_in_expression(expr: &mut Expression, old_name: &str, new_name: &str) {
     match expr {
         Expression::Var(n) if n == old_name => *n = new_name.to_string(),

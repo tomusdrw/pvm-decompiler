@@ -424,7 +424,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
         call_indirect(var_17415)
     }
 
-    for (let var_17387 = ptr_1107_256; ptr_1107_256 <u 255; ptr_1104 = ptr_1107_256 + ptr_1107) {
+    for (let var_17387 = ptr_1107_256; ptr_1107_256 <u 255; var_17387 = ptr_1107_256 + ptr_1107) {
         let var_17391 = ptr_1106 + 1
         let ptr_1107_256 = ptr_1107_256 + 1
     }
@@ -655,7 +655,7 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
         let var_144 = var_137 + (ptr_15_0 <s -64 ^ 1)
     }
 
-    for (let var_145 = var_130 >>u 3; var_145 == 0; var_153 = ptr_10_64 - ptr_10_48) {
+    for (let var_145 = var_130 >>u 3; var_145 == 0; var_145 = ptr_10_64 - ptr_10_48) {
         let var_168 = var_145 minu 192
         let ptr_10_64 = var_145
         let ptr_10_56 = var_128
@@ -1214,7 +1214,7 @@ fn func_57(r0: u64, r1: u64, r7: u64, r8: u64) {
 
     let ptr_1 = ptr_0 + 4
 
-    for (let var_27 = u64[r7 + 256]; var_27 <u 255; ptr_2 = var_27 + r7) {
+    for (let var_27 = u64[r7 + 256]; var_27 <u 255; var_27 = var_27 + r7) {
         u64[r7 + 256] = u64[r7 + 256] + 1
     }
 

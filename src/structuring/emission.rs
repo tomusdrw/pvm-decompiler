@@ -104,7 +104,7 @@ impl StructuralAnalysis {
     pub fn pseudo_code(
         &self,
         cfg: &ControlFlowGraph,
-        mut lifted: Option<&mut LiftedProgram>,
+        lifted: Option<&mut LiftedProgram>,
         sig: Option<&FunctionSignature>,
     ) -> String {
         let mut header_line = String::new();
@@ -164,6 +164,7 @@ impl StructuralAnalysis {
         // Pre-pass: detect for-loops and suppress their init/step PCs from normal emission.
         let mut for_loop_map: HashMap<usize, ForLoopInfo> = HashMap::new();
         let mut emission_eliminated_pcs: HashSet<usize> = HashSet::new();
+        let mut var_aliases: HashMap<String, String> = HashMap::new();
         for s in &self.structures {
             if let Structure::Loop {
                 header,
@@ -184,31 +185,21 @@ impl StructuralAnalysis {
                 let mut info = info;
                 // Suppress the init instruction from its block's normal emission
                 emission_eliminated_pcs.insert(info.init_pc);
-                if let Some(ref mut lifted) = lifted {
-                    // Coalesce init and step variable names so the loop uses
-                    // a single name for the induction variable.
-                    let init_name = lifted
+                if let Some(lifted_ro) = lifted.as_deref() {
+                    // Keep for-loop naming coherent without mutating LiftedProgram.
+                    let init_name = lifted_ro
                         .variables
                         .get(&(info.init_pc, info.cond_reg))
                         .map(|v| v.name.clone());
-                    let step_name = lifted
+                    let step_name = lifted_ro
                         .variables
                         .get(&(info.step_pc, info.cond_reg))
                         .map(|v| v.name.clone());
                     if let (Some(init_name), Some(step_name)) = (&init_name, &step_name)
                         && init_name != step_name
                     {
-                        lifted.coalesce_variable(step_name, init_name);
-                        // Re-format the step string with the coalesced name
-                        if let Some(block) = cfg.blocks.get(&info.step_pc)
-                            && let Some((_, instr)) = block
-                                .instructions
-                                .iter()
-                                .find(|(pc, _)| *pc == info.step_pc)
-                            && let Some((raw, _)) = lifted.format_pc_raw(info.step_pc, instr)
-                        {
-                            info.step_str = raw;
-                        }
+                        var_aliases.insert(step_name.clone(), init_name.clone());
+                        info.step_str = replace_identifier(&info.step_str, step_name, init_name);
                     }
                 }
                 for_loop_map.insert(*header, info);
@@ -246,6 +237,7 @@ impl StructuralAnalysis {
             pc_to_block,
             var_use_count,
             declared_vars,
+            var_aliases,
         };
 
         for &block_pc in &self.dom_tree.rpo {
@@ -331,6 +323,7 @@ struct Emitter<'a> {
     pc_to_block: HashMap<usize, usize>,
     var_use_count: HashMap<String, usize>,
     declared_vars: HashSet<String>,
+    var_aliases: HashMap<String, String>,
 }
 
 impl<'a> Emitter<'a> {
@@ -384,6 +377,7 @@ impl<'a> Emitter<'a> {
                 )
             })
             .unwrap_or_else(|| "...".to_string());
+        let cond_str = apply_aliases(&cond_str, &self.var_aliases);
         let if_start = self.output.len();
         let _ = writeln!(self.output, "{}if ({}) {{", prefix, cond_str);
         let then_start = self.output.len();
@@ -789,6 +783,7 @@ impl<'a> Emitter<'a> {
                             *pc,
                             instr,
                             &mut self.declared_vars,
+                            &self.var_aliases,
                         ) {
                             let _ = writeln!(self.output, "{}{}", prefix, line);
                         }
@@ -820,6 +815,7 @@ impl<'a> Emitter<'a> {
                         } else {
                             "...".to_string()
                         };
+                        let cond_str = apply_aliases(&cond_str, &self.var_aliases);
                         let _ = writeln!(
                             self.output,
                             "{}if ({}) goto {};",
@@ -832,6 +828,7 @@ impl<'a> Emitter<'a> {
                         *pc,
                         instr,
                         &mut self.declared_vars,
+                        &self.var_aliases,
                     ) {
                         let _ = writeln!(self.output, "{}{}", prefix, line);
                     }
@@ -915,16 +912,19 @@ impl<'a> Emitter<'a> {
                 )
             })
             .unwrap_or_else(|| "...".to_string());
+        let cond_str = apply_aliases(&cond_str, &self.var_aliases);
 
         // Clone for-loop info to avoid holding a borrow of self.for_loop_map
         // across mutable self calls.
         let for_loop_info = self.for_loop_map.get(&header_pc).cloned();
 
         if let Some(ref info) = for_loop_info {
+            let init_str = apply_aliases(&info.init_str, &self.var_aliases);
+            let step_str = apply_aliases(&info.step_str, &self.var_aliases);
             let _ = writeln!(
                 self.output,
                 "{}for ({}; {}; {}) {{",
-                prefix, info.init_str, cond_str, info.step_str
+                prefix, init_str, cond_str, step_str
             );
         } else {
             let _ = writeln!(self.output, "{}while ({}) {{", prefix, cond_str);
@@ -1082,6 +1082,7 @@ impl<'a> Emitter<'a> {
         } else {
             format!("r{}", reg)
         };
+        let switch_var = apply_aliases(&switch_var, &self.var_aliases);
         let _ = writeln!(self.output, "switch ({}) {{", switch_var);
         for (values, target) in cases.iter() {
             let vals: Vec<String> = values.iter().map(|v| format!("{}", v)).collect();
@@ -1407,17 +1408,85 @@ fn format_pc_with_local_declarations(
     pc: usize,
     instr: &Instruction,
     declared_vars: &mut HashSet<String>,
+    var_aliases: &HashMap<String, String>,
 ) -> Option<String> {
     if lifted.eliminated_pcs.contains(&pc) {
         return None;
     }
     let (raw_line, declare_var) = lifted.format_pc_raw(pc, instr)?;
+    let raw_line = apply_aliases(&raw_line, var_aliases);
     if let Some(var_name) = declare_var
-        && declared_vars.insert(var_name)
+        && declared_vars.insert(resolve_alias(&var_name, var_aliases))
     {
         return Some(format!("let {}", raw_line));
     }
     Some(raw_line)
+}
+
+fn replace_identifier(input: &str, from: &str, to: &str) -> String {
+    if from.is_empty() || from == to {
+        return input.to_string();
+    }
+
+    let bytes = input.as_bytes();
+    let needle = from.as_bytes();
+    let mut out = String::with_capacity(input.len());
+    let mut i = 0usize;
+
+    while i < bytes.len() {
+        let can_match = i + needle.len() <= bytes.len() && &bytes[i..i + needle.len()] == needle;
+        if can_match {
+            let prev_ok = i == 0 || !is_ident_byte(bytes[i - 1]);
+            let next_idx = i + needle.len();
+            let next_ok = next_idx == bytes.len() || !is_ident_byte(bytes[next_idx]);
+            if prev_ok && next_ok {
+                out.push_str(to);
+                i = next_idx;
+                continue;
+            }
+        }
+        out.push(bytes[i] as char);
+        i += 1;
+    }
+
+    out
+}
+
+fn is_ident_byte(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || b == b'_'
+}
+
+fn resolve_alias(name: &str, aliases: &HashMap<String, String>) -> String {
+    let mut cur = name;
+    let mut guard = 0usize;
+    while let Some(next) = aliases.get(cur)
+        && next != cur
+        && guard < aliases.len()
+    {
+        cur = next;
+        guard += 1;
+    }
+    cur.to_string()
+}
+
+fn apply_aliases(input: &str, aliases: &HashMap<String, String>) -> String {
+    if aliases.is_empty() {
+        return input.to_string();
+    }
+
+    let mut pairs: Vec<(&String, String)> = aliases
+        .iter()
+        .map(|(from, to)| (from, resolve_alias(to, aliases)))
+        .collect();
+    pairs.sort_by(|(a, _), (b, _)| b.len().cmp(&a.len()).then_with(|| a.cmp(b)));
+
+    let mut out = input.to_string();
+    for (from, to) in pairs {
+        if from != &to {
+            out = replace_identifier(&out, from, &to);
+        }
+    }
+    out
 }
 
 /// Format a condition, using lifted variable names when a lifted program is provided.
@@ -2285,6 +2354,91 @@ mod tests {
             pseudo.contains("var_0 = var_0 + 1"),
             "For-header step should use coalesced name 'var_0 = var_0 + 1': {}",
             pseudo
+        );
+    }
+
+    #[test]
+    fn test_for_loop_emission_does_not_mutate_lifted_bindings() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 0, value: 0 }),
+                        (4, Instruction::Fallthrough),
+                    ],
+                    vec![10],
+                ),
+                (
+                    10,
+                    vec![(
+                        10,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 10,
+                            offset: 10,
+                        },
+                    )],
+                    vec![20, 40],
+                ),
+                (
+                    20,
+                    vec![
+                        (
+                            20,
+                            Instruction::Add32 {
+                                dst: 1,
+                                src1: 1,
+                                src2: 0,
+                            },
+                        ),
+                        (24, Instruction::Fallthrough),
+                    ],
+                    vec![30],
+                ),
+                (
+                    30,
+                    vec![
+                        (
+                            30,
+                            Instruction::AddImm32 {
+                                dst: 0,
+                                src: 0,
+                                value: 1,
+                            },
+                        ),
+                        (34, Instruction::Jump { offset: -24 }),
+                    ],
+                    vec![10],
+                ),
+                (40, vec![(40, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let var_at_use_before = lifted.var_at_use.clone();
+        let def_index_before = lifted.var_name_to_def_pc.clone();
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+
+        assert!(
+            pseudo.contains("for ("),
+            "Expected for-loop output for binding-stability check: {}",
+            pseudo
+        );
+        assert_eq!(
+            lifted.var_at_use, var_at_use_before,
+            "emitter must not mutate lifted use-site bindings"
+        );
+        assert_eq!(
+            lifted.var_name_to_def_pc, def_index_before,
+            "emitter must not mutate lifted def index"
         );
     }
 
