@@ -507,7 +507,7 @@ pub struct DirectCallPattern {
     pub jump_target_pc: usize,
     /// PC where execution continues after the callee returns.
     pub return_pc: usize,
-    /// Name of the function at the return point.
+    /// Resolved callee function name.
     pub callee_name: String,
 }
 
@@ -518,7 +518,7 @@ const JUMP_ALIGNMENT_FACTOR: u64 = 2;
 ///
 /// Returns a list of detected call patterns. Each pattern identifies:
 /// - The call site (block and instruction PCs)
-/// - The callee (via the return point in the jump table)
+/// - The callee (via jump target's containing function, with trampoline fallback)
 /// - PCs to eliminate from output (the LoadImm64 setting return address)
 pub fn detect_direct_call_patterns(
     cfg: &ControlFlowGraph,
@@ -535,6 +535,7 @@ pub fn detect_direct_call_patterns(
         .iter()
         .flat_map(|f| f.block_pcs.iter().map(move |&bp| (bp, f.entry_pc)))
         .collect();
+    let func_entries: HashSet<usize> = functions.iter().map(|f| f.entry_pc).collect();
 
     let mut patterns = Vec::new();
 
@@ -574,20 +575,37 @@ pub fn detect_direct_call_patterns(
                         continue;
                     }
 
-                    let return_pc = program.jump_table[table_index] as usize;
                     let jump_target =
                         crate::cfg::ControlFlowGraph::compute_jump_target(*jump_pc, *offset);
+                    let return_pc = program.jump_table[table_index] as usize;
 
-                    // Find the function at the return point
-                    let callee_name = if let Some(&func_entry) = block_to_func.get(&return_pc) {
-                        func_names
-                            .get(&func_entry)
-                            .cloned()
-                            .unwrap_or_else(|| format!("func_at_{:#06x}", func_entry))
-                    } else {
-                        // Return point isn't in any known function
+                    let Some(&caller_func_entry) = block_to_func.get(&block.start_pc) else {
                         continue;
                     };
+                    let Some(&jump_target_func_entry) = block_to_func.get(&jump_target) else {
+                        // Jump target isn't in any known function.
+                        continue;
+                    };
+                    let callee_func_entry = if caller_func_entry == jump_target_func_entry {
+                        // Trampoline fallback: some binaries jump to shared stack-guard blocks
+                        // in the current function before transferring to the real callee entry.
+                        // Only treat this as a call when return_pc is itself another function entry.
+                        if func_entries.contains(&return_pc) && return_pc != caller_func_entry {
+                            return_pc
+                        } else {
+                            continue;
+                        }
+                    } else {
+                        jump_target_func_entry
+                    };
+
+                    // `return_pc` is continuation metadata for after the callee returns.
+                    // In trampoline fallback cases above, it can also identify
+                    // the callee entry when jump_target remains in the caller.
+                    let callee_name = func_names
+                        .get(&callee_func_entry)
+                        .cloned()
+                        .unwrap_or_else(|| format!("func_at_{:#06x}", callee_func_entry));
 
                     patterns.push(DirectCallPattern {
                         caller_block_pc: block.start_pc,
@@ -1416,9 +1434,65 @@ mod tests {
     fn test_detect_direct_call_pattern() {
         // Build a program with:
         // Block 0: LoadImm64 r0, 2 + Jump to block 100 (callee entry)
-        // Block 50: callee's body (this is where jump_table[0] points = return point)
-        // Block 100: callee stack guard
-        // Jump table: [50] (so address 2 → index (2/2-1) = 0 → jump_table[0] = 50)
+        // Block 60: caller continuation (this is where jump_table[0] points = return point)
+        // Jump table: [60] (so address 2 → index (2/2-1) = 0 → jump_table[0] = 60)
+        //
+        // Regression: the callee must come from jump_target (100), not return_pc (60).
+        let program = DecodedProgram {
+            instructions: vec![
+                (0, Instruction::LoadImm64 { reg: 0, value: 2 }),
+                (10, Instruction::Jump { offset: 90 }),
+                (60, Instruction::Trap),
+                (100, Instruction::Trap),
+            ],
+            jump_table: vec![60],
+            code_len: 101,
+            memory_base: None,
+        };
+
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm64 { reg: 0, value: 2 }),
+                        (10, Instruction::Jump { offset: 90 }),
+                    ],
+                    vec![100],
+                ),
+                (60, vec![(60, Instruction::Trap)], vec![]),
+                (100, vec![(100, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let functions = vec![
+            Function {
+                entry_pc: 0,
+                block_pcs: [0, 60].into_iter().collect(),
+                name: "main".to_string(),
+            },
+            Function {
+                entry_pc: 100,
+                block_pcs: [100].into_iter().collect(),
+                name: "func_1".to_string(),
+            },
+        ];
+
+        let patterns = detect_direct_call_patterns(&cfg, &functions, &program);
+        assert_eq!(patterns.len(), 1, "Should detect one call pattern");
+        assert_eq!(patterns[0].caller_block_pc, 0);
+        assert_eq!(patterns[0].jump_target_pc, 100);
+        assert_eq!(patterns[0].return_pc, 60);
+        assert_eq!(patterns[0].callee_name, "func_1");
+        assert_eq!(patterns[0].load_imm_pc, 0);
+    }
+
+    #[test]
+    fn test_detect_direct_call_pattern_uses_return_entry_for_trampoline() {
+        // Build a pattern where jump_target stays in the caller function
+        // while return_pc points to another function entry.
+        // This should still resolve to the return_pc function entry.
         let program = DecodedProgram {
             instructions: vec![
                 (0, Instruction::LoadImm64 { reg: 0, value: 2 }),
@@ -1461,11 +1535,52 @@ mod tests {
         ];
 
         let patterns = detect_direct_call_patterns(&cfg, &functions, &program);
-        assert_eq!(patterns.len(), 1, "Should detect one call pattern");
-        assert_eq!(patterns[0].caller_block_pc, 0);
+        assert_eq!(patterns.len(), 1, "Should resolve trampoline call");
         assert_eq!(patterns[0].jump_target_pc, 100);
         assert_eq!(patterns[0].return_pc, 50);
         assert_eq!(patterns[0].callee_name, "func_1");
-        assert_eq!(patterns[0].load_imm_pc, 0);
+    }
+
+    #[test]
+    fn test_detect_direct_call_pattern_ignores_intra_function_jumps_without_external_entry() {
+        let program = DecodedProgram {
+            instructions: vec![
+                (0, Instruction::LoadImm64 { reg: 0, value: 2 }),
+                (10, Instruction::Jump { offset: 90 }),
+                (60, Instruction::Trap),
+                (100, Instruction::Trap),
+            ],
+            jump_table: vec![60],
+            code_len: 101,
+            memory_base: None,
+        };
+
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm64 { reg: 0, value: 2 }),
+                        (10, Instruction::Jump { offset: 90 }),
+                    ],
+                    vec![100],
+                ),
+                (60, vec![(60, Instruction::Trap)], vec![]),
+                (100, vec![(100, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let functions = vec![Function {
+            entry_pc: 0,
+            block_pcs: [0, 60, 100].into_iter().collect(),
+            name: "main".to_string(),
+        }];
+
+        let patterns = detect_direct_call_patterns(&cfg, &functions, &program);
+        assert!(
+            patterns.is_empty(),
+            "Intra-function jump targets should not be treated as calls"
+        );
     }
 }

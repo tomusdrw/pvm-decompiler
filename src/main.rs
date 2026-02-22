@@ -551,6 +551,14 @@ fn write_cfg(cfg: &ControlFlowGraph, out: &mut String) {
 mod integration_tests {
     use super::*;
 
+    fn count_non_signature_main_calls(output: &str) -> usize {
+        output
+            .lines()
+            .filter(|line| !line.trim_start().starts_with("fn main("))
+            .map(|line| line.matches("main()").count())
+            .sum()
+    }
+
     #[test]
     fn test_fibonacci_full_pipeline() {
         let buffer = std::fs::read("examples/compiled/fibonacci.pvm")
@@ -606,6 +614,34 @@ mod integration_tests {
         assert!(
             output.contains("142"),
             "Output should contain the computed constant 142 (42 + 100): {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_life_simple_no_false_main_self_call() {
+        let buffer = std::fs::read("examples/compiled/life-simple.pvm")
+            .expect("life-simple.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        let main_calls = count_non_signature_main_calls(&output);
+        assert_eq!(
+            main_calls, 0,
+            "life-simple should not contain false main() self-calls: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_ananas_no_false_main_self_call() {
+        let buffer =
+            std::fs::read("examples/compiled/ananas.pvm").expect("ananas.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        let main_calls = count_non_signature_main_calls(&output);
+        assert_eq!(
+            main_calls, 0,
+            "ananas should not contain false main() self-calls: {}",
             output
         );
     }
