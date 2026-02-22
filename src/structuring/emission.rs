@@ -237,7 +237,7 @@ impl StructuralAnalysis {
                 "=== Pseudo-Code ===\n\n".to_string()
             },
             emitted: HashSet::new(),
-            lifted,
+            lifted: lifted.as_deref(),
             labels,
             if_map,
             loop_map,
@@ -322,7 +322,7 @@ struct Emitter<'a> {
     dom_tree: &'a super::DominatorTree,
     output: String,
     emitted: HashSet<usize>,
-    lifted: Option<&'a mut LiftedProgram>,
+    lifted: Option<&'a LiftedProgram>,
     labels: HashMap<usize, String>,
     if_map: HashMap<usize, &'a Structure>,
     loop_map: HashMap<usize, &'a Structure>,
@@ -756,7 +756,7 @@ impl<'a> Emitter<'a> {
             };
 
             for (pc, instr) in &block.instructions[..end] {
-                if let Some(ref mut lifted) = self.lifted {
+                if let Some(lifted) = self.lifted {
                     // Skip eliminated PCs (folded/propagated).
                     if lifted.eliminated_pcs.contains(pc)
                         || self.emission_eliminated_pcs.contains(pc)
@@ -784,7 +784,12 @@ impl<'a> Emitter<'a> {
                             continue;
                         }
                         // Unresolved indirect jumps are rendered explicitly.
-                        if let Some(line) = lifted.format_pc(*pc, instr) {
+                        if let Some(line) = format_pc_with_local_declarations(
+                            lifted,
+                            *pc,
+                            instr,
+                            &mut self.declared_vars,
+                        ) {
                             let _ = writeln!(self.output, "{}{}", prefix, line);
                         }
                         continue;
@@ -822,7 +827,12 @@ impl<'a> Emitter<'a> {
                         );
                         continue;
                     }
-                    if let Some(line) = lifted.format_pc(*pc, instr) {
+                    if let Some(line) = format_pc_with_local_declarations(
+                        lifted,
+                        *pc,
+                        instr,
+                        &mut self.declared_vars,
+                    ) {
                         let _ = writeln!(self.output, "{}{}", prefix, line);
                     }
                 } else {
@@ -1041,7 +1051,7 @@ impl<'a> Emitter<'a> {
     fn emit_switch(&mut self, block_pc: usize, reg: u8, cases: &[(Vec<u32>, usize)]) {
         self.emit_block_body(block_pc, 0, true);
 
-        let switch_var = if let Some(ref mut lifted) = self.lifted {
+        let switch_var = if let Some(lifted) = self.lifted {
             if let Some(branch_pc) = last_instruction_pc(self.cfg, block_pc) {
                 if let Some(name) = lifted.var_at_use.get(&(branch_pc, reg)).cloned() {
                     // Only emit a forward declaration if the variable has a definition
@@ -1388,6 +1398,26 @@ fn last_instruction_pc(cfg: &ControlFlowGraph, block_pc: usize) -> Option<usize>
         .get(&block_pc)
         .and_then(|b| b.instructions.last())
         .map(|(pc, _)| *pc)
+}
+
+/// Format a lifted instruction line using emitter-local declaration tracking.
+/// This mirrors `LiftedProgram::format_pc` without mutating `LiftedProgram`.
+fn format_pc_with_local_declarations(
+    lifted: &LiftedProgram,
+    pc: usize,
+    instr: &Instruction,
+    declared_vars: &mut HashSet<String>,
+) -> Option<String> {
+    if lifted.eliminated_pcs.contains(&pc) {
+        return None;
+    }
+    let (raw_line, declare_var) = lifted.format_pc_raw(pc, instr)?;
+    if let Some(var_name) = declare_var
+        && declared_vars.insert(var_name)
+    {
+        return Some(format!("let {}", raw_line));
+    }
+    Some(raw_line)
 }
 
 /// Format a condition, using lifted variable names when a lifted program is provided.
@@ -2020,6 +2050,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let eliminated_before = lifted.eliminated_pcs.clone();
+        let declared_before = lifted.declared_vars.clone();
 
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
         let _pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
@@ -2027,6 +2058,10 @@ mod tests {
         assert_eq!(
             lifted.eliminated_pcs, eliminated_before,
             "emitter must not mutate lifted elimination state"
+        );
+        assert_eq!(
+            lifted.declared_vars, declared_before,
+            "emitter must not mutate lifted declaration state"
         );
     }
 

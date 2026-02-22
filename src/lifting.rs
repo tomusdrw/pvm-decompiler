@@ -1223,6 +1223,7 @@ impl LiftedProgram {
     /// Format an instruction at a given PC as a lifted pseudo-code line.
     /// Returns None if the PC has been eliminated.
     /// Emits `let var = expr` on first definition, plain `var = expr` on reassignment.
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn format_pc(&mut self, pc: usize, instr: &Instruction) -> Option<String> {
         if self.eliminated_pcs.contains(&pc) {
             return None;
