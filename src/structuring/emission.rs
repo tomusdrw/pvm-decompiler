@@ -215,9 +215,18 @@ impl StructuralAnalysis {
             }
         }
 
+        let pc_to_block = build_pc_to_block_index(cfg);
+        let mut var_use_count: HashMap<String, usize> = HashMap::new();
+        if let Some(lifted_ro) = lifted.as_deref() {
+            for name in lifted_ro.var_at_use.values() {
+                *var_use_count.entry(name.clone()).or_insert(0) += 1;
+            }
+        }
+
         // Create the emitter with all mutable state.
         let mut em = Emitter {
             cfg,
+            dom_tree: &self.dom_tree,
             output: if sig.is_some() {
                 String::new()
             } else {
@@ -229,6 +238,8 @@ impl StructuralAnalysis {
             if_map,
             loop_map,
             for_loop_map,
+            pc_to_block,
+            var_use_count,
         };
 
         for &block_pc in &self.dom_tree.rpo {
@@ -302,6 +313,7 @@ impl StructuralAnalysis {
 /// Created once inside `pseudo_code` and passed by `&mut self` to the helpers.
 struct Emitter<'a> {
     cfg: &'a ControlFlowGraph,
+    dom_tree: &'a super::DominatorTree,
     output: String,
     emitted: HashSet<usize>,
     lifted: Option<&'a mut LiftedProgram>,
@@ -309,6 +321,8 @@ struct Emitter<'a> {
     if_map: HashMap<usize, &'a Structure>,
     loop_map: HashMap<usize, &'a Structure>,
     for_loop_map: HashMap<usize, ForLoopInfo>,
+    pc_to_block: HashMap<usize, usize>,
+    var_use_count: HashMap<String, usize>,
 }
 
 impl<'a> Emitter<'a> {
@@ -411,22 +425,73 @@ impl<'a> Emitter<'a> {
     /// Suppress the branch instruction and its inlined condition variable definition
     /// for a block header. The condition is shown in the if/while/for header, so the
     /// standalone definition is redundant.
+    ///
+    /// Safety: definition elimination is restricted to synthetic boolean temporaries
+    /// that are single-use and whose defining block dominates the branch block.
     fn eliminate_condition_def(&mut self, header_pc: usize, cond: &Condition) {
         if let Some(header_block) = self.cfg.blocks.get(&header_pc)
             && let Some((branch_pc, _)) = header_block.instructions.last()
-            && let Some(ref mut lifted) = self.lifted
         {
-            lifted.eliminated_pcs.insert(*branch_pc);
+            let def_to_eliminate = self.condition_def_to_eliminate(*branch_pc, cond);
 
-            if let Operand::Reg(reg) = &cond.lhs
-                && let Operand::Imm(0) = &cond.rhs
-                && matches!(cond.op, CondOp::Ne | CondOp::Eq)
-                && let Some(var_name) = lifted.var_at_use.get(&(*branch_pc, *reg)).cloned()
-                && let Some(def_pc) = lifted.var_name_to_def_pc.get(&var_name).copied()
-            {
-                lifted.eliminated_pcs.insert(def_pc);
+            if let Some(ref mut lifted) = self.lifted {
+                lifted.eliminated_pcs.insert(*branch_pc);
+                if let Some(def_pc) = def_to_eliminate {
+                    lifted.eliminated_pcs.insert(def_pc);
+                }
             }
         }
+    }
+
+    fn condition_def_to_eliminate(&self, branch_pc: usize, cond: &Condition) -> Option<usize> {
+        let lifted = self.lifted.as_deref()?;
+
+        let (reg, is_zero_test) = match (&cond.lhs, &cond.rhs, &cond.op) {
+            (Operand::Reg(reg), Operand::Imm(0), CondOp::Ne | CondOp::Eq) => (*reg, true),
+            _ => (0, false),
+        };
+        if !is_zero_test {
+            return None;
+        }
+
+        let var_name = lifted.var_at_use.get(&(branch_pc, reg))?;
+        let def_pc = *lifted.var_name_to_def_pc.get(var_name)?;
+        if !self.is_safe_condition_def_elimination(lifted, var_name, def_pc, branch_pc) {
+            return None;
+        }
+
+        Some(def_pc)
+    }
+
+    fn is_safe_condition_def_elimination(
+        &self,
+        lifted: &LiftedProgram,
+        var_name: &str,
+        def_pc: usize,
+        branch_pc: usize,
+    ) -> bool {
+        let use_count = self.var_use_count.get(var_name).copied().unwrap_or(0);
+        if use_count != 1 {
+            return false;
+        }
+
+        let def_block = match self.pc_to_block.get(&def_pc).copied() {
+            Some(pc) => pc,
+            None => return false,
+        };
+        let branch_block = match self.pc_to_block.get(&branch_pc).copied() {
+            Some(pc) => pc,
+            None => return false,
+        };
+        if !self.dom_tree.dominates(def_block, branch_block) {
+            return false;
+        }
+
+        if !lifted.is_synthetic_boolean_temp(var_name, def_pc) {
+            return false;
+        }
+
+        true
     }
 
     /// Check if a block would emit break or continue when inside a loop.
@@ -1267,6 +1332,16 @@ fn format_goto_target(target: usize, labels: &HashMap<usize, String>) -> String 
         .unwrap_or_else(|| format!("{:#06x}", target))
 }
 
+fn build_pc_to_block_index(cfg: &ControlFlowGraph) -> HashMap<usize, usize> {
+    let mut pc_to_block = HashMap::new();
+    for block in cfg.blocks.values() {
+        for (pc, _) in &block.instructions {
+            pc_to_block.insert(*pc, block.start_pc);
+        }
+    }
+    pc_to_block
+}
+
 /// Get the PC of the last instruction in a block (the branch/terminator).
 fn last_instruction_pc(cfg: &ControlFlowGraph, block_pc: usize) -> Option<usize> {
     cfg.blocks
@@ -1670,6 +1745,172 @@ mod tests {
                 "Rendered condition should not contain placeholder"
             );
         }
+    }
+
+    #[test]
+    fn test_condition_def_elimination_keeps_non_boolean_selector_with_other_uses() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // Selector-like value (non-boolean) used in both a branch condition and later computation.
+        // Its definition must not be dropped by condition-def elimination.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 1, value: 7 }),
+                        (
+                            4,
+                            Instruction::BranchNeImm {
+                                reg: 1,
+                                value: 0,
+                                offset: 10,
+                            },
+                        ),
+                    ],
+                    vec![10, 20],
+                ),
+                (
+                    10,
+                    vec![(10, Instruction::LoadImm { reg: 2, value: 1 })],
+                    vec![30],
+                ),
+                (
+                    20,
+                    vec![(20, Instruction::LoadImm { reg: 2, value: 2 })],
+                    vec![30],
+                ),
+                (
+                    30,
+                    vec![
+                        (
+                            30,
+                            Instruction::Add32 {
+                                dst: 3,
+                                src1: 1,
+                                src2: 2,
+                            },
+                        ),
+                        (34, Instruction::Trap),
+                    ],
+                    vec![],
+                ),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let selector_name = lifted
+            .var_at_use
+            .get(&(4, 1))
+            .expect("selector should map at branch use")
+            .clone();
+        let selector_def_pc = *lifted
+            .var_name_to_def_pc
+            .get(&selector_name)
+            .expect("selector should have a def pc");
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let _pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+
+        assert!(
+            !lifted.eliminated_pcs.contains(&selector_def_pc),
+            "non-boolean selector def must be preserved"
+        );
+    }
+
+    #[test]
+    fn test_condition_def_elimination_requires_dominating_definition() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // Two boolean defs of r1 in different predecessor blocks reach block 30.
+        // var_at_use deterministically chooses the smaller def PC (10), but block 10
+        // does not dominate block 30. That definition must not be dropped.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
+                    vec![10, 20],
+                ),
+                (
+                    10,
+                    vec![
+                        (
+                            10,
+                            Instruction::SetLtU {
+                                dst: 1,
+                                src1: 2,
+                                src2: 3,
+                            },
+                        ),
+                        (14, Instruction::Jump { offset: 16 }),
+                    ],
+                    vec![30],
+                ),
+                (
+                    20,
+                    vec![
+                        (
+                            20,
+                            Instruction::SetLtU {
+                                dst: 1,
+                                src1: 4,
+                                src2: 5,
+                            },
+                        ),
+                        (24, Instruction::Jump { offset: 6 }),
+                    ],
+                    vec![30],
+                ),
+                (
+                    30,
+                    vec![(
+                        30,
+                        Instruction::BranchNeImm {
+                            reg: 1,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
+                    vec![40, 50],
+                ),
+                (40, vec![(40, Instruction::Trap)], vec![]),
+                (50, vec![(50, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let chosen_name = lifted
+            .var_at_use
+            .get(&(30, 1))
+            .expect("branch condition should use r1")
+            .clone();
+        let chosen_def_pc = *lifted
+            .var_name_to_def_pc
+            .get(&chosen_name)
+            .expect("chosen condition variable should have a def");
+        assert_eq!(chosen_def_pc, 10, "deterministic smallest-def selection");
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let _pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+
+        assert!(
+            !lifted.eliminated_pcs.contains(&chosen_def_pc),
+            "non-dominating condition def must be preserved"
+        );
     }
 
     #[test]

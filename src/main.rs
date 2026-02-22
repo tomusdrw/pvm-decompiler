@@ -546,6 +546,37 @@ mod integration_tests {
             .sum()
     }
 
+    fn condition_lhs_var(line: &str) -> Option<String> {
+        let trimmed = line.trim();
+        let cond = trimmed.strip_prefix("if (")?;
+        let end = cond.find(')')?;
+        let lhs = cond[..end]
+            .split_whitespace()
+            .next()?
+            .trim_start_matches('!')
+            .trim_start_matches('(')
+            .trim_end_matches(')');
+        if lhs.starts_with("var_") || lhs.starts_with("ptr_") || lhs.starts_with("cond_") {
+            Some(lhs.to_string())
+        } else {
+            None
+        }
+    }
+
+    fn output_defines_variable(output: &str, var: &str) -> bool {
+        let sig_head = format!("({}: ", var);
+        let sig_mid = format!(", {}: ", var);
+        let let_stmt = format!("let {} ", var);
+        let assign = format!("{} =", var);
+        output.lines().any(|line| {
+            let trimmed = line.trim_start();
+            line.contains(&sig_head)
+                || line.contains(&sig_mid)
+                || trimmed.starts_with(&let_stmt)
+                || trimmed.starts_with(&assign)
+        })
+    }
+
     #[test]
     fn test_fibonacci_full_pipeline() {
         let buffer = std::fs::read("examples/compiled/fibonacci.pvm")
@@ -584,6 +615,25 @@ mod integration_tests {
             "br-table should produce structured output: {}",
             output
         );
+    }
+
+    #[test]
+    fn test_br_table_condition_selectors_are_defined() {
+        let buffer = std::fs::read("examples/compiled/br-table.pvm")
+            .expect("br-table.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        for line in output.lines() {
+            let Some(var) = condition_lhs_var(line) else {
+                continue;
+            };
+            assert!(
+                output_defines_variable(&output, &var),
+                "br-table condition variable `{}` should remain defined: {}",
+                var,
+                output
+            );
+        }
     }
 
     #[test]

@@ -70,7 +70,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
         if (var_17911 >u 31) goto block_16a63;
     }
 
-    if (sbrk(sbrk(0) - (207063 & -32) neg+ 32) == 0) {
+    if (sbrk(sbrk(0) - ptr_1137 neg+ 32) == 0) {
         if (0 != 0) goto block_16adc;
     } else {
         mem[9784] = ptr_1137
@@ -183,7 +183,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
     let var_18060 = var_18018 << 32 >>u 32
 
-    if (ptr_1141_40 & cond_128 == 0) {
+    if (var_18057 == 0) {
         let var_18001 = ptr_1141 + 72
         call_indirect(var_17998)
     } else {
@@ -300,6 +300,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
     let var_18099 = var_18085 >>u 6
     let var_18104 = -2
+    let var_18106 = ptr_1170_1544 & var_18104 rotl (var_18085 & 63)
     u64[(var_18099 << 3) + var_18070 + 8192 + 1544] = var_18106
 
     if (var_18106 != 0) {
@@ -344,6 +345,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
     let var_18140 = ptr_1173_4 >>u 6
     let var_18146 = -2
+    let var_18148 = ptr_1179_1544 & var_18146 rotl (ptr_1173_4 & 63)
     u64[(var_18140 << 3) + var_18070 + 8192 + 1544] = var_18148
 
     if (var_18148 != 0) {
@@ -680,6 +682,8 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
         var_286 = ptr_10 + 96
         call_indirect(var_280)
     }
+
+    let var_109 = u16[r8 + 22]
 
     if (var_109 == 0) {
         let var_202 = 0

@@ -1272,6 +1272,20 @@ impl LiftedProgram {
         self.expressions.get(def_pc)
     }
 
+    /// Returns true when `var_name` is a synthetic boolean temporary at `def_pc`.
+    /// These are safe candidates for branch-condition inlining/elimination.
+    pub fn is_synthetic_boolean_temp(&self, var_name: &str, def_pc: usize) -> bool {
+        let bool_typed_at_def = self.variables.iter().any(|(&(pc, _), var)| {
+            pc == def_pc && var.name == var_name && matches!(var.var_type, VarType::Boolean)
+        });
+        if !bool_typed_at_def {
+            return false;
+        }
+
+        self.expression_for_var(var_name)
+            .is_some_and(is_boolean_expr)
+    }
+
     /// Recursively resolve eliminated variable references in an expression.
     /// When a `Var(name)` refers to a variable whose definition was eliminated
     /// (inlined elsewhere), substitute the variable's definition expression.
@@ -3587,6 +3601,62 @@ mod tests {
 
         // Unknown variable should return None
         assert!(lifted.expression_for_var("unknown").is_none());
+    }
+
+    #[test]
+    fn test_is_synthetic_boolean_temp_requires_bool_type_and_boolean_expr() {
+        let mut lifted = LiftedProgram {
+            variables: HashMap::new(),
+            expressions: HashMap::new(),
+            eliminated_pcs: HashSet::new(),
+            var_at_use: HashMap::new(),
+            declared_vars: HashSet::new(),
+            stack_vars: HashMap::new(),
+            call_targets: HashMap::new(),
+            direct_call_sites: HashMap::new(),
+            var_name_to_def_pc: HashMap::new(),
+            epilogue_blocks: HashMap::new(),
+            suppressed_blocks: HashSet::new(),
+            memory_base: None,
+        };
+
+        lifted.variables.insert(
+            (10, 0),
+            Variable {
+                name: "cond_0".to_string(),
+                var_type: VarType::Boolean,
+            },
+        );
+        lifted.var_name_to_def_pc.insert("cond_0".to_string(), 10);
+        lifted.expressions.insert(
+            10,
+            Expression::BinOp {
+                op: BinOp::LtU,
+                lhs: Box::new(Expression::Var("var_a".to_string())),
+                rhs: Box::new(Expression::Var("var_b".to_string())),
+            },
+        );
+
+        assert!(lifted.is_synthetic_boolean_temp("cond_0", 10));
+
+        // Same expression but non-boolean variable type -> should not qualify.
+        lifted.variables.insert(
+            (20, 1),
+            Variable {
+                name: "var_1".to_string(),
+                var_type: VarType::U64,
+            },
+        );
+        lifted.var_name_to_def_pc.insert("var_1".to_string(), 20);
+        lifted.expressions.insert(
+            20,
+            Expression::BinOp {
+                op: BinOp::LtU,
+                lhs: Box::new(Expression::Var("var_x".to_string())),
+                rhs: Box::new(Expression::Var("var_y".to_string())),
+            },
+        );
+        assert!(!lifted.is_synthetic_boolean_temp("var_1", 20));
     }
 
     #[test]
