@@ -295,6 +295,19 @@ impl<'a, 'p> Emitter<'a, 'p> {
             return;
         }
 
+        // No-loop context: if both branches are guaranteed to emit nothing, skip shell.
+        if loop_context.is_none() && self.plan.force_empty_if_headers_no_loop.contains(&header) {
+            self.emit_block_body(header, indent, true);
+            for &tb in then_blocks {
+                self.emitted.insert(tb);
+            }
+            for &eb in else_blocks {
+                self.emitted.insert(eb);
+            }
+            self.emitted.insert(header);
+            return;
+        }
+
         // Emit header block instructions (before the branch)
         self.emit_block_body(header, indent, true);
 
@@ -314,21 +327,30 @@ impl<'a, 'p> Emitter<'a, 'p> {
         let _ = writeln!(self.output, "{}if ({}) {{", prefix, cond_str);
         let then_start = self.output.len();
 
-        for &tb in then_blocks {
-            let ctrl = self.emit_block_with_loop_control(tb, indent + 1, loop_context);
-            if let Some(keyword) = ctrl {
-                let _ = writeln!(self.output, "{}{}", inner_prefix, keyword);
+        let has_then_content = if loop_context.is_none()
+            && self.plan.empty_then_if_headers_no_loop.contains(&header)
+        {
+            for &tb in then_blocks {
                 self.emitted.insert(tb);
-                break; // Suppress unreachable blocks after break/continue
             }
-            self.emitted.insert(tb);
-        }
-        let has_then_content = self.output.len() > then_start;
+            false
+        } else {
+            for &tb in then_blocks {
+                let ctrl = self.emit_block_with_loop_control(tb, indent + 1, loop_context);
+                if let Some(keyword) = ctrl {
+                    let _ = writeln!(self.output, "{}{}", inner_prefix, keyword);
+                    self.emitted.insert(tb);
+                    break; // Suppress unreachable blocks after break/continue
+                }
+                self.emitted.insert(tb);
+            }
+            self.output.len() > then_start
+        };
 
         let mut has_else_content = false;
         if !else_blocks.is_empty() {
-            // If all else blocks are trap-only, suppress the else clause entirely.
-            if self.plan.trap_only_else_headers.contains(&header) {
+            // No-loop context: if else side is guaranteed empty, suppress it outright.
+            if loop_context.is_none() && self.plan.empty_else_if_headers_no_loop.contains(&header) {
                 // Mark else blocks as emitted but don't output them.
                 for &eb in else_blocks {
                     self.emitted.insert(eb);
@@ -827,7 +849,9 @@ struct EmissionPlan {
     var_aliases: HashMap<String, String>,
     loop_plans: HashMap<usize, LoopRenderPlan>,
     fully_suppressed_if_headers: HashSet<usize>,
-    trap_only_else_headers: HashSet<usize>,
+    empty_then_if_headers_no_loop: HashSet<usize>,
+    empty_else_if_headers_no_loop: HashSet<usize>,
+    force_empty_if_headers_no_loop: HashSet<usize>,
 }
 
 impl EmissionPlan {
@@ -889,7 +913,9 @@ fn build_emission_plan<'a>(
     let mut emission_eliminated_pcs: HashSet<usize> = HashSet::new();
     let mut var_aliases: HashMap<String, String> = HashMap::new();
     let mut fully_suppressed_if_headers: HashSet<usize> = HashSet::new();
-    let mut trap_only_else_headers: HashSet<usize> = HashSet::new();
+    let mut empty_then_if_headers_no_loop: HashSet<usize> = HashSet::new();
+    let mut empty_else_if_headers_no_loop: HashSet<usize> = HashSet::new();
+    let mut force_empty_if_headers_no_loop: HashSet<usize> = HashSet::new();
 
     for s in structures {
         match s {
@@ -943,11 +969,6 @@ fn build_emission_plan<'a>(
                 {
                     fully_suppressed_if_headers.insert(*header);
                 }
-                if !else_blocks.is_empty()
-                    && else_blocks.iter().all(|&bp| is_trap_only_block(cfg, bp))
-                {
-                    trap_only_else_headers.insert(*header);
-                }
             }
             _ => {}
         }
@@ -973,6 +994,41 @@ fn build_emission_plan<'a>(
         &pc_to_block,
         &var_use_count,
     ));
+
+    let static_refs = EmissionStaticRefs {
+        cfg,
+        if_map,
+        loop_map,
+        lifted,
+        emission_eliminated_pcs: &emission_eliminated_pcs,
+    };
+    for s in structures {
+        let Structure::IfThenElse {
+            header,
+            then_blocks,
+            else_blocks,
+            ..
+        } = s
+        else {
+            continue;
+        };
+
+        let then_empty = blocks_guaranteed_no_output_no_loop(&static_refs, then_blocks);
+        if then_empty {
+            empty_then_if_headers_no_loop.insert(*header);
+        }
+
+        let else_empty = else_blocks.is_empty()
+            || else_blocks.iter().all(|&bp| is_trap_only_block(cfg, bp))
+            || blocks_guaranteed_no_output_no_loop(&static_refs, else_blocks);
+        if !else_blocks.is_empty() && else_empty {
+            empty_else_if_headers_no_loop.insert(*header);
+        }
+
+        if then_empty && else_empty {
+            force_empty_if_headers_no_loop.insert(*header);
+        }
+    }
 
     let mut loop_plans = HashMap::new();
     for (&header_pc, structure) in loop_map {
@@ -1051,7 +1107,9 @@ fn build_emission_plan<'a>(
         var_aliases,
         loop_plans,
         fully_suppressed_if_headers,
-        trap_only_else_headers,
+        empty_then_if_headers_no_loop,
+        empty_else_if_headers_no_loop,
+        force_empty_if_headers_no_loop,
     }
 }
 
@@ -1247,6 +1305,24 @@ fn block_may_emit_output(
     } else {
         end > 0
     }
+}
+
+fn blocks_guaranteed_no_output_no_loop(
+    refs: &EmissionStaticRefs<'_, '_>,
+    blocks: &[usize],
+) -> bool {
+    blocks.iter().all(|&block_pc| {
+        if refs.loop_map.contains_key(&block_pc) || refs.if_map.contains_key(&block_pc) {
+            return false;
+        }
+        !block_may_emit_output(
+            refs.cfg,
+            refs.lifted,
+            refs.emission_eliminated_pcs,
+            block_pc,
+            false,
+        )
+    })
 }
 
 fn if_branches<'a>(
