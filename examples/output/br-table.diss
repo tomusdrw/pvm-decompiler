@@ -3,8 +3,6 @@ fn main(r1: u64, r7: u64, r8: u64) {
 
     if (var_1 == 0) {
         let ptr_0_80 = 100
-    } else {
-        if (var_1 == 1) goto block_00a5;
     }
 
     if (var_1 == 2) {

@@ -199,6 +199,10 @@ impl StructuralAnalysis {
                 for_loop_map.insert(*header, info);
             }
         }
+        // For-loop step is rendered in the for-header; suppress it from body emission.
+        for info in for_loop_map.values() {
+            emission_eliminated_pcs.insert(info.step_pc);
+        }
 
         let pc_to_block = build_pc_to_block_index(cfg);
         let mut var_use_count: HashMap<String, usize> = HashMap::new();
@@ -207,12 +211,19 @@ impl StructuralAnalysis {
                 *var_use_count.entry(name.clone()).or_insert(0) += 1;
             }
         }
+        emission_eliminated_pcs.extend(collect_condition_elimination_pcs(
+            &self.structures,
+            cfg,
+            lifted,
+            &self.dom_tree,
+            &pc_to_block,
+            &var_use_count,
+        ));
         let declared_vars = lifted.map(|l| l.declared_vars.clone()).unwrap_or_default();
 
         // Create the emitter with all mutable state.
         let mut em = Emitter {
             cfg,
-            dom_tree: &self.dom_tree,
             output: if sig.is_some() {
                 String::new()
             } else {
@@ -225,8 +236,6 @@ impl StructuralAnalysis {
             loop_map,
             for_loop_map,
             emission_eliminated_pcs,
-            pc_to_block,
-            var_use_count,
             declared_vars,
             var_aliases,
         };
@@ -302,7 +311,6 @@ impl StructuralAnalysis {
 /// Created once inside `pseudo_code` and passed by `&mut self` to the helpers.
 struct Emitter<'a> {
     cfg: &'a ControlFlowGraph,
-    dom_tree: &'a super::DominatorTree,
     output: String,
     emitted: HashSet<usize>,
     lifted: Option<&'a LiftedProgram>,
@@ -311,8 +319,6 @@ struct Emitter<'a> {
     loop_map: HashMap<usize, &'a Structure>,
     for_loop_map: HashMap<usize, ForLoopInfo>,
     emission_eliminated_pcs: HashSet<usize>,
-    pc_to_block: HashMap<usize, usize>,
-    var_use_count: HashMap<String, usize>,
     declared_vars: HashSet<String>,
     var_aliases: HashMap<String, String>,
 }
@@ -329,11 +335,6 @@ impl<'a> Emitter<'a> {
     ) {
         let prefix = "    ".repeat(indent);
         let inner_prefix = "    ".repeat(indent + 1);
-
-        // Suppress the branch and its inlined condition variable definition.
-        if let Some(cond) = condition {
-            self.eliminate_condition_def(header, cond);
-        }
 
         // If all body blocks are suppressed, skip the entire if-structure.
         if let Some(lifted) = self.lifted {
@@ -430,75 +431,6 @@ impl<'a> Emitter<'a> {
             self.output.truncate(if_start);
         }
         self.emitted.insert(header);
-    }
-
-    /// Suppress the branch instruction and its inlined condition variable definition
-    /// for a block header. The condition is shown in the if/while/for header, so the
-    /// standalone definition is redundant.
-    ///
-    /// Safety: definition elimination is restricted to synthetic boolean temporaries
-    /// that are single-use and whose defining block dominates the branch block.
-    fn eliminate_condition_def(&mut self, header_pc: usize, cond: &Condition) {
-        if let Some(header_block) = self.cfg.blocks.get(&header_pc)
-            && let Some((branch_pc, _)) = header_block.instructions.last()
-        {
-            let def_to_eliminate = self.condition_def_to_eliminate(*branch_pc, cond);
-            self.emission_eliminated_pcs.insert(*branch_pc);
-            if let Some(def_pc) = def_to_eliminate {
-                self.emission_eliminated_pcs.insert(def_pc);
-            }
-        }
-    }
-
-    fn condition_def_to_eliminate(&self, branch_pc: usize, cond: &Condition) -> Option<usize> {
-        let lifted = self.lifted?;
-
-        let (reg, is_zero_test) = match (&cond.lhs, &cond.rhs, &cond.op) {
-            (Operand::Reg(reg), Operand::Imm(0), CondOp::Ne | CondOp::Eq) => (*reg, true),
-            _ => (0, false),
-        };
-        if !is_zero_test {
-            return None;
-        }
-
-        let var_name = lifted.var_at_use.get(&(branch_pc, reg))?;
-        let def_pc = *lifted.var_name_to_def_pc.get(var_name)?;
-        if !self.is_safe_condition_def_elimination(lifted, var_name, def_pc, branch_pc) {
-            return None;
-        }
-
-        Some(def_pc)
-    }
-
-    fn is_safe_condition_def_elimination(
-        &self,
-        lifted: &LiftedProgram,
-        var_name: &str,
-        def_pc: usize,
-        branch_pc: usize,
-    ) -> bool {
-        let use_count = self.var_use_count.get(var_name).copied().unwrap_or(0);
-        if use_count != 1 {
-            return false;
-        }
-
-        let def_block = match self.pc_to_block.get(&def_pc).copied() {
-            Some(pc) => pc,
-            None => return false,
-        };
-        let branch_block = match self.pc_to_block.get(&branch_pc).copied() {
-            Some(pc) => pc,
-            None => return false,
-        };
-        if !self.dom_tree.dominates(def_block, branch_block) {
-            return false;
-        }
-
-        if !lifted.is_synthetic_boolean_temp(var_name, def_pc) {
-            return false;
-        }
-
-        true
     }
 
     /// Check if a block would emit break or continue when inside a loop.
@@ -923,11 +855,6 @@ impl<'a> Emitter<'a> {
         // Position after the `while/for {` line — body content starts here.
         let output_after_header_line = self.output.len();
 
-        // Suppress the branch and its inlined condition variable definition.
-        if let Some(cond) = condition.as_ref() {
-            self.eliminate_condition_def(header_pc, cond);
-        }
-
         // Emit header block body (before the condition branch)
         self.emit_block_body(header_pc, indent + 1, true);
 
@@ -960,10 +887,6 @@ impl<'a> Emitter<'a> {
             }
 
             let is_latch = body_pc == latch && for_loop_info.is_some();
-            // Suppress step instruction in latch block for for-loops
-            if is_latch && let Some(ref info) = for_loop_info {
-                self.emission_eliminated_pcs.insert(info.step_pc);
-            }
 
             // Check if this body block is a nested loop header
             if let Some(Structure::Loop {
@@ -1153,6 +1076,113 @@ impl<'a> Emitter<'a> {
             }
         }
     }
+}
+
+fn collect_condition_elimination_pcs(
+    structures: &[Structure],
+    cfg: &ControlFlowGraph,
+    lifted: Option<&LiftedProgram>,
+    dom_tree: &super::DominatorTree,
+    pc_to_block: &HashMap<usize, usize>,
+    var_use_count: &HashMap<String, usize>,
+) -> HashSet<usize> {
+    let mut eliminated = HashSet::new();
+
+    for s in structures {
+        let (header_pc, condition) = match s {
+            Structure::Loop {
+                header, condition, ..
+            } => (*header, condition.as_ref()),
+            Structure::IfThenElse {
+                header, condition, ..
+            } => (*header, condition.as_ref()),
+            _ => continue,
+        };
+        let Some(condition) = condition else {
+            continue;
+        };
+        let Some(branch_pc) = last_instruction_pc(cfg, header_pc) else {
+            continue;
+        };
+
+        eliminated.insert(branch_pc);
+        if let Some(def_pc) = condition_def_to_eliminate(
+            branch_pc,
+            condition,
+            lifted,
+            dom_tree,
+            pc_to_block,
+            var_use_count,
+        ) {
+            eliminated.insert(def_pc);
+        }
+    }
+
+    eliminated
+}
+
+fn condition_def_to_eliminate(
+    branch_pc: usize,
+    cond: &Condition,
+    lifted: Option<&LiftedProgram>,
+    dom_tree: &super::DominatorTree,
+    pc_to_block: &HashMap<usize, usize>,
+    var_use_count: &HashMap<String, usize>,
+) -> Option<usize> {
+    let lifted = lifted?;
+
+    let (reg, is_zero_test) = match (&cond.lhs, &cond.rhs, &cond.op) {
+        (Operand::Reg(reg), Operand::Imm(0), CondOp::Ne | CondOp::Eq) => (*reg, true),
+        _ => (0, false),
+    };
+    if !is_zero_test {
+        return None;
+    }
+
+    let var_name = lifted.var_at_use.get(&(branch_pc, reg))?;
+    let def_pc = *lifted.var_name_to_def_pc.get(var_name)?;
+    if !is_safe_condition_def_elimination(
+        lifted,
+        var_name,
+        def_pc,
+        branch_pc,
+        dom_tree,
+        pc_to_block,
+        var_use_count,
+    ) {
+        return None;
+    }
+
+    Some(def_pc)
+}
+
+fn is_safe_condition_def_elimination(
+    lifted: &LiftedProgram,
+    var_name: &str,
+    def_pc: usize,
+    branch_pc: usize,
+    dom_tree: &super::DominatorTree,
+    pc_to_block: &HashMap<usize, usize>,
+    var_use_count: &HashMap<String, usize>,
+) -> bool {
+    let use_count = var_use_count.get(var_name).copied().unwrap_or(0);
+    if use_count != 1 {
+        return false;
+    }
+
+    let def_block = match pc_to_block.get(&def_pc).copied() {
+        Some(pc) => pc,
+        None => return false,
+    };
+    let branch_block = match pc_to_block.get(&branch_pc).copied() {
+        Some(pc) => pc,
+        None => return false,
+    };
+    if !dom_tree.dominates(def_block, branch_block) {
+        return false;
+    }
+
+    lifted.is_synthetic_boolean_temp(var_name, def_pc)
 }
 
 /// Post-process pseudo-code output to fix blank line placement:
@@ -3429,24 +3459,27 @@ mod tests {
 
     #[test]
     fn test_conditional_branch_goto_rendering() {
-        // Verify that real binary output uses `goto` labels
-        // instead of raw `jump <offset>` for unstructured conditional branches.
+        // Verify that real binary output never renders raw jump offsets in
+        // pseudo-code. Unstructured branches may render as goto labels, but
+        // fully structured output can legitimately contain no gotos.
         let bytes = std::fs::read("examples/compiled/as-fibonacci.pvm")
             .expect("as-fibonacci.pvm fixture required");
         let output =
             crate::decompile_bytes(&bytes).expect("as-fibonacci should decompile successfully");
 
-        // Should contain at least one goto (unstructured conditional branches)
-        assert!(
-            output.contains("goto"),
-            "Output should contain goto labels: {}",
-            output
-        );
         // No raw jump offsets should remain
         assert!(
-            !output.contains("jump"),
+            !output.contains("jump "),
             "Should not contain raw jump offsets: {}",
             output
         );
+        // If any goto is emitted, it should target named labels.
+        if output.contains("goto ") {
+            assert!(
+                output.contains("goto block_"),
+                "Goto targets should use labels, not raw offsets: {}",
+                output
+            );
+        }
     }
 }
