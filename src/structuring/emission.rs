@@ -544,15 +544,14 @@ impl<'a, 'p> Emitter<'a, 'p> {
                 plan.empty_body_fallback,
             )
         } else {
-            let non_header_body: Vec<usize> =
+            // Should not happen in normal flow: every loop header comes from `loop_map`
+            // and has a precomputed plan entry.
+            let mut non_header_body: Vec<usize> =
                 body.iter().copied().filter(|&bp| bp != header_pc).collect();
-            let body_ordered = compute_loop_body_order(self.cfg, &self.if_map, body, header_pc);
-            let reachable = compute_loop_reachable(self.cfg, &self.if_map, body, header_pc);
-            let last_emittable = body_ordered
-                .iter()
-                .copied()
-                .filter(|&pc| pc != header_pc && reachable.contains(&pc))
-                .next_back();
+            non_header_body.sort();
+            let reachable: HashSet<usize> = non_header_body.iter().copied().collect();
+            let body_ordered = non_header_body.clone();
+            let last_emittable = body_ordered.last().copied();
             (
                 non_header_body,
                 HashSet::new(),
