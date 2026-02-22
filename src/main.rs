@@ -366,7 +366,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let _ = writeln!(all_output, "{}", structural.summarize());
         }
 
-        all_output.push_str(&structural.pseudo_code(&func_cfg, Some(&mut lifted), Some(&sig)));
+        all_output.push_str(&structural.pseudo_code(&func_cfg, Some(&lifted), Some(&sig)));
         all_output.push('\n');
     }
 
@@ -487,7 +487,7 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
             params,
         };
 
-        output.push_str(&structural.pseudo_code(&func_cfg, Some(&mut lifted), Some(&sig)));
+        output.push_str(&structural.pseudo_code(&func_cfg, Some(&lifted), Some(&sig)));
         output.push('\n');
     }
     Ok(output)

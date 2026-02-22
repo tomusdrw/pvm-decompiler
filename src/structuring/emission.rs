@@ -104,7 +104,7 @@ impl StructuralAnalysis {
     pub fn pseudo_code(
         &self,
         cfg: &ControlFlowGraph,
-        lifted: Option<&mut LiftedProgram>,
+        lifted: Option<&LiftedProgram>,
         sig: Option<&FunctionSignature>,
     ) -> String {
         let mut header_line = String::new();
@@ -115,7 +115,7 @@ impl StructuralAnalysis {
                 .params
                 .iter()
                 .map(|&reg| {
-                    if let Some(ref lifted) = lifted {
+                    if let Some(lifted) = lifted {
                         // Use the variable name for this parameter if available
                         if let Some(name) = lifted.var_at_use.get(&(cfg.entry_pc, reg)) {
                             let type_str = lifted
@@ -173,19 +173,13 @@ impl StructuralAnalysis {
                 condition,
                 ..
             } = s
-                && let Some(info) = detect_for_loop_pattern(
-                    cfg,
-                    *header,
-                    *latch,
-                    body,
-                    condition.as_ref(),
-                    lifted.as_deref(),
-                )
+                && let Some(info) =
+                    detect_for_loop_pattern(cfg, *header, *latch, body, condition.as_ref(), lifted)
             {
                 let mut info = info;
                 // Suppress the init instruction from its block's normal emission
                 emission_eliminated_pcs.insert(info.init_pc);
-                if let Some(lifted_ro) = lifted.as_deref() {
+                if let Some(lifted_ro) = lifted {
                     // Keep for-loop naming coherent without mutating LiftedProgram.
                     let init_name = lifted_ro
                         .variables
@@ -208,15 +202,12 @@ impl StructuralAnalysis {
 
         let pc_to_block = build_pc_to_block_index(cfg);
         let mut var_use_count: HashMap<String, usize> = HashMap::new();
-        if let Some(lifted_ro) = lifted.as_deref() {
+        if let Some(lifted_ro) = lifted {
             for name in lifted_ro.var_at_use.values() {
                 *var_use_count.entry(name.clone()).or_insert(0) += 1;
             }
         }
-        let declared_vars = lifted
-            .as_deref()
-            .map(|l| l.declared_vars.clone())
-            .unwrap_or_default();
+        let declared_vars = lifted.map(|l| l.declared_vars.clone()).unwrap_or_default();
 
         // Create the emitter with all mutable state.
         let mut em = Emitter {
@@ -228,7 +219,7 @@ impl StructuralAnalysis {
                 "=== Pseudo-Code ===\n\n".to_string()
             },
             emitted: HashSet::new(),
-            lifted: lifted.as_deref(),
+            lifted,
             labels,
             if_map,
             loop_map,
@@ -1979,7 +1970,7 @@ mod tests {
             .expect("selector should have a def pc");
 
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let _pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let _pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         assert!(
             !lifted.eliminated_pcs.contains(&selector_def_pc),
@@ -2071,7 +2062,7 @@ mod tests {
         assert_eq!(chosen_def_pc, 10, "deterministic smallest-def selection");
 
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let _pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let _pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         assert!(
             !lifted.eliminated_pcs.contains(&chosen_def_pc),
@@ -2122,7 +2113,7 @@ mod tests {
         let declared_before = lifted.declared_vars.clone();
 
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let _pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let _pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         assert_eq!(
             lifted.eliminated_pcs, eliminated_before,
@@ -2175,7 +2166,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         // The condition should use the lifted variable name, not raw register
         assert!(
@@ -2238,7 +2229,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         // Should inline the comparison, not show "cond_0 != 0"
         assert!(
@@ -2324,7 +2315,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         assert!(
             pseudo.contains("for ("),
@@ -2425,7 +2416,7 @@ mod tests {
         let def_index_before = lifted.var_name_to_def_pc.clone();
 
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         assert!(
             pseudo.contains("for ("),
@@ -2500,7 +2491,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         assert!(
             pseudo.contains("while"),
@@ -2585,7 +2576,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         assert!(
             pseudo.contains("for ("),
@@ -2689,7 +2680,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         assert!(
             pseudo.contains("for ("),
@@ -2749,7 +2740,7 @@ mod tests {
         };
 
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), Some(&sig));
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), Some(&sig));
 
         assert!(
             pseudo.contains("fn test_func("),
@@ -2857,7 +2848,7 @@ mod tests {
         };
 
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), Some(&sig));
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), Some(&sig));
 
         assert!(
             pseudo.starts_with("fn loopy() {"),
@@ -2929,7 +2920,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         // The body block jumps back to header (latch), no break here.
         // This is a normal while loop pattern.
@@ -2994,7 +2985,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         // Block 4 is inside the loop and has a conditional branch to exit (8).
         // The structural analysis should detect this as an if inside the loop,
@@ -3040,7 +3031,7 @@ mod tests {
         lifted.call_targets.insert(0x100, "helper_func".to_string());
 
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         assert!(
             pseudo.contains("helper_func()"),
@@ -3078,7 +3069,7 @@ mod tests {
         lifted.call_targets.insert(0x200, "target_func".to_string());
 
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         assert!(
             pseudo.contains("target_func()"),
@@ -3114,10 +3105,10 @@ mod tests {
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
 
         let mut lifted_a = LiftedProgram::analyze(&cfg, &dataflow);
-        let pseudo_a = result.pseudo_code(&cfg, Some(&mut lifted_a), None);
+        let pseudo_a = result.pseudo_code(&cfg, Some(&lifted_a), None);
 
         let mut lifted_b = LiftedProgram::analyze(&cfg, &dataflow);
-        let pseudo_b = result.pseudo_code(&cfg, Some(&mut lifted_b), None);
+        let pseudo_b = result.pseudo_code(&cfg, Some(&lifted_b), None);
 
         assert_eq!(
             pseudo_a, pseudo_b,
@@ -3341,7 +3332,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         // Should contain if with then content
         assert!(pseudo.contains("if"), "Should contain if: {}", pseudo);
@@ -3389,7 +3380,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         assert!(
             !has_empty_if_or_while(&pseudo),
@@ -3427,7 +3418,7 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
-        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         assert!(
             !has_empty_if_or_while(&pseudo),
