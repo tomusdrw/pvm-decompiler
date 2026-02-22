@@ -107,7 +107,7 @@ fn align_to_segment_size(value: u32) -> u64 {
     if v == 0 {
         0
     } else {
-        (v + SEGMENT_SIZE - 1) / SEGMENT_SIZE * SEGMENT_SIZE
+        v.div_ceil(SEGMENT_SIZE) * SEGMENT_SIZE
     }
 }
 

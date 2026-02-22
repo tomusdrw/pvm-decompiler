@@ -349,10 +349,10 @@ impl LiftedProgram {
         let is_pointer_use = || -> bool {
             if let Some(uses) = chain_uses_index.get(&(def_pc, reg)) {
                 for u in uses {
-                    if let Some(use_instr) = instruction_at_pc.get(&u.pc) {
-                        if Self::is_used_as_base(use_instr, reg) {
-                            return true;
-                        }
+                    if let Some(use_instr) = instruction_at_pc.get(&u.pc)
+                        && Self::is_used_as_base(use_instr, reg)
+                    {
+                        return true;
                     }
                 }
             }
