@@ -25,9 +25,6 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
         if (var_16944 == 0) goto block_15583;
     }
 
-    if (var_16944 >=u 137438953440) {
-    }
-
     let ptr_922 = ptr_15 - 72
     u64[ptr_922 + 40] = 0
     let var_15414 = ptr_922 + 56
@@ -54,9 +51,6 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     let ptr_1141_48 = ptr_3
     let ptr_1141_40 = 0
     let var_17922 = 196664
-
-    if (u64[var_17922 + 9728] == 0) {
-    }
 
     let ptr_1137 = 207063 & -32
 
@@ -213,6 +207,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     }
 
     while (ptr_1297 <u ptr_1295 + 8) {
+        continue
     }
 
     while (var_3170 - 1 != 0) {

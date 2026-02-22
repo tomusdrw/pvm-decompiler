@@ -368,7 +368,9 @@ impl<'a> Emitter<'a> {
         let cond_str = condition
             .map(|c| format_condition_maybe_lifted(c, self.cfg, header, self.lifted.as_deref()))
             .unwrap_or_else(|| "...".to_string());
+        let if_start = self.output.len();
         let _ = writeln!(self.output, "{}if ({}) {{", prefix, cond_str);
+        let then_start = self.output.len();
 
         for &tb in then_blocks {
             let ctrl = self.emit_block_with_loop_control(tb, indent + 1, loop_context);
@@ -379,7 +381,9 @@ impl<'a> Emitter<'a> {
             }
             self.emitted.insert(tb);
         }
+        let has_then_content = self.output.len() > then_start;
 
+        let mut has_else_content = false;
         if !else_blocks.is_empty() {
             // Check if all else blocks are Trap-only (renders as just `return`).
             // If so, suppress the else clause entirely.
@@ -396,7 +400,7 @@ impl<'a> Emitter<'a> {
                 }
             } else {
                 // Emit else blocks into a temporary buffer to check if any content is produced.
-                let len_before = self.output.len();
+                let else_insert_at = self.output.len();
 
                 for &eb in else_blocks {
                     let ctrl = self.emit_block_with_loop_control(eb, indent + 1, loop_context);
@@ -409,16 +413,21 @@ impl<'a> Emitter<'a> {
                 }
 
                 // Only emit the `else` clause if the else blocks produced content.
-                let has_else_content = self.output.len() > len_before;
+                has_else_content = self.output.len() > else_insert_at;
                 if has_else_content {
                     // Insert "} else {" before the else content
                     self.output
-                        .insert_str(len_before, &format!("{}}} else {{\n", prefix));
+                        .insert_str(else_insert_at, &format!("{}}} else {{\n", prefix));
                 }
             }
         }
 
-        let _ = writeln!(self.output, "{}}}", prefix);
+        if has_then_content || has_else_content {
+            let _ = writeln!(self.output, "{}}}", prefix);
+        } else {
+            // Avoid emitting hollow control-flow shells.
+            self.output.truncate(if_start);
+        }
         self.emitted.insert(header);
     }
 
@@ -983,14 +992,19 @@ impl<'a> Emitter<'a> {
             self.emitted.insert(body_pc);
         }
 
-        // If the loop body produced no visible output and has many non-header body
-        // blocks (> 3), suppress the entire loop. Callee dispatch loops typically have
-        // 10+ body blocks of stack frame saves/restores that all get eliminated by
-        // lifting. Real loops with small bodies (1-2 blocks) are preserved even if
-        // their instructions are eliminated — they represent real control flow.
+        // If the loop body produced no visible output:
+        // - suppress large likely-dispatch loops entirely, keeping only header side effects
+        // - keep small loops but emit an explicit control statement to avoid hollow shells
         let body_output = &self.output[output_after_header_line..];
-        if non_header_body.len() > 3 && body_output.trim().is_empty() {
-            self.output.truncate(output_before_loop);
+        if body_output.trim().is_empty() {
+            if non_header_body.len() > 3 {
+                self.output.truncate(output_before_loop);
+                self.emit_block_body(header_pc, indent, true);
+            } else {
+                let inner_prefix = "    ".repeat(indent + 1);
+                let _ = writeln!(self.output, "{}continue", inner_prefix);
+                let _ = writeln!(self.output, "{}}}", prefix);
+            }
         } else {
             let _ = writeln!(self.output, "{}}}", prefix);
         }
@@ -1492,6 +1506,21 @@ mod tests {
             memory_base: None,
             code_len: 0,
         }
+    }
+
+    fn has_empty_if_or_while(output: &str) -> bool {
+        let lines: Vec<&str> = output.lines().collect();
+        for i in 0..lines.len().saturating_sub(1) {
+            let line = lines[i].trim();
+            let next = lines[i + 1].trim();
+            if (line.starts_with("if (") || line.starts_with("while ("))
+                && line.ends_with('{')
+                && next == "}"
+            {
+                return true;
+            }
+        }
+        false
     }
 
     // --- Pseudo-code output tests ---
@@ -3048,6 +3077,84 @@ mod tests {
         assert!(
             !pseudo.contains("else"),
             "Empty else block should be suppressed: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_omit_hollow_if_shell() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // Header branches to a no-op then block and a trap else block.
+        // In lifted mode this used to produce an empty `if {}` shell.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
+                    vec![10, 20],
+                ),
+                (10, vec![(10, Instruction::Fallthrough)], vec![30]),
+                (20, vec![(20, Instruction::Trap)], vec![]),
+                (30, vec![(30, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+
+        assert!(
+            !has_empty_if_or_while(&pseudo),
+            "Should not emit hollow if/while shells: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_omit_hollow_while_shell() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // Loop with an empty latch/body should not render as `while (...) {}`.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::BranchNeImm {
+                            reg: 1,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
+                    vec![10, 20],
+                ),
+                (10, vec![(10, Instruction::Jump { offset: -10 })], vec![0]),
+                (20, vec![(20, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&mut lifted), None);
+
+        assert!(
+            !has_empty_if_or_while(&pseudo),
+            "Should not emit hollow if/while shells: {}",
             pseudo
         );
     }
