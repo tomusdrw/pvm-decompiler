@@ -1297,9 +1297,14 @@ fn format_condition(cond: &Condition) -> String {
     let op = match cond.op {
         CondOp::Eq => "==",
         CondOp::Ne => "!=",
+        CondOp::LtS => "<s",
+        CondOp::LeS => "<=s",
         CondOp::GeS => ">=s",
+        CondOp::GtS => ">s",
+        CondOp::LeU => "<=u",
         CondOp::GeU => ">=u",
         CondOp::LtU => "<u",
+        CondOp::GtU => ">u",
     };
     format!("{} {} {}", lhs, op, rhs)
 }
@@ -1343,9 +1348,14 @@ fn format_condition_lifted(cond: &Condition, branch_pc: usize, lifted: &LiftedPr
     let op = match cond.op {
         CondOp::Eq => "==",
         CondOp::Ne => "!=",
+        CondOp::LtS => "<s",
+        CondOp::LeS => "<=s",
         CondOp::GeS => ">=s",
+        CondOp::GtS => ">s",
+        CondOp::LeU => "<=u",
         CondOp::GeU => ">=u",
         CondOp::LtU => "<u",
+        CondOp::GtU => ">u",
     };
     format!("{} {} {}", lhs, op, rhs)
 }
@@ -1516,6 +1526,150 @@ mod tests {
             "Should contain condition: {}",
             pseudo
         );
+    }
+
+    #[test]
+    fn test_branch_opcode_condition_rendering_paths() {
+        let cases = vec![
+            (
+                Instruction::BranchEqImm {
+                    reg: 1,
+                    value: 10,
+                    offset: 4,
+                },
+                "r1 == 10",
+            ),
+            (
+                Instruction::BranchNeImm {
+                    reg: 2,
+                    value: 11,
+                    offset: 4,
+                },
+                "r2 != 11",
+            ),
+            (
+                Instruction::BranchLtSImm {
+                    reg: 3,
+                    value: 12,
+                    offset: 4,
+                },
+                "r3 <s 12",
+            ),
+            (
+                Instruction::BranchLeSImm {
+                    reg: 4,
+                    value: 13,
+                    offset: 4,
+                },
+                "r4 <=s 13",
+            ),
+            (
+                Instruction::BranchGeSImm {
+                    reg: 5,
+                    value: 14,
+                    offset: 4,
+                },
+                "r5 >=s 14",
+            ),
+            (
+                Instruction::BranchGtSImm {
+                    reg: 6,
+                    value: 15,
+                    offset: 4,
+                },
+                "r6 >s 15",
+            ),
+            (
+                Instruction::BranchLtUImm {
+                    reg: 7,
+                    value: 16,
+                    offset: 4,
+                },
+                "r7 <u 16",
+            ),
+            (
+                Instruction::BranchLeUImm {
+                    reg: 8,
+                    value: 17,
+                    offset: 4,
+                },
+                "r8 <=u 17",
+            ),
+            (
+                Instruction::BranchGeUImm {
+                    reg: 9,
+                    value: 18,
+                    offset: 4,
+                },
+                "r9 >=u 18",
+            ),
+            (
+                Instruction::BranchGtUImm {
+                    reg: 10,
+                    value: 19,
+                    offset: 4,
+                },
+                "r10 >u 19",
+            ),
+            (
+                Instruction::BranchEq {
+                    reg1: 1,
+                    reg2: 2,
+                    offset: 4,
+                },
+                "r1 == r2",
+            ),
+            (
+                Instruction::BranchNe {
+                    reg1: 2,
+                    reg2: 3,
+                    offset: 4,
+                },
+                "r2 != r3",
+            ),
+            (
+                Instruction::BranchLtS {
+                    reg1: 3,
+                    reg2: 4,
+                    offset: 4,
+                },
+                "r3 <s r4",
+            ),
+            (
+                Instruction::BranchGeS {
+                    reg1: 4,
+                    reg2: 5,
+                    offset: 4,
+                },
+                "r4 >=s r5",
+            ),
+            (
+                Instruction::BranchLtU {
+                    reg1: 5,
+                    reg2: 6,
+                    offset: 4,
+                },
+                "r5 <u r6",
+            ),
+            (
+                Instruction::BranchGeU {
+                    reg1: 6,
+                    reg2: 7,
+                    offset: 4,
+                },
+                "r6 >=u r7",
+            ),
+        ];
+
+        for (instr, expected) in cases {
+            let cond = extract_condition(&instr).expect("branch condition should be extracted");
+            let rendered = format_condition(&cond);
+            assert_eq!(rendered, expected);
+            assert!(
+                !rendered.contains("..."),
+                "Rendered condition should not contain placeholder"
+            );
+        }
     }
 
     #[test]
