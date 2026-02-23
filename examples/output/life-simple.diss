@@ -1,7 +1,4 @@
 fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
-    goto block_06d7;
-
-    block_06d7:
     let var_274 = r7 - 327680
     mem[131076] = 1
     mem[131077] = 1
@@ -13,19 +10,14 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
 
     block_0354:
     block_03a8:
-    block_03f0:
     block_041b:
-    block_046c:
     block_000a:
     block_0077:
-    block_00b2:
     block_00f8:
     block_00cc:
     block_006c:
-    block_0055:
     block_03fb:
     block_03a3:
-    block_038f:
     block_000a:
     block_0354:
     block_052d:
@@ -345,9 +337,7 @@ fn func_1(r1: u64) {
     u64[r1 + 1352] = var_235
     mem[328468] = var_235
     u64[r1 + 1368] = 103079412480
-    goto block_0cf5;
 
-    block_0cf5:
     let var_243 = u64[r1 + 1368] + 327680 + (u64[r1 + 1368] >>u 32)
     halt()
 }

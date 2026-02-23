@@ -160,6 +160,7 @@ impl StructuralAnalysis {
                 }
             }
         }
+        let switch_headers: HashSet<usize> = switch_map.keys().copied().collect();
 
         let emission_plan = build_emission_plan(
             cfg,
@@ -184,6 +185,7 @@ impl StructuralAnalysis {
             labels,
             if_map,
             loop_map,
+            switch_headers,
             plan: &emission_plan,
             declared_vars,
         };
@@ -224,9 +226,8 @@ impl StructuralAnalysis {
             } else if let Some(Structure::Switch { reg, cases, .. }) = switch_map.get(&block_pc) {
                 em.emit_switch(block_pc, *reg, cases);
             } else {
-                // Plain block
-                em.emit_block_body(block_pc, 0, false);
-                em.emitted.insert(block_pc);
+                // Emit a linear plain region to avoid redundant goto-to-next-block noise.
+                em.emit_linear_region(block_pc, 0);
             }
         }
 
@@ -265,11 +266,63 @@ struct Emitter<'a, 'p> {
     labels: HashMap<usize, String>,
     if_map: HashMap<usize, &'a Structure>,
     loop_map: HashMap<usize, &'a Structure>,
+    switch_headers: HashSet<usize>,
     plan: &'p EmissionPlan,
     declared_vars: HashSet<String>,
 }
 
 impl<'a, 'p> Emitter<'a, 'p> {
+    /// Emit a maximal straight-line plain-block chain to reduce redundant gotos.
+    fn emit_linear_region(&mut self, start_pc: usize, indent: usize) {
+        let chain = self.collect_linear_region(start_pc);
+        for (idx, &block_pc) in chain.iter().enumerate() {
+            // Chained blocks have a single predecessor in the chain, so they
+            // can be rendered as plain fallthrough without local labels.
+            let fallthrough_target = chain.get(idx + 1).copied();
+            self.emit_block_body_with_fallthrough(block_pc, indent, false, fallthrough_target);
+            self.emitted.insert(block_pc);
+        }
+    }
+
+    fn collect_linear_region(&self, start_pc: usize) -> Vec<usize> {
+        let mut chain = vec![start_pc];
+        let mut seen: HashSet<usize> = HashSet::from([start_pc]);
+        let mut current = start_pc;
+
+        loop {
+            let Some(block) = self.cfg.blocks.get(&current) else {
+                break;
+            };
+            if block.successors.len() != 1 {
+                break;
+            }
+            let succ = block.successors[0];
+            if !self.cfg.blocks.contains_key(&succ)
+                || self.emitted.contains(&succ)
+                || seen.contains(&succ)
+                || self.loop_map.contains_key(&succ)
+                || self.if_map.contains_key(&succ)
+                || self.switch_headers.contains(&succ)
+            {
+                break;
+            }
+
+            let Some(succ_block) = self.cfg.blocks.get(&succ) else {
+                break;
+            };
+            // Only chain into blocks with a single predecessor to avoid hiding join labels.
+            if succ_block.predecessors.len() != 1 {
+                break;
+            }
+
+            chain.push(succ);
+            seen.insert(succ);
+            current = succ;
+        }
+
+        chain
+    }
+
     fn emit_if(
         &mut self,
         header: usize,
@@ -410,6 +463,16 @@ impl<'a, 'p> Emitter<'a, 'p> {
     /// If `skip_terminator` is true, the last instruction (branch/jump) is not emitted.
     /// When `lifted` is provided, uses variable names and skips eliminated PCs.
     fn emit_block_body(&mut self, block_pc: usize, indent: usize, skip_terminator: bool) {
+        self.emit_block_body_with_fallthrough(block_pc, indent, skip_terminator, None);
+    }
+
+    fn emit_block_body_with_fallthrough(
+        &mut self,
+        block_pc: usize,
+        indent: usize,
+        skip_terminator: bool,
+        fallthrough_target: Option<usize>,
+    ) {
         // Skip blocks that are entirely suppressed (e.g., callee code misassigned to caller)
         if let Some(lifted) = self.lifted
             && lifted.suppressed_blocks.contains(&block_pc)
@@ -444,6 +507,9 @@ impl<'a, 'p> Emitter<'a, 'p> {
                             crate::cfg::ControlFlowGraph::compute_jump_target(*pc, *offset);
                         if let Some(callee) = lifted.call_targets.get(&target) {
                             let _ = writeln!(self.output, "{}{}()", prefix, callee);
+                            continue;
+                        }
+                        if Some(target) == fallthrough_target {
                             continue;
                         }
                         let target_label = self
@@ -1287,7 +1353,7 @@ fn block_may_emit_output(
                 if lifted.call_targets.contains_key(&target) {
                     return true;
                 }
-                continue;
+                return true;
             }
 
             if matches!(instr, Instruction::JumpInd { .. }) {
@@ -3516,6 +3582,46 @@ mod tests {
         use crate::dataflow::DataFlowAnalysis;
         use crate::lifting::LiftedProgram;
 
+        // Target block has two predecessors, so it cannot be linearized as
+        // simple fallthrough and must keep explicit goto form.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 0, value: 1 }),
+                        (4, Instruction::Jump { offset: 20 }),
+                    ],
+                    vec![24],
+                ),
+                (10, vec![(10, Instruction::Jump { offset: 14 })], vec![24]),
+                (24, vec![(24, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
+
+        assert!(
+            pseudo.contains("goto block_0018;"),
+            "Unknown Jump should render as explicit labeled goto: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("block_0018:"),
+            "Goto target should have a stable label definition: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_linear_successor_jump_is_rendered_as_fallthrough() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
         let cfg = build_test_cfg(
             0,
             vec![
@@ -3537,13 +3643,8 @@ mod tests {
         let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
         assert!(
-            pseudo.contains("goto block_000a;"),
-            "Unknown Jump should render as explicit labeled goto: {}",
-            pseudo
-        );
-        assert!(
-            pseudo.contains("block_000a:"),
-            "Goto target should have a stable label definition: {}",
+            !pseudo.contains("goto block_000a;"),
+            "Linear jump to immediate successor should be rendered as fallthrough: {}",
             pseudo
         );
     }

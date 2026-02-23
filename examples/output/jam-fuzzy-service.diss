@@ -1,7 +1,4 @@
 fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
-    goto block_c481;
-
-    block_c481:
     var_10091 = 1240; jump 39682
 
     let ptr_1113 = ptr_657 - 160
@@ -24,6 +21,8 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
     if (var_16944 >=u 137438953440) {
         let ptr_1073 = 206720 & -4
+    } else {
+        goto block_12409;
     }
 
     block_12409:
@@ -57,8 +56,17 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     let ptr_1141_40 = 0
     let var_17922 = 196664
 
+    if (u64[var_17922 + 9728] == 0) {
+        goto block_16a29;
+    }
+
     block_16a29:
     let ptr_1137 = 207063 & -32
+
+    if (ptr_1137 != 0) {
+    } else {
+        goto block_16d66;
+    }
 
     if (sbrk(sbrk(0) - ptr_1137 neg+ 32) == 0) {
     } else {
@@ -15513,6 +15521,8 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
         let var_211 = var_108 - var_101
         let var_213 = var_97 << 33 >>u 62
         let var_215 = var_97 << 43
+    } else {
+        goto block_12f82;
     }
 
     block_12d2f:
@@ -15655,6 +15665,8 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
         ptr_10_48 = var_215 >>u 43
         ptr_10_24 = var_210
         let var_224 = zext16(var_210)
+    } else {
+        goto block_12e93;
     }
 
     block_12e86:
@@ -15960,9 +15972,6 @@ fn func_9(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
 }
 
 fn func_10(r1: u64) {
-    goto block_1286;
-
-    block_1286:
     let var_1 = u64[r1 + 88]
     let var_2 = u64[r1 + 80]
     let var_3 = r1 + 104

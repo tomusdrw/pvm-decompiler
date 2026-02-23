@@ -1,8 +1,5 @@
 fn main() {
     let var_2 = 142
-    goto block_000f;
-
-    block_000f:
 }
 
 fn func_0() {
