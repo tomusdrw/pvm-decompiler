@@ -446,6 +446,13 @@ impl<'a, 'p> Emitter<'a, 'p> {
                             let _ = writeln!(self.output, "{}{}()", prefix, callee);
                             continue;
                         }
+                        let target_label = self
+                            .labels
+                            .get(&target)
+                            .cloned()
+                            .unwrap_or_else(|| format!("block_{:04x}", target));
+                        let _ = writeln!(self.output, "{}goto {};", prefix, target_label);
+                        continue;
                     }
                     // Check if this JumpInd targets a known function entry
                     if let Instruction::JumpInd { reg, .. } = instr {
@@ -467,7 +474,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
                         continue;
                     }
                     // Skip noise instructions in lifted mode.
-                    if matches!(instr, Instruction::Fallthrough | Instruction::Jump { .. }) {
+                    if matches!(instr, Instruction::Fallthrough) {
                         continue;
                     }
                     // Render conditional branches with goto labels instead of raw offsets.
@@ -1776,10 +1783,10 @@ fn detect_for_loop_pattern(
     })
 }
 
-fn build_block_labels(_cfg: &ControlFlowGraph, structures: &[Structure]) -> HashMap<usize, String> {
+fn build_block_labels(cfg: &ControlFlowGraph, structures: &[Structure]) -> HashMap<usize, String> {
     let mut labels = HashMap::new();
 
-    // Collect all goto targets: switch case targets and blocks not covered by structures.
+    // Collect targets that can be rendered as labeled gotos.
     let mut goto_targets: HashSet<usize> = HashSet::new();
 
     for s in structures {
@@ -1791,6 +1798,30 @@ fn build_block_labels(_cfg: &ControlFlowGraph, structures: &[Structure]) -> Hash
         {
             for (_, target) in cases {
                 goto_targets.insert(*target);
+            }
+        }
+    }
+
+    for block in cfg.blocks.values() {
+        for (pc, instr) in &block.instructions {
+            match instr {
+                Instruction::Jump { offset } => {
+                    let target = crate::cfg::ControlFlowGraph::compute_jump_target(*pc, *offset);
+                    if cfg.blocks.contains_key(&target) {
+                        goto_targets.insert(target);
+                    }
+                }
+                _ => {
+                    let shape = InstructionShape::classify(instr);
+                    if shape.is_conditional_branch()
+                        && let Some(offset) = shape.branch_offset()
+                    {
+                        let target = crate::cfg::ControlFlowGraph::compute_jump_target(*pc, offset);
+                        if cfg.blocks.contains_key(&target) {
+                            goto_targets.insert(target);
+                        }
+                    }
+                }
             }
         }
     }
@@ -3476,6 +3507,43 @@ mod tests {
         assert!(
             pseudo.contains("helper_func()"),
             "Should render Jump to known function as call: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_unresolved_direct_jump_renders_labeled_goto() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 0, value: 1 }),
+                        (4, Instruction::Jump { offset: 6 }),
+                    ],
+                    vec![10],
+                ),
+                (10, vec![(10, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
+
+        assert!(
+            pseudo.contains("goto block_000a;"),
+            "Unknown Jump should render as explicit labeled goto: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("block_000a:"),
+            "Goto target should have a stable label definition: {}",
             pseudo
         );
     }

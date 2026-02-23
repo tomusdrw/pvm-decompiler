@@ -189,6 +189,7 @@ impl StructuralAnalysis {
         // user loop recovery.
         let switches = Self::detect_switches(cfg, program, &function_entry_pcs);
         let dispatch_scc_blocks = Self::collect_dispatch_scc_blocks(&switches, &sccs);
+        let irreducible_scc_blocks = Self::collect_irreducible_scc_blocks(cfg, &sccs);
 
         // Detect reducible loops (back-edges where target dominates source),
         // skipping SCCs marked as dispatch infrastructure.
@@ -203,9 +204,12 @@ impl StructuralAnalysis {
                 _ => None,
             })
             .collect();
+        let mut excluded_if_headers = loop_headers;
+        excluded_if_headers.extend(dispatch_scc_blocks.iter().copied());
+        excluded_if_headers.extend(irreducible_scc_blocks.iter().copied());
 
         // Detect if-then-else patterns
-        let ifs = Self::detect_if_then_else(cfg, &dom_tree, &loop_headers);
+        let ifs = Self::detect_if_then_else(cfg, &dom_tree, &excluded_if_headers);
         structures.extend(ifs);
 
         // Detect switch/case patterns
@@ -320,6 +324,38 @@ impl StructuralAnalysis {
                 blocks.extend(scc.iter().copied());
             }
         }
+        blocks
+    }
+
+    /// Collect irreducible SCC blocks (multi-entry SCCs). These regions are
+    /// left for explicit unstructured fallback (labeled goto) instead of being
+    /// forced into if/loop shapes.
+    fn collect_irreducible_scc_blocks(
+        cfg: &ControlFlowGraph,
+        sccs: &[HashSet<usize>],
+    ) -> HashSet<usize> {
+        let mut blocks = HashSet::new();
+
+        for scc in sccs {
+            // Single-node SCCs are trivially reducible for our purposes here.
+            if scc.len() <= 1 {
+                continue;
+            }
+
+            let mut entry_nodes = HashSet::new();
+            for &node in scc {
+                if let Some(block) = cfg.blocks.get(&node)
+                    && block.predecessors.iter().any(|pred| !scc.contains(pred))
+                {
+                    entry_nodes.insert(node);
+                }
+            }
+
+            if entry_nodes.len() > 1 {
+                blocks.extend(scc.iter().copied());
+            }
+        }
+
         blocks
     }
 
@@ -438,7 +474,7 @@ impl StructuralAnalysis {
     fn detect_if_then_else(
         cfg: &ControlFlowGraph,
         dom_tree: &DominatorTree,
-        loop_headers: &HashSet<usize>,
+        excluded_headers: &HashSet<usize>,
     ) -> Vec<Structure> {
         let mut ifs = Vec::new();
 
@@ -448,8 +484,8 @@ impl StructuralAnalysis {
                 None => continue,
             };
 
-            // Only consider 2-successor blocks that aren't loop headers
-            if block.successors.len() != 2 || loop_headers.contains(&block_pc) {
+            // Only consider 2-successor blocks that are eligible for structured IFs.
+            if block.successors.len() != 2 || excluded_headers.contains(&block_pc) {
                 continue;
             }
 
@@ -977,6 +1013,74 @@ mod tests {
         assert!(
             dispatch_switch.is_some(),
             "Dispatch switch should still be recorded"
+        );
+    }
+
+    #[test]
+    fn test_irreducible_scc_blocks_are_excluded_from_if_recovery() {
+        // Irreducible SCC:
+        // 10 branches into both 20 and 30 (two entries into SCC {20,30})
+        // 20 -> 30 or exit 50
+        // 30 -> 20
+        // This SCC should not be force-recovered as structured IF/loop headers.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(0, Instruction::LoadImm { reg: 0, value: 1 })],
+                    vec![10],
+                ),
+                (
+                    10,
+                    vec![(
+                        10,
+                        Instruction::BranchNeImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
+                    vec![20, 30],
+                ),
+                (
+                    20,
+                    vec![(
+                        20,
+                        Instruction::BranchNeImm {
+                            reg: 1,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
+                    vec![30, 50],
+                ),
+                (30, vec![(30, Instruction::Jump { offset: -10 })], vec![20]),
+                (50, vec![(50, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+
+        assert!(
+            !result.structures.iter().any(|s| matches!(
+                s,
+                Structure::IfThenElse {
+                    header: 20 | 30,
+                    ..
+                }
+            )),
+            "Irreducible SCC headers must stay unstructured"
+        );
+        assert!(
+            !result.structures.iter().any(|s| matches!(
+                s,
+                Structure::Loop {
+                    header: 20 | 30,
+                    ..
+                }
+            )),
+            "Irreducible SCC headers must not be forced into loop recovery"
         );
     }
 

@@ -1,4 +1,7 @@
 fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
+    goto block_06d7;
+
+    block_06d7:
     let var_274 = r7 - 327680
     mem[131076] = 1
     mem[131077] = 1
@@ -7,6 +10,112 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     let var_291 = 197120
     let var_292 = 4
     func_1()
+
+    block_0354:
+    block_03a8:
+    block_03f0:
+    block_041b:
+    block_046c:
+    block_000a:
+    block_0077:
+    block_00b2:
+    block_00f8:
+    block_00cc:
+    block_006c:
+    block_0055:
+    block_03fb:
+    block_03a3:
+    block_038f:
+    block_000a:
+    block_0354:
+    block_052d:
+    let var_207 = u64[r1 + 200]
+    u64[r1 + 328] = var_207
+    let cond_12 = !(var_207 ^ 2)
+    u64[r1 + 336] = cond_12
+    u64[r1 + 344] = cond_12
+    let var_212 = u64[r1 + 200]
+    u64[r1 + 352] = var_212
+    let cond_13 = !(var_212 ^ 3)
+    u64[r1 + 360] = cond_13
+    u64[r1 + 368] = cond_13
+    u64[r1 + 376] = cond_12
+    u64[r1 + 384] = cond_13
+    let var_223 = cond_12 | cond_13
+    u64[r1 + 392] = var_223
+    u64[r1 + 400] = var_223
+    u64[r1 + 408] = var_223
+    let cond_14 = var_223 != 0
+    u64[r1 + 416] = cond_14
+    if (var_223 != 0) goto block_068f;
+
+    block_068f:
+    u64[r1 + 600] = 1
+    goto block_06a6;
+
+    goto block_069b;
+
+    block_06a6:
+    u64[r1 + 464] = u64[r1 + 600]
+    goto block_05ef;
+
+    block_069b:
+    u64[r1 + 600] = 0
+    goto block_06a6;
+
+    block_05ef:
+    let var_240 = u64[r1 + 64]
+    u64[r1 + 472] = var_240
+    let var_242 = u64[r1 + 56]
+    u64[r1 + 480] = var_242
+    let var_246 = var_240 * var_242
+    u64[r1 + 488] = var_246
+    u64[r1 + 496] = var_246
+    u64[r1 + 504] = var_246
+    let var_249 = u64[r1 + 144]
+    u64[r1 + 512] = var_249
+    let var_253 = var_246 + var_249
+    u64[r1 + 520] = var_253
+    u64[r1 + 528] = var_253
+    let var_255 = u64[r1 + 48]
+    u64[r1 + 536] = var_255
+    u64[r1 + 544] = var_253
+    let var_261 = var_255 + var_253
+    u64[r1 + 552] = var_261
+    u64[r1 + 560] = var_261
+    u8[var_261 + 327680] = u64[r1 + 464]
+    let var_263 = u64[r1 + 144]
+    u64[r1 + 576] = var_263
+    let var_266 = var_263 + 1
+    u64[r1 + 584] = var_266
+    u64[r1 + 592] = var_266
+    u64[r1 + 144] = var_266
+    goto block_041b;
+
+    block_05b1:
+    let var_230 = u64[r1 + 200]
+    u64[r1 + 424] = var_230
+    let cond_15 = !(var_230 ^ 3)
+    u64[r1 + 432] = cond_15
+    u64[r1 + 440] = cond_15
+    u64[r1 + 448] = cond_15
+    let cond_16 = cond_15 != 0
+    u64[r1 + 456] = cond_16
+    if (cond_15 != 0) goto block_06b3;
+
+    block_06b3:
+    u64[r1 + 608] = 1
+    goto block_06ca;
+
+    goto block_06bf;
+
+    block_06ca:
+    u64[r1 + 464] = u64[r1 + 608]
+    goto block_05ef;
+
+    block_06bf:
+    u64[r1 + 608] = 0
+    goto block_06ca;
 }
 
 fn func_0() {
@@ -236,7 +345,9 @@ fn func_1(r1: u64) {
     u64[r1 + 1352] = var_235
     mem[328468] = var_235
     u64[r1 + 1368] = 103079412480
+    goto block_0cf5;
 
+    block_0cf5:
     let var_243 = u64[r1 + 1368] + 327680 + (u64[r1 + 1368] >>u 32)
     halt()
 }
