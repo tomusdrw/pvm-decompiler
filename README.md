@@ -1,217 +1,125 @@
-# PVM Decompiler (pvm-decompiler)
+# PVM Decompiler (`pvm-decompiler`)
 
-A tool to decompile PVM (Polkadot Virtual Machine) bytecode into readable high-level pseudo-code.
+Decompiler for PVM (Polkadot Virtual Machine) bytecode that emits structured, readable pseudo-code.
+
+## Status
+
+This project is under active development and output is best-effort. It is useful for reverse engineering and inspection, but generated pseudo-code is not guaranteed to be source-equivalent for every binary.
+
+## Features
+
+- Decodes SPI and raw ProgramBlob PVM binaries
+- Builds CFGs and detects function boundaries
+- Runs dataflow/liveness and expression lifting
+- Recovers high-level structures (`if/else`, loops, `switch` where possible)
+- Infers typed variable names (`u32`, `i64`, `ptr`, `bool`)
+- Resolves many direct and indirect call patterns
+- Emits progress to stderr for long-running decompiles
+
+## Install
+
+### From source
+
+```bash
+cargo build --release
+./target/release/pvm-decompiler --help
+```
+
+### Local developer install
+
+```bash
+cargo install --path .
+```
 
 ## Usage
 
 ```bash
-# Default: clean pseudo-code output only
-cargo run -- path/to/file.pvm
+# Default: pseudo-code only
+pvm-decompiler path/to/program.pvm
 
-# Verbose: include CFG, dataflow, and structural analysis summaries
-cargo run -- -v path/to/file.pvm
+# Verbose analysis summaries (CFG/dataflow/structuring)
+pvm-decompiler -v path/to/program.pvm
 
-# Debug: include raw instructions and all diagnostics
-cargo run -- --debug path/to/file.pvm
+# Full debug diagnostics (includes raw instruction dump)
+pvm-decompiler --debug path/to/program.pvm
 ```
 
-### Output
+### CLI options
 
-The decompiler produces pseudo-code with:
-- Function signatures with typed parameters (`fn func_0(var_0: u32, ptr_1: ptr) { ... }`)
-- Named variables (`var_0`, `ptr_1`, `cond_2`) with width/signedness types (`u32`, `i64`, `bool`)
-- Inline `let` declarations at first assignment (`let var_0: u32 = 42`)
-- High-level control structures: `for`, `while`, `if/else`, `switch/case`
-- `break`/`continue` in loop bodies, with unreachable code suppressed, redundant trailing `continue` elided, and condition variable definitions eliminated when inlined
-- Comparison inlining in conditions (e.g. `x <u y` instead of `cond_0 != 0`)
-- Full comparison inversion (`!(x <u y)` → `x >=u y`, `!(x >s y)` → `x <=s y`) and flipping (`0 <s x` → `x >s 0`)
-- Struct field access recovery (`ptr_0->field_8` instead of `u64[ptr_0 + 8]`)
-- Stack variable recovery (`local_0` instead of `u64[sp - 8]`)
-- Named JAM host calls (`gas_remaining()`, `read()`, `write()` instead of `ecalli(0)`)
-- `return` instead of `trap` at function exits
-- SSA variable coalescing for loop induction variables
-- Array access pattern recovery (`ptr[i]` instead of `u32[ptr + i * 4]`)
-- Indirect call resolution (`func_name()` instead of `call_indirect(var)` when target is constant)
-- Expression simplification: double negation elimination, constant folding, identity operations
-- Bitwise boolean pattern simplification (`0 <u (a | b)` → `(a | b) != 0`)
-- Empty else block suppression for cleaner output
-- Goto labels for unstructured branches (`if (cond) goto block_XXXX;` instead of raw jump offsets)
-- Duplicate dispatch switch suppression (identical state machine dispatchers shown only once)
-- Compound boolean condition inlining (`while (x <s 5 & x <=s 2)` instead of `while (cond != 0)`)
-- Unreachable code suppression after `return` (dispatch infrastructure removed)
+- `-v`, `--verbose`: show analysis summaries
+- `--debug`: show raw instruction diagnostics
+- `-V`, `--version`: print tool version
+- `-h`, `--help`: print usage
 
-## Example Outputs
+## Input Support
 
-All examples are compiled from WASM to PVM bytecode. The decompiler recovers high-level structure from raw register-based instructions.
+The decompiler accepts:
 
-### Fibonacci (simple, compiled with polkatool)
+- SPI-wrapped PVM binaries
+- raw ProgramBlob binaries
+- binaries with a metadata prefix (auto-stripped before decode)
 
-Input: `examples/compiled/fibonacci.pvm` — a basic Fibonacci loop compiled from Rust via polkatool.
+## Output
 
+Generated pseudo-code includes function signatures, variable recovery, lifted expressions, and recovered control flow. For sample outputs, see `examples/output/`.
+
+To regenerate all examples:
+
+```bash
+./run_examples.sh
 ```
-fn main(r1: u64, r7: u64, r8: u64) {
-    let ptr_0_56 = u32[r7]
-    let ptr_0_80 = 0
-    let ptr_0_88 = 1
-    let ptr_0_96 = 0
-
-    while (ptr_0_80 >=u ptr_0_56) {
-        ptr_0_80 = ptr_0_80 + 1
-        ptr_0_88 = ptr_0_96 + ptr_0_88
-        ptr_0_96 = ptr_0_88
-    }
-
-    mem[0] = ptr_0_96
-    let ptr_0_64 = 17179869184
-
-    let var_9 = pvm_addr(ptr_0_64) + (ptr_0_64 >>u 32)
-    halt()
-}
-
-fn func_0() {
-    return
-}
-```
-
-### Fibonacci (AssemblyScript)
-
-Input: `examples/compiled/as-fibonacci.pvm` — Fibonacci compiled from AssemblyScript via wasm-pvm. Shows cross-function calls, heap management (WASM memory grow via `sbrk`), and the actual Fibonacci loop.
-
-```
-fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
-    func_1()
-}
-
-fn func_1(r1: u64) {
-    let var_1 = u64[r1 + 8]
-    let ptr_0_40 = wasm_ptr(u64[r1])
-    let ptr_0_56 = HEAP_PTR
-    let var_9 = HEAP_PTR + 4
-    let ptr_0_88 = var_9
-    let ptr_0_112 = var_9 + 268
-    let var_15 = HEAP_PAGES
-    let ptr_0_120 = var_15
-    let ptr_0_192 = (var_15 << 16) + 15 & -16
-
-    if (((var_15 << 16) + 15 & -16) <u var_9 + 268) {
-        ...  // heap grow logic
-    }
-
-    HEAP_PTR = ptr_0_112
-    let ptr_0_520 = 0
-    let ptr_0_528 = 1
-    let ptr_0_536 = mem[ptr_0_40]
-
-    while (ptr_0_536 >s 0) {
-        let var_136 = ptr_0_528 + ptr_0_520
-        ptr_0_520 = var_136 - ptr_0_520
-        ptr_0_528 = var_136
-        ptr_0_536 = ptr_0_536 - 1
-    }
-
-    RESULT_PTR = ptr_0_88
-    RESULT_LEN = 4
-    halt()
-}
-```
-
-### Control Flow (AssemblyScript)
-
-Input: `examples/compiled/as-tests-control-flow.pvm` — Tests `if/else`, counting loops, and nested `while` with compound boolean conditions.
-
-```
-fn func_1(r1: u64) {
-    ...
-    let var_100 = mem[ptr_0_40]
-    let ptr_0_464 = var_100
-    let ptr_0_512 = 2
-
-    if (var_100 <=s 10) {
-        let ptr_0_568 = 0
-        let ptr_0_576 = ptr_0_512
-    } else {
-        ptr_0_512 = 1
-    }
-
-    while (ptr_0_568 <s ptr_0_464) {
-        ptr_0_568 = ptr_0_568 + 1
-        ptr_0_576 = ptr_0_576 + 1
-    }
-
-    let ptr_0_680 = 0
-    let ptr_0_688 = ptr_0_576
-
-    while (ptr_0_680 <s 5) {
-        let ptr_0_760 = 0
-        let ptr_0_768 = ptr_0_688
-
-        while (ptr_0_760 <s 5 & ptr_0_760 <=s 2) {
-            ptr_0_760 = ptr_0_760 + 1
-            ptr_0_768 = ptr_0_768 + 1
-        }
-
-        ptr_0_680 = ptr_0_680 + 1
-        ptr_0_688 = ptr_0_768
-    }
-
-    mem[RESULT_PTR] = ptr_0_688
-    ...
-}
-```
-
-Full outputs for all examples are in [`examples/output/`](examples/output/).
 
 ## Architecture
 
-The decompiler pipeline has 6 stages:
+Pipeline stages:
 
-```
-Binary Input (.pvm file)
-       |
-   [decoder.rs]        -- Binary parsing (SPI + ProgramBlob formats)
-       |
-   [cfg.rs]            -- Control flow graph construction
-       |
-   [functions.rs]      -- Function boundary detection
-       |
-   [dataflow.rs]       -- Def-use chains & liveness analysis
-       |
-   [lifting.rs]        -- Variable recovery, expression building,
-       |                  constant/copy propagation, expression folding,
-       |                  store-load forwarding, dead store elimination
-       |
-   [structuring.rs]    -- Structural analysis (loops, ifs, switches)
-       |                  + pseudo-code emission
-       |
-   Pseudo-code output
-```
+1. `src/decoder.rs`: binary parsing and instruction decoding
+2. `src/cfg.rs`: control-flow graph construction
+3. `src/functions.rs`: function and call-pattern detection
+4. `src/dataflow.rs`: liveness and def-use analysis
+5. `src/lifting.rs`: expression lifting and simplification
+6. `src/structuring/*`: structural recovery and pseudo-code emission
 
-Supporting modules:
-- `instruction.rs` — Classifies ~60 PVM instructions into ~12 structural shapes
-- `varint.rs` — Variable-length integer decoding
+## Limitations
+
+- Decompiled output is pseudo-code, not recompilable source.
+- Some complex or irreducible control flow may still emit goto-style labels.
+- Unknown opcodes are reported and preserved conservatively.
 
 ## Development
 
-### Prerequisites
-- Rust (stable, edition 2024)
+Prerequisite: stable Rust (edition 2024; MSRV in `Cargo.toml`).
 
-### Setup
-The project uses a local Git hook to ensure code quality before pushing.
+```bash
+# Format + lint + tests
+cargo fmt -- --check
+cargo clippy -- -D warnings
+cargo test
+
+# Refresh fixtures and quality checks
+./run_examples.sh
+./scripts/check_output_quality.sh
+```
+
+Optional local hook setup:
+
 ```bash
 git config core.hooksPath .githooks
 ```
 
-### Testing
-Run the test suite:
-```bash
-cargo test
-```
+## Documentation Index
 
-### Formatting & Linting
-```bash
-cargo fmt
-cargo clippy
-```
+- `ROADMAP.md`: project roadmap and milestones
+- `docs/output-baseline.md`: output quality baseline metrics
+- `docs/release-checklist.md`: pre-release verification checklist
+- `CONTRIBUTING.md`: contributor workflow and expectations
+- `CHANGELOG.md`: release and change history
 
-## CI/CD
-GitHub Actions are configured in `.github/workflows/ci.yml`.
+## Community
+
+- Code of Conduct: `CODE_OF_CONDUCT.md`
+- Contribution guide: `CONTRIBUTING.md`
+
+## License
+
+Licensed under the MIT license. See `LICENSE`.

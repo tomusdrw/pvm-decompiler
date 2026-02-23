@@ -3,6 +3,12 @@ name = "pvm-decompiler"
 repository = "https://github.com/tomusdrw/pvm-decompiler"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.87"
+description = "Decompiler for Polkadot Virtual Machine (PVM) bytecode"
+readme = "README.md"
+license = "MIT"
+keywords = ["pvm", "polkadot", "decompiler", "bytecode", "reverse-engineering"]
+categories = ["command-line-utilities", "development-tools", "compilers"]
 
 [dependencies]
 atty = "0.2"

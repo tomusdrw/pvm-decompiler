@@ -33,6 +33,16 @@ enum Verbosity {
     Debug,
 }
 
+fn print_usage(program: &str) {
+    eprintln!("Usage: {} [OPTIONS] <file.pvm>", program);
+    eprintln!();
+    eprintln!("Options:");
+    eprintln!("  -v, --verbose  Show CFG, dataflow, and structural analysis");
+    eprintln!("      --debug    Show raw instructions and all diagnostics");
+    eprintln!("  -V, --version  Show version");
+    eprintln!("  -h, --help     Show this help message");
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
 
@@ -44,19 +54,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         match arg.as_str() {
             "-v" | "--verbose" => verbosity = Verbosity::Verbose,
             "--debug" => verbosity = Verbosity::Debug,
+            "-V" | "--version" => {
+                println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+                return Ok(());
+            }
             "-h" | "--help" => {
-                eprintln!("Usage: {} [OPTIONS] <file.pvm>", args[0]);
-                eprintln!();
-                eprintln!("Options:");
-                eprintln!("  -v, --verbose  Show CFG, dataflow, and structural analysis");
-                eprintln!("      --debug    Show raw instructions and all diagnostics");
-                eprintln!("  -h, --help     Show this help message");
+                print_usage(&args[0]);
                 return Ok(());
             }
             _ => {
                 if arg.starts_with('-') {
                     eprintln!("Unknown option: {}", arg);
-                    return Ok(());
+                    print_usage(&args[0]);
+                    std::process::exit(2);
+                }
+                if filename.is_some() {
+                    eprintln!("Only one input file can be provided");
+                    print_usage(&args[0]);
+                    std::process::exit(2);
                 }
                 filename = Some(arg.clone());
             }
@@ -66,8 +81,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let filename = match filename {
         Some(f) => f,
         None => {
-            eprintln!("Usage: {} [OPTIONS] <file.pvm>", args[0]);
-            return Ok(());
+            print_usage(&args[0]);
+            std::process::exit(2);
         }
     };
 
