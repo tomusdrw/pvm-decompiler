@@ -909,13 +909,7 @@ mod integration_tests {
                         (0, Instruction::LoadImm { reg: 9, value: 17 }),
                         (4, Instruction::LoadImm { reg: 7, value: 55 }),
                         (8, Instruction::LoadImm { reg: 6, value: 9 }),
-                        (
-                            12,
-                            Instruction::LoadImm64 {
-                                reg: 0,
-                                value: 2,
-                            },
-                        ),
+                        (12, Instruction::LoadImm64 { reg: 0, value: 2 }),
                         (16, Instruction::Jump { offset: 84 }),
                     ],
                     vec![20],
@@ -952,8 +946,7 @@ mod integration_tests {
         let mut params = HashMap::new();
         params.insert("callee".to_string(), vec![7]);
 
-        let eliminated =
-            redundant_call_setup_pcs_for_function(&cfg, &dataflow, &patterns, &params);
+        let eliminated = redundant_call_setup_pcs_for_function(&cfg, &dataflow, &patterns, &params);
 
         assert!(
             eliminated.contains(&0),

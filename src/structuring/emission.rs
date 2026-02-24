@@ -2119,8 +2119,7 @@ fn format_call_arg(
 
     if let Some(name) = lifted.var_at_use.get(&(call_pc, reg)) {
         if let Some(def_pc) = lifted.var_name_to_def_pc.get(name.as_str())
-            && (lifted.eliminated_pcs.contains(def_pc)
-                || emission_eliminated_pcs.contains(def_pc))
+            && (lifted.eliminated_pcs.contains(def_pc) || emission_eliminated_pcs.contains(def_pc))
             && let Some(expr) = lifted.expressions.get(def_pc)
         {
             let resolved = lifted.resolve_eliminated_vars(expr);
@@ -3769,21 +3768,10 @@ mod tests {
                 (
                     0,
                     vec![
-                        (
-                            0,
-                            Instruction::LoadImm {
-                                reg: 1,
-                                value: 100,
-                            },
-                        ),
+                        (0, Instruction::LoadImm { reg: 1, value: 100 }),
                         (4, Instruction::LoadImm { reg: 7, value: 17 }),
                         (8, Instruction::LoadImm { reg: 0, value: 1 }),
-                        (
-                            12,
-                            Instruction::Jump {
-                                offset: 0x100 - 12,
-                            },
-                        ),
+                        (12, Instruction::Jump { offset: 0x100 - 12 }),
                     ],
                     vec![20],
                 ),
