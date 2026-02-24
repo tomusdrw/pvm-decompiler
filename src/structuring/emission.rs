@@ -2403,13 +2403,13 @@ fn recover_folded_addition_rhs(
     }
 
     match instr {
-        Instruction::Add32 { src1, src2, .. } | Instruction::Add64 { src1, src2, .. } => Some(
-            format!(
+        Instruction::Add32 { src1, src2, .. } | Instruction::Add64 { src1, src2, .. } => {
+            Some(format!(
                 "{} + {}",
                 format_add_operand(lifted, pc, *src1, var_aliases),
                 format_add_operand(lifted, pc, *src2, var_aliases)
-            ),
-        ),
+            ))
+        }
         _ => None,
     }
 }
