@@ -30,6 +30,7 @@ fn func_1(r1: u64) {
     let var_82 = var_81 + ptr_0_400
 
     if (var_81 <u var_82) {
+        r4 = -1
     }
 
     HEAP_PAGES = var_82
@@ -46,6 +47,7 @@ fn func_1(r1: u64) {
     goto block_031a;
 
     if (var_104 <u 256) {
+        r4 = -1
     } else {
         HEAP_PAGES = var_104
         let ptr_14 = sbrk(var_104 - var_103 << 16)

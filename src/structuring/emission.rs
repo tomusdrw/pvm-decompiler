@@ -1161,6 +1161,16 @@ fn build_emission_plan<'a>(
         for name in lifted_ro.var_at_use.values() {
             *var_use_count.entry(name.clone()).or_insert(0) += 1;
         }
+        for (&(_def_pc, reg), var) in &lifted_ro.variables {
+            if !var.name.starts_with("var_") {
+                continue;
+            }
+            if var_use_count.get(&var.name).copied().unwrap_or(0) == 0 {
+                var_aliases
+                    .entry(var.name.clone())
+                    .or_insert_with(|| format!("r{}", reg));
+            }
+        }
     }
     emission_eliminated_pcs.extend(collect_condition_elimination_pcs(
         structures,
@@ -2366,7 +2376,10 @@ fn format_pc_with_local_declarations(
     let raw_line = recover_folded_addition_assignment(lifted, pc, instr, &raw_line, var_aliases);
     let raw_line = apply_aliases(&raw_line, var_aliases);
     if let Some(var_name) = declare_var
-        && declared_vars.insert(resolve_alias(&var_name, var_aliases))
+        && {
+            let resolved = resolve_alias(&var_name, var_aliases);
+            !is_register_name(&resolved) && declared_vars.insert(resolved)
+        }
     {
         return Some(format!("let {}", raw_line));
     }
@@ -2558,6 +2571,11 @@ fn replace_identifier(input: &str, from: &str, to: &str) -> String {
 
 fn is_ident_byte(b: u8) -> bool {
     b.is_ascii_alphanumeric() || b == b'_'
+}
+
+fn is_register_name(name: &str) -> bool {
+    name.strip_prefix('r')
+        .is_some_and(|rest| !rest.is_empty() && rest.chars().all(|c| c.is_ascii_digit()))
 }
 
 fn resolve_alias(name: &str, aliases: &HashMap<String, String>) -> String {

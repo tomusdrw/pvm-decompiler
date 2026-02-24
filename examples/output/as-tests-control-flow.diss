@@ -8,7 +8,7 @@ fn func_1(r1: u64) {
     let var_9 = HEAP_PAGES + 4
     let ptr_0_88 = var_9
     let ptr_0_112 = var_9 + 268
-    let var_15 = mem[16]
+    let var_15 = u32[16]
     let ptr_0_120 = var_15
     let var_27 = (var_15 << 16) + 15 & -16
     let ptr_0_192 = var_27
@@ -24,17 +24,18 @@ fn func_1(r1: u64) {
     block_0263:
     ptr_0_400 = ptr_0_120
 
-    let var_81 = mem[16]
+    let var_81 = u32[16]
     let var_82 = var_81 + ptr_0_400
 
     if (var_81 <u var_82) {
+        r4 = -1
     }
 
-    mem[16] = var_82
+    u32[16] = var_82
     let ptr_8 = sbrk(var_82 - var_81 << 16)
 
     if (var_81 <s 0) {
-        let var_115 = mem[16]
+        let var_115 = u32[16]
         let var_116 = var_115 + ptr_0_344
     } else {
         goto block_0361;
@@ -44,8 +45,9 @@ fn func_1(r1: u64) {
     goto block_0366;
 
     if (var_116 <u 256) {
+        r4 = -1
     } else {
-        mem[16] = var_116
+        u32[16] = var_116
         let ptr_15 = sbrk(var_116 - var_115 << 16)
         goto block_0325;
     }

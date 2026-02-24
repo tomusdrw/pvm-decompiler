@@ -1056,6 +1056,16 @@ mod integration_tests {
             "Output should contain explicit addition (42 + 100): {}",
             output
         );
+        assert!(
+            output.contains("r2 ="),
+            "Dead temporary result should render as register assignment: {}",
+            output
+        );
+        assert!(
+            !output.contains("let var_2 ="),
+            "simple-add should not declare dead temporary as synthetic variable: {}",
+            output
+        );
     }
 
     #[test]

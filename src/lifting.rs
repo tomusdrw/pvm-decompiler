@@ -1273,7 +1273,7 @@ impl LiftedProgram {
                         Some(slot_name.clone()),
                     ));
                 }
-                if let Some(name) = resolve_named_global(base, *offset) {
+                if let Some(name) = resolve_named_global(base, *offset, *width) {
                     Some((format!("{} = {}", name, format_expression(value)), None))
                 } else if let Some(mem_access) = format_mem_base_access(base, *offset, *width) {
                     Some((
@@ -2146,11 +2146,11 @@ pub fn format_expression(expr: &Expression) -> String {
             base,
             offset,
         } => {
-            if let Some(name) = resolve_named_global(base, *offset) {
+            if let Some(name) = resolve_named_global(base, *offset, *width) {
                 name
             } else if let Some(mem_access) = format_mem_base_access(base, *offset, *width) {
                 mem_access
-            } else if let Some(field) = format_struct_field(base, *offset) {
+            } else if let Some(field) = format_struct_field(base, *offset, *width) {
                 field
             } else if let Some(arr) = format_array_access(base, *offset, *width) {
                 arr
@@ -2164,11 +2164,11 @@ pub fn format_expression(expr: &Expression) -> String {
             offset,
             value,
         } => {
-            if let Some(name) = resolve_named_global(base, *offset) {
+            if let Some(name) = resolve_named_global(base, *offset, *width) {
                 format!("{} = {}", name, format_expression(value))
             } else if let Some(mem_access) = format_mem_base_access(base, *offset, *width) {
                 format!("{} = {}", mem_access, format_expression(value))
-            } else if let Some(field) = format_struct_field(base, *offset) {
+            } else if let Some(field) = format_struct_field(base, *offset, *width) {
                 format!("{} = {}", field, format_expression(value))
             } else if let Some(arr) = format_array_access(base, *offset, *width) {
                 format!("{} = {}", arr, format_expression(value))
@@ -2188,8 +2188,9 @@ pub fn format_expression(expr: &Expression) -> String {
     }
 }
 
-/// Detect if a Load/Store base expression is `var + MEMORY_BASE` and simplify to `mem[var]`.
-/// For example, `u8[var_61 + 327680]` → `mem[var_61]` when memory_base = 327680.
+/// Detect if a Load/Store base expression references linear memory via MEMORY_BASE
+/// and simplify it to a width-preserving memory access.
+/// For example, `u8[var_61 + 327680]` → `u8[var_61]` when memory_base = 327680.
 fn format_mem_base_access(base: &Expression, offset: i32, width: MemWidth) -> Option<String> {
     let mem_base = get_memory_base()? as i64;
 
@@ -2214,9 +2215,9 @@ fn format_mem_base_access(base: &Expression, offset: i32, width: MemWidth) -> Op
     }
 
     // Pattern 2: base = var, offset = MEMORY_BASE (e.g., LoadInd { base: var, offset: 327680 })
-    // Use "mem" prefix since this is a linear memory access via the PVM memory base.
+    // Preserve the access width in the rendered syntax.
     if offset as i64 == mem_base {
-        return Some(format!("mem[{}]", format_expression(base)));
+        return Some(format!("{}[{}]", width, format_expression(base)));
     }
 
     None
@@ -2224,7 +2225,7 @@ fn format_mem_base_access(base: &Expression, offset: i32, width: MemWidth) -> Op
 
 /// Format a pointer dereference as a struct field access if the base is a pointer variable.
 /// Returns `Some("ptr->field_N")` for pointer bases, `None` otherwise.
-fn format_struct_field(base: &Expression, offset: i32) -> Option<String> {
+fn format_struct_field(base: &Expression, offset: i32, width: MemWidth) -> Option<String> {
     if let Expression::Var(name) = base
         && name.starts_with("ptr_")
         && offset >= 0
@@ -2233,7 +2234,7 @@ fn format_struct_field(base: &Expression, offset: i32) -> Option<String> {
         if let Some(mem_base) = get_memory_base()
             && offset as u64 == mem_base
         {
-            return Some(format!("mem[{}]", name));
+            return Some(format!("{}[{}]", width, name));
         }
         return Some(format!("{}->field_{}", name, offset));
     }
@@ -2305,7 +2306,7 @@ fn format_array_access(base: &Expression, offset: i32, width: MemWidth) -> Optio
 
 /// Resolve a known PVM/AssemblyScript global address to a named constant.
 /// Returns `Some("GLOBAL_NAME")` if the absolute address matches a known global.
-fn resolve_named_global(base: &Expression, offset: i32) -> Option<String> {
+fn resolve_named_global(base: &Expression, offset: i32, width: MemWidth) -> Option<String> {
     // Compute absolute address from base + offset
     let addr = match base {
         Expression::Const(b) => (*b).wrapping_add(offset as i64),
@@ -2324,7 +2325,7 @@ fn resolve_named_global(base: &Expression, offset: i32) -> Option<String> {
                 let mem_base_i64 = mem_base as i64;
                 if addr >= mem_base_i64 {
                     let wasm_offset = addr - mem_base_i64;
-                    return Some(format!("mem[{}]", wasm_offset));
+                    return Some(format!("{}[{}]", width, wasm_offset));
                 }
             }
             None
@@ -4101,13 +4102,13 @@ mod tests {
         };
         assert_eq!(format_expression(&expr2), "pvm_addr(offset)");
 
-        // ptr->field_327680 → mem[ptr]
+        // ptr->field_327680 → u32[ptr] (linear memory access, width-preserving)
         let load = Expression::Load {
             width: MemWidth::U32,
             base: Box::new(Expression::Var("ptr_0".to_string())),
             offset: 327680,
         };
-        assert_eq!(format_expression(&load), "mem[ptr_0]");
+        assert_eq!(format_expression(&load), "u32[ptr_0]");
 
         // u8[var + 327680] → u8[var]  (base is BinOp with memory base)
         let load2 = Expression::Load {
@@ -4121,13 +4122,13 @@ mod tests {
         };
         assert_eq!(format_expression(&load2), "u8[idx]");
 
-        // mem[0] for constant address = memory base
+        // u32[0] for constant address = memory base
         let load3 = Expression::Load {
             width: MemWidth::U32,
             base: Box::new(Expression::Const(327680)),
             offset: 0,
         };
-        assert_eq!(format_expression(&load3), "mem[0]");
+        assert_eq!(format_expression(&load3), "u32[0]");
 
         // Clean up
         set_memory_base(None);
