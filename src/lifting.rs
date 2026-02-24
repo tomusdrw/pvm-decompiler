@@ -121,6 +121,9 @@ pub struct LiftedProgram {
     /// Direct call sites: maps Jump instruction PC → callee function name.
     /// Used for exact callsite labeling when shared jump targets are ambiguous.
     pub direct_call_sites: HashMap<usize, String>,
+    /// Function parameter registers by callee function name.
+    /// Used to render explicit call arguments at call sites.
+    pub call_param_regs: HashMap<String, Vec<u8>>,
     /// Reverse index: variable name → definition PC for O(1) lookups.
     pub var_name_to_def_pc: HashMap<String, usize>,
     /// Epilogue blocks: maps block_pc → epilogue kind (Return or Halt).
@@ -159,6 +162,7 @@ impl LiftedProgram {
             stack_vars: HashMap::new(),
             call_targets: HashMap::new(),
             direct_call_sites: HashMap::new(),
+            call_param_regs: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
@@ -3552,6 +3556,7 @@ mod tests {
             stack_vars: HashMap::new(),
             call_targets: HashMap::new(),
             direct_call_sites: HashMap::new(),
+            call_param_regs: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
@@ -3631,6 +3636,7 @@ mod tests {
             stack_vars: HashMap::new(),
             call_targets: HashMap::new(),
             direct_call_sites: HashMap::new(),
+            call_param_regs: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
@@ -3697,6 +3703,7 @@ mod tests {
             stack_vars: HashMap::new(),
             call_targets: HashMap::new(),
             direct_call_sites: HashMap::new(),
+            call_param_regs: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
@@ -3731,6 +3738,7 @@ mod tests {
             stack_vars: HashMap::new(),
             call_targets: HashMap::new(),
             direct_call_sites: HashMap::new(),
+            call_param_regs: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
@@ -4135,6 +4143,7 @@ mod tests {
             stack_vars: HashMap::new(),
             call_targets: HashMap::new(),
             direct_call_sites: HashMap::new(),
+            call_param_regs: HashMap::new(),
             var_name_to_def_pc: HashMap::new(),
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),

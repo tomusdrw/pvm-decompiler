@@ -9,3 +9,7 @@
 ## Commits
 
 - **Always regenerate examples before each commit.** Run `./run_examples.sh` to update all example outputs so they reflect the latest changes.
+
+## Testing
+
+- **Bug fixes must include a regression test.** When the user reports something broken and asks for a fix, implement the fix and add/adjust a unit or integration test in the same change so the issue is covered and prevented from regressing. If a test is not feasible, explicitly explain why.

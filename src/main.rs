@@ -233,6 +233,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Set memory base for expression formatting
     lifting::set_memory_base(program.memory_base);
 
+    // Precompute per-function CFG/dataflow once and collect parameter registers
+    // for explicit call argument rendering.
+    let mut function_cfgs: HashMap<usize, ControlFlowGraph> = HashMap::new();
+    let mut function_dataflow: HashMap<usize, DataFlowAnalysis> = HashMap::new();
+    let mut function_params_by_name: HashMap<String, Vec<u8>> = HashMap::new();
+    for func in &detected_functions {
+        let func_cfg = build_function_cfg(&cfg, func);
+        let dataflow = DataFlowAnalysis::analyze(&func_cfg);
+        let mut params: Vec<u8> = dataflow
+            .live_in
+            .get(&func.entry_pc)
+            .cloned()
+            .unwrap_or_default()
+            .into_iter()
+            .collect();
+        params.sort();
+        function_params_by_name.insert(func.name.clone(), params);
+        function_dataflow.insert(func.entry_pc, dataflow);
+        function_cfgs.insert(func.entry_pc, func_cfg);
+    }
+
     // Process each function independently
     let total_funcs = detected_functions.len();
     let is_tty = atty::is(atty::Stream::Stderr);
@@ -262,10 +283,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 func.block_pcs.len()
             );
         } else {
-            progress("building CFG...");
+            progress("preparing analysis...");
         }
 
-        let func_cfg = build_function_cfg(&cfg, func);
+        let func_cfg = function_cfgs
+            .remove(&func.entry_pc)
+            .unwrap_or_else(|| build_function_cfg(&cfg, func));
 
         if verbosity >= Verbosity::Verbose {
             eprintln!("  Computing dominator tree...");
@@ -274,12 +297,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         let dom_tree = DominatorTree::compute(&func_cfg);
 
-        if verbosity >= Verbosity::Verbose {
-            eprintln!("  Running dataflow analysis...");
-        } else {
-            progress("dataflow analysis...");
-        }
-        let dataflow = DataFlowAnalysis::analyze(&func_cfg);
+        let dataflow = function_dataflow
+            .remove(&func.entry_pc)
+            .unwrap_or_else(|| DataFlowAnalysis::analyze(&func_cfg));
 
         if verbosity >= Verbosity::Verbose {
             eprintln!("  Lifting expressions...");
@@ -289,6 +309,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut lifted = LiftedProgram::analyze_with_dom_tree(&func_cfg, &dataflow, &dom_tree);
         lifted.call_targets = call_targets.clone();
         lifted.direct_call_sites = direct_call_sites.clone();
+        lifted.call_param_regs = function_params_by_name.clone();
         lifted.memory_base = program.memory_base;
 
         // Detect epilogues (return/halt patterns) and prologues (stack guard, frame alloc, reg saves)
@@ -310,6 +331,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         // Eliminate LoadImm64 instructions from call patterns (return address setup)
         for &pc in &call_pattern_eliminated_pcs {
+            lifted.eliminated_pcs.insert(pc);
+        }
+        // Eliminate redundant constant call-setup writes for direct-call patterns
+        // (e.g., trampoline selector registers) when they are not callee params
+        // and not live after the call returns.
+        let redundant_call_setup_pcs = redundant_call_setup_pcs_for_function(
+            &func_cfg,
+            &dataflow,
+            &direct_call_patterns,
+            &function_params_by_name,
+        );
+        for pc in redundant_call_setup_pcs {
             lifted.eliminated_pcs.insert(pc);
         }
         // Suppress callee blocks that were misassigned to this function.
@@ -356,14 +389,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         // Compute function signature from live-in registers at entry block
-        let mut params: Vec<u8> = dataflow
-            .live_in
-            .get(&func.entry_pc)
+        let params = function_params_by_name
+            .get(&func.name)
             .cloned()
-            .unwrap_or_default()
-            .into_iter()
-            .collect();
-        params.sort();
+            .unwrap_or_default();
         let sig = FunctionSignature {
             name: func.name.clone(),
             params,
@@ -427,15 +456,39 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
 
     lifting::set_memory_base(program.memory_base);
 
-    let mut output = String::new();
+    let mut function_cfgs: HashMap<usize, ControlFlowGraph> = HashMap::new();
+    let mut function_dataflow: HashMap<usize, DataFlowAnalysis> = HashMap::new();
+    let mut function_params_by_name: HashMap<String, Vec<u8>> = HashMap::new();
     for func in &detected_functions {
         let func_cfg = functions::build_function_cfg(&cfg, func);
-        let dom_tree = structuring::DominatorTree::compute(&func_cfg);
         let dataflow = DataFlowAnalysis::analyze(&func_cfg);
+        let mut params: Vec<u8> = dataflow
+            .live_in
+            .get(&func.entry_pc)
+            .cloned()
+            .unwrap_or_default()
+            .into_iter()
+            .collect();
+        params.sort();
+        function_params_by_name.insert(func.name.clone(), params);
+        function_dataflow.insert(func.entry_pc, dataflow);
+        function_cfgs.insert(func.entry_pc, func_cfg);
+    }
+
+    let mut output = String::new();
+    for func in &detected_functions {
+        let func_cfg = function_cfgs
+            .remove(&func.entry_pc)
+            .unwrap_or_else(|| functions::build_function_cfg(&cfg, func));
+        let dom_tree = structuring::DominatorTree::compute(&func_cfg);
+        let dataflow = function_dataflow
+            .remove(&func.entry_pc)
+            .unwrap_or_else(|| DataFlowAnalysis::analyze(&func_cfg));
         let mut lifted =
             lifting::LiftedProgram::analyze_with_dom_tree(&func_cfg, &dataflow, &dom_tree);
         lifted.call_targets = call_targets.clone();
         lifted.direct_call_sites = direct_call_sites.clone();
+        lifted.call_param_regs = function_params_by_name.clone();
         lifted.memory_base = program.memory_base;
 
         // Detect epilogues and prologues
@@ -456,6 +509,15 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
             lifted.eliminated_pcs.insert(pc);
         }
         for &pc in &call_pattern_eliminated_pcs {
+            lifted.eliminated_pcs.insert(pc);
+        }
+        let redundant_call_setup_pcs = redundant_call_setup_pcs_for_function(
+            &func_cfg,
+            &dataflow,
+            &direct_call_patterns,
+            &function_params_by_name,
+        );
+        for pc in redundant_call_setup_pcs {
             lifted.eliminated_pcs.insert(pc);
         }
         let caller_block_pcs: HashSet<usize> = direct_call_patterns
@@ -489,14 +551,10 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
             function_entry_pcs.clone(),
         );
 
-        let mut params: Vec<u8> = dataflow
-            .live_in
-            .get(&func.entry_pc)
+        let params = function_params_by_name
+            .get(&func.name)
             .cloned()
-            .unwrap_or_default()
-            .into_iter()
-            .collect();
-        params.sort();
+            .unwrap_or_default();
         let sig = structuring::FunctionSignature {
             name: func.name.clone(),
             params,
@@ -548,6 +606,85 @@ fn write_cfg(cfg: &ControlFlowGraph, out: &mut String) {
             }
         }
     }
+}
+
+fn redundant_call_setup_pcs_for_function(
+    func_cfg: &ControlFlowGraph,
+    dataflow: &DataFlowAnalysis,
+    direct_call_patterns: &[functions::DirectCallPattern],
+    function_params_by_name: &HashMap<String, Vec<u8>>,
+) -> HashSet<usize> {
+    let mut eliminated: HashSet<usize> = HashSet::new();
+
+    for pat in direct_call_patterns {
+        let Some(block) = func_cfg.blocks.get(&pat.caller_block_pc) else {
+            continue;
+        };
+        let Some(jump_idx) = block
+            .instructions
+            .iter()
+            .position(|(pc, _)| *pc == pat.jump_pc)
+        else {
+            continue;
+        };
+
+        let param_regs: HashSet<u8> = function_params_by_name
+            .get(&pat.callee_name)
+            .cloned()
+            .unwrap_or_default()
+            .into_iter()
+            .collect();
+        let live_after: HashSet<u8> = dataflow
+            .live_in
+            .get(&pat.return_pc)
+            .cloned()
+            .unwrap_or_default();
+
+        for idx in 0..jump_idx {
+            let (pc, instr) = &block.instructions[idx];
+
+            // Return-address setup is handled separately.
+            if *pc == pat.load_imm_pc {
+                continue;
+            }
+            // Restrict to literal constant setup writes.
+            if !matches!(
+                instr,
+                Instruction::LoadImm { .. } | Instruction::LoadImm64 { .. }
+            ) {
+                continue;
+            }
+
+            let shape = crate::instruction::InstructionShape::classify(instr);
+            let Some(reg) = shape.def_reg() else {
+                continue;
+            };
+            if reg == 0 || param_regs.contains(&reg) || live_after.contains(&reg) {
+                continue;
+            }
+
+            // Keep assignments that feed other instructions before the call.
+            let mut used_before_kill = false;
+            for (_, next_instr) in &block.instructions[idx + 1..=jump_idx] {
+                let next_shape = crate::instruction::InstructionShape::classify(next_instr);
+                let (defs, uses) = next_shape.def_use();
+                if uses.contains(&reg) {
+                    used_before_kill = true;
+                    break;
+                }
+                if defs.contains(&reg) {
+                    break;
+                }
+            }
+            if used_before_kill {
+                continue;
+            }
+
+            eliminated.insert(*pc);
+        }
+    }
+
+    eliminated
 }
 
 #[cfg(test)]
@@ -733,6 +870,106 @@ mod integration_tests {
             main_calls, 0,
             "ananas should not contain false main() self-calls: {}",
             output
+        );
+    }
+
+    #[test]
+    fn test_ananas_trampoline_selector_setup_elided() {
+        let buffer =
+            std::fs::read("examples/compiled/ananas.pvm").expect("ananas.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        assert!(
+            output.contains("func_13(ptr_12, r7)"),
+            "Expected explicit call arguments for func_13: {}",
+            output
+        );
+        assert!(
+            !output.contains("let var_210 = 17"),
+            "Redundant trampoline selector constant should be elided: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_redundant_call_setup_elimination_is_precise() {
+        use crate::cfg::build_test_cfg;
+
+        // Caller block setup:
+        // - r9 constant: redundant trampoline selector-like setup (should be removed)
+        // - r7 constant: callee parameter (must be kept)
+        // - r6 constant: live after return (must be kept)
+        // - r0 constant: return address setup (handled separately, must be ignored here)
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 9, value: 17 }),
+                        (4, Instruction::LoadImm { reg: 7, value: 55 }),
+                        (8, Instruction::LoadImm { reg: 6, value: 9 }),
+                        (
+                            12,
+                            Instruction::LoadImm64 {
+                                reg: 0,
+                                value: 2,
+                            },
+                        ),
+                        (16, Instruction::Jump { offset: 84 }),
+                    ],
+                    vec![20],
+                ),
+                (
+                    20,
+                    vec![
+                        (
+                            20,
+                            Instruction::Add32 {
+                                dst: 2,
+                                src1: 6,
+                                src2: 7,
+                            },
+                        ),
+                        (24, Instruction::Trap),
+                    ],
+                    vec![],
+                ),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+
+        let patterns = vec![crate::functions::DirectCallPattern {
+            caller_block_pc: 0,
+            load_imm_pc: 12,
+            jump_pc: 16,
+            jump_target_pc: 100,
+            return_pc: 20,
+            callee_name: "callee".to_string(),
+        }];
+
+        let mut params = HashMap::new();
+        params.insert("callee".to_string(), vec![7]);
+
+        let eliminated =
+            redundant_call_setup_pcs_for_function(&cfg, &dataflow, &patterns, &params);
+
+        assert!(
+            eliminated.contains(&0),
+            "Non-param, non-live trampoline setup constant should be eliminated"
+        );
+        assert!(
+            !eliminated.contains(&4),
+            "Callee parameter setup constant must be preserved"
+        );
+        assert!(
+            !eliminated.contains(&8),
+            "Constant for register live after return must be preserved"
+        );
+        assert!(
+            !eliminated.contains(&12),
+            "r0 return-address setup must be left to call-pattern elimination"
         );
     }
 

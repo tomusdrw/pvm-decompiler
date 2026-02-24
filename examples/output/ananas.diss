@@ -20,44 +20,21 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_399c:
     if (4277993472 >=u ptr_45 - 192) {
         let ptr_12 = ptr_45 - 192
-        let var_210 = 17
-        func_13()
+        func_13(ptr_12, r7)
     }
 
     block_34ec:
-    block_3573:
-    block_3578:
-    block_374a:
-    block_3893:
-    block_3897:
-    block_3906:
-    block_3939:
-    block_3991:
-    block_3997:
-    block_398c:
-    block_38ea:
-    block_34ec:
-    block_3578:
-    block_374a:
-    block_3897:
-    block_3906:
-    block_3939:
-    block_3aa2:
-    block_3ab7:
-    block_3b2c:
-    block_3b31:
     let var_234 = 32 >>u (32 << 16 + ptr_13_40)
-    func_15()
+    func_15(r1, r7)
 
     block_3b2a:
-    block_3c2a:
     if (4277993472 >=u ptr_884 - 208) goto block_3c3f;
 
     block_3c3f:
     let ptr_14 = ptr_884 - 208
     let var_249 = 32 >>u (32 << (var_894 << var_893))
     let var_251 = 1
-    goto block_3aa2;
+    goto block_34ec;
 
     return
 
@@ -74,86 +51,24 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_265 = ptr_16 + 1
 
     block_3d16:
-    let var_267 = 16
     let var_268 = u64[r1 + 56]
-    func_16()
+    func_16(r1, r7)
 
     block_3d11:
     goto block_3d16;
 
     block_3d8f:
-    block_3da4:
-    block_3eeb:
-    block_3ef0:
-    block_3e6b:
-    block_3e57:
-    block_3ef7:
-    block_3efc:
-    block_3ef5:
-    block_3f53:
-    block_40aa:
-    block_40af:
-    block_3fbc:
-    block_40ff:
-    block_4043:
-    block_4104:
-    block_40fd:
-    block_40a5:
-    block_42fc:
-    block_4964:
-    block_42d1:
-    block_4969:
-    block_4913:
-    block_44c6:
-    block_4327:
-    block_4551:
-    block_4478:
-    block_441d:
-    block_440f:
-    block_45a4:
-    block_4999:
-    block_45a9:
-    block_45a2:
-    block_499e:
-    block_496e:
-    block_485b:
-    block_4860:
-    block_46c0:
-    block_459d:
-    block_47da:
-    block_4809:
-    block_480d:
-    block_48fe:
-    block_4903:
-    block_487d:
-    block_48ac:
-    block_48b0:
-    block_4909:
-    block_490e:
-    block_4908:
-    block_4585:
     let var_625 = ptr_24 + 1
     let var_626 = ptr_25 + 1
 
     block_4598:
-    goto block_459d;
+    goto block_3d8f;
 
     block_49bd:
-    block_49d2:
-    block_4aad:
-    block_4ab2:
-    block_4a64:
-    block_4a50:
-    block_4b3b:
-    block_4b40:
-    block_4b39:
-    block_77ed:
-    block_7802:
-    block_788a:
     let var_2485 = 12
     let var_2486 = 3
     let var_2487 = 764
-    goto block_3aa2;
+    goto block_34ec;
 
     block_78a8:
     goto block_78ad;
@@ -183,8 +98,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_793b:
     let var_2509 = u64[r1 + 40]
-    let var_2510 = 1
-    func_23()
+    func_23(r1, r7)
 
     block_7934:
     return
@@ -197,7 +111,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_2514 = 8
     let var_2515 = 22
     let var_2516 = 768
-    goto block_3aa2;
+    goto block_34ec;
 
     return
 
@@ -209,7 +123,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_2537 = 0
     let var_2538 = 0
     let var_2539 = 770
-    goto block_3aa2;
+    goto block_34ec;
 
     block_bd2a:
     goto block_bd2f;
@@ -225,39 +139,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     goto block_bcf7;
 
     block_c05f:
-    block_c074:
-    block_c3e6:
-    block_c485:
-    block_c48a:
-    block_c416:
-    block_c411:
-    block_c494:
-    block_c399:
-    block_c4d3:
-    block_c48f:
-    block_c535:
-    block_c4fe:
-    block_c53a:
-    block_c533:
-    block_c381:
-    block_c55a:
-    block_c56f:
-    block_c98a:
-    block_ca29:
-    block_ca2e:
-    block_c9ba:
-    block_c9b5:
-    block_ca38:
-    block_c93d:
-    block_ca77:
-    block_ca33:
-    block_cb4e:
-    block_caa2:
-    block_cb53:
-    block_cb0c:
-    block_cad7:
-    block_c929:
-    block_cbe3:
     goto block_cc27;
 
     block_cc27:
@@ -283,7 +164,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_3123 = 4 + u64[r1 + 56]
     u64[r1 + 1120] = var_3123
     u32[var_3123 + 393216] = u64[r1 + 96]
-    goto block_c929;
+    goto block_c05f;
 
     block_cc74:
     let ptr_174 = u64[r1 + 48]
@@ -296,7 +177,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_3117 = 1 + u64[r1 + 48]
     u64[r1 + 1088] = var_3117
     u8[var_3117 + 393216] = 1
-    goto block_cad7;
+    goto block_c05f;
 
     block_cbe8:
     let var_3084 = u32[u64[r1 + 904] + 393216]
@@ -335,7 +216,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_cda3:
     let var_3151 = 4096
-    goto block_77ed;
+    goto block_49bd;
 
     block_cd8c:
     return
@@ -391,13 +272,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_3219 = ptr_187 + 1
 
     block_cf7a:
-    block_cf8f:
-    block_d0bd:
-    block_d0c2:
-    block_d042:
-    block_d02e:
-    block_d13a:
-    goto block_d02e;
+    goto block_cf7a;
 
     block_d13f:
     goto block_d144;
@@ -663,7 +538,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_3626 = 4 + u64[r1 + 48]
     u64[r1 + 1280] = var_3626
     u32[var_3626 + 393216] = u64[r1 + 584]
-    goto block_d02e;
+    goto block_cf7a;
 
     block_d90a:
     goto block_d94e;
@@ -702,7 +577,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_3682 = 1 + u64[r1 + 48]
     u64[r1 + 1496] = var_3682
     u8[var_3682 + 393216] = 1
-    goto block_d02e;
+    goto block_cf7a;
 
     block_d90f:
     let var_3649 = u32[u64[r1 + 1312] + 393216]
@@ -716,75 +591,65 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     goto block_d94e;
 
     block_db47:
-    block_db5c:
     let ptr_229 = ptr_233 - 656
     let var_3743 = u32[8 + r12 + 393216]
-    let var_3747 = 1
     mem[65280] = var_3757
     mem[65288] = var_3761
-    func_57()
+    func_57(ptr_229)
 
     block_dfa7:
     let ptr_233 = r1 - 480
     let var_3753 = mem[24]
     let var_3757 = u32[4 + r10 + 393216]
-    let var_3761 = 1
-    func_58()
+    func_58(ptr_233, r7)
 
     block_e2d6:
     let ptr_236 = r1 - 512
     let var_3765 = mem[24]
     let var_3769 = u32[4 + r10 + 393216]
-    let var_3773 = 1
-    func_59()
+    func_59(ptr_236, r7)
 
     block_e618:
-    block_e62d:
     let ptr_239 = ptr_240 - 240
-    let var_3780 = 2
-    func_60()
+    func_60(ptr_239, r7)
 
     block_e79c:
     let ptr_240 = r1 - 424
     let var_3784 = mem[24]
     let var_3788 = u32[4 + r10 + 393216]
-    func_61()
+    func_61(ptr_240, r7)
 
     block_ea68:
     let ptr_243 = r1 - 488
     let var_3795 = mem[24]
     let var_3799 = u32[4 + r10 + 393216]
-    func_62()
+    func_62(ptr_243, r7)
 
     block_ed7d:
-    block_ed92:
     let ptr_246 = ptr_247 - 240
-    let var_3809 = 4
-    func_63()
+    func_63(ptr_246, r7)
 
     block_ef32:
     let ptr_247 = r1 - 424
     let var_3813 = mem[24]
     let var_3817 = u32[4 + r10 + 393216]
-    func_64()
+    func_64(ptr_247, r7)
 
     block_f1fe:
     let ptr_250 = r1 - 440
     let var_3824 = mem[24]
     let var_3828 = u32[4 + r10 + 393216]
-    func_65()
+    func_65(ptr_250, r7)
 
     block_f4c9:
-    block_f4de:
     let ptr_253 = ptr_254 - 168
-    let var_3838 = 8
-    func_66()
+    func_66(ptr_253, r7)
 
     block_f608:
     let ptr_254 = r1 - 424
     let var_3842 = mem[24]
     let var_3846 = u32[4 + r10 + 393216]
-    func_67()
+    func_67(ptr_254, r7)
 
     block_f8d4:
     let ptr_257 = r1 - 640
@@ -797,8 +662,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_f966:
     let var_3907 = 32 >>u (32 << u32[8 + ptr_257_48 + 393216] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_257_136))) + ptr_257_56) + 393216])
-    let var_3911 = 1
-    func_68()
+    func_68(r1, r7)
 
     ptr_257_136 = 12
 
@@ -813,8 +677,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_fdad:
     let var_3969 = 32 >>u (32 << u32[8 + ptr_262_48 + 393216] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_262_136))) + ptr_262_56) + 393216])
-    let var_3973 = 1
-    func_69()
+    func_69(r1, r7)
 
     ptr_262_136 = 12
 
@@ -829,7 +692,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1021c:
     let var_4031 = 32 >>u (32 << u32[8 + ptr_267_48 + 393216] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_267_136))) + ptr_267_56) + 393216])
-    func_70()
+    func_70(r1, r7)
 
     ptr_267_136 = 12
 
@@ -844,7 +707,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_10600:
     let var_4092 = 32 >>u (32 << u32[8 + ptr_272_48 + 393216] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_272_136))) + ptr_272_56) + 393216])
-    func_71()
+    func_71(r1, r7)
 
     ptr_272_136 = 12
 
@@ -859,7 +722,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_10a42:
     let var_4153 = 32 >>u (32 << u32[8 + ptr_277_48 + 393216] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_277_136))) + ptr_277_56) + 393216])
-    func_72()
+    func_72(r1, r7)
 
     ptr_277_136 = 12
 
@@ -874,7 +737,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_10e26:
     let var_4214 = 32 >>u (32 << u32[8 + ptr_282_48 + 393216] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_282_136))) + ptr_282_56) + 393216])
-    func_73()
+    func_73(r1, r7)
 
     ptr_282_136 = 12
 
@@ -889,7 +752,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1121e:
     let var_4275 = 32 >>u (32 << u32[8 + ptr_287_48 + 393216] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_287_136))) + ptr_287_56) + 393216])
-    func_74()
+    func_74(r1, r7)
 
     ptr_287_136 = 12
 
@@ -963,22 +826,17 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_4423 = 8
     let var_4424 = 12
     let var_4425 = 824
-    goto block_3aa2;
+    goto block_34ec;
 
     block_1a34c:
     let var_4400 = 4096
     let var_4401 = 822
-    goto block_77ed;
+    goto block_49bd;
 
     block_1a42c:
-    block_1a440:
-    block_1a4b0:
-    block_1a4b5:
-    let var_4446 = 1
-    func_116()
+    func_116(r1, r7)
 
     block_1a4ae:
-    block_1a4f4:
     if (4277993472 >=u r1 - 2328) goto block_1a509;
 
     block_1a509:
@@ -1399,13 +1257,11 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     goto block_1b672;
 
     block_2267a:
-    block_2268f:
     let ptr_375 = ptr_380 - 592
     let var_5504 = u32[8 + r12 + 393216]
-    let var_5508 = 2
     mem[65280] = var_5515
     mem[65288] = mem[65280]
-    func_154()
+    func_154(ptr_375)
 
     block_22a71:
     let ptr_380 = r1 - 288
@@ -1413,7 +1269,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_5515 = u32[r10 + 393216]
     let var_5534 = 32 >>u (32 << (32 >>u (32 << (255 & u32[4 + r10 + 393216]))))
     mem[65280] = 1
-    func_155()
+    func_155(ptr_380)
 
     block_22c4a:
     let ptr_385 = r1 - 288
@@ -1421,7 +1277,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_5544 = u32[r10 + 393216]
     let var_5563 = 32 >>u (32 << (32 >>u (32 << (65535 & u32[4 + r10 + 393216]))))
     mem[65280] = 2
-    func_156()
+    func_156(ptr_385)
 
     block_22e24:
     let ptr_390 = r1 - 248
@@ -1429,7 +1285,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_5573 = u32[r10 + 393216]
     let var_5577 = u32[4 + r10 + 393216]
     mem[65280] = 4
-    func_157()
+    func_157(ptr_390)
 
     block_22fb8:
     let ptr_395 = r1 - 248
@@ -1437,7 +1293,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_5587 = u32[r10 + 393216]
     let var_5591 = u32[4 + r10 + 393216]
     mem[65280] = 8
-    func_158()
+    func_158(ptr_395)
 
     block_2314e:
     let ptr_400 = r1 - 376
@@ -1451,7 +1307,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_231fb:
     let var_5648 = 255 & u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_400_152))) + ptr_400_56) + 393216]
     mem[65280] = 1
-    func_159()
+    func_159(r1)
 
     ptr_400_152 = 12
 
@@ -1467,7 +1323,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_23470:
     let var_5704 = 65535 & u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_406_152))) + ptr_406_56) + 393216]
     mem[65280] = 2
-    func_160()
+    func_160(r1)
 
     ptr_406_152 = 12
 
@@ -1483,7 +1339,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_236e6:
     let var_5769 = 32 >>u (32 << (32 >>u (32 << u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_412_152))) + ptr_412_56) + 393216])))
     mem[65280] = 4
-    func_161()
+    func_161(r1)
 
     ptr_412_152 = 12
 
@@ -1499,7 +1355,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_23982:
     let var_5822 = u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_418_152))) + ptr_418_56) + 393216]
     mem[65280] = 8
-    func_162()
+    func_162(r1)
 
     ptr_418_152 = 12
 
@@ -1516,7 +1372,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_5885 = 32 >>u (32 << u32[4 + ptr_424_48 + 393216] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_424_136))) + ptr_424_56) + 393216])
     let var_5904 = 32 >>u (32 << (32 >>u (32 << (255 & u32[8 + ptr_424_48 + 393216]))))
     mem[65280] = 1
-    func_163()
+    func_163(r1)
 
     ptr_424_136 = 12
 
@@ -1533,7 +1389,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_5967 = 32 >>u (32 << u32[4 + ptr_431_48 + 393216] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_431_136))) + ptr_431_56) + 393216])
     let var_5986 = 32 >>u (32 << (32 >>u (32 << (65535 & u32[8 + ptr_431_48 + 393216]))))
     mem[65280] = 2
-    func_164()
+    func_164(r1)
 
     ptr_431_136 = 12
 
@@ -1550,7 +1406,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_6049 = 32 >>u (32 << u32[4 + ptr_438_48 + 393216] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_438_136))) + ptr_438_56) + 393216])
     let var_6053 = u32[8 + ptr_438_48 + 393216]
     mem[65280] = 4
-    func_165()
+    func_165(r1)
 
     ptr_438_136 = 12
 
@@ -1567,7 +1423,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_6116 = 32 >>u (32 << u32[4 + ptr_445_48 + 393216] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_445_136))) + ptr_445_56) + 393216])
     let var_6120 = u32[8 + ptr_445_48 + 393216]
     mem[65280] = 8
-    func_166()
+    func_166(r1)
 
     ptr_445_136 = 12
 
@@ -1590,7 +1446,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_2483d:
     let var_6230 = 255 & u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_452_312))) + ptr_452_56) + 393216]
     mem[65280] = 1
-    func_167()
+    func_167(r1)
 
     ptr_452_312 = 12
 
@@ -1613,7 +1469,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_24bcb:
     let var_6339 = 65535 & u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_460_312))) + ptr_460_56) + 393216]
     mem[65280] = 2
-    func_168()
+    func_168(r1)
 
     ptr_460_312 = 12
 
@@ -1636,7 +1492,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_24f5a:
     let var_6457 = 32 >>u (32 << (32 >>u (32 << u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_468_312))) + ptr_468_56) + 393216])))
     mem[65280] = 4
-    func_169()
+    func_169(r1)
 
     ptr_468_312 = 12
 
@@ -1659,7 +1515,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_2530f:
     let var_6563 = u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_476_312))) + ptr_476_56) + 393216]
     mem[65280] = 8
-    func_170()
+    func_170(r1)
 
     ptr_476_312 = 12
 
@@ -1669,32 +1525,15 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_256c9:
     let ptr_484 = r1 - 176
     let var_6584 = 32 >>u (32 << 1 + u32[12 + var_12514 + 393216])
-    let var_6587 = 0
-    let var_6588 = 1
-    func_172()
+    func_172(ptr_484)
 
     return
 
     block_25f33:
-    block_25f48:
-    block_25fbc:
-    block_25fc1:
-    block_25fb7:
-    block_2604f:
-    block_25fa0:
-    block_2624f:
-    block_26005:
-    block_262fb:
-    block_261fd:
-    block_26150:
-    block_2609c:
     let var_6656 = 32 >>u (32 << (1 << ptr_486_216))
-    let var_6658 = 2
-    func_174()
+    func_174(r1, r7, r12)
 
     block_261f8:
-    block_26100:
-    block_26300:
     if (4277993472 >=u r1 - 768) goto block_26315;
 
     block_26315:
@@ -1763,7 +1602,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_6861 = 32 >>u (32 << ptr_487_160 + (32 >>u (32 << (1 << ptr_487_312))))
     let var_6863 = 2
     let var_6864 = 878
-    goto block_3aa2;
+    goto block_34ec;
 
     block_26708:
     goto block_2651a;
@@ -1783,24 +1622,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     goto block_26829;
 
     block_2682e:
-    block_26843:
-    block_268da:
-    block_268df:
-    block_268d5:
-    block_26973:
-    block_268be:
-    block_26978:
-    block_2692b:
-    block_2697d:
-    block_2696e:
-    block_26b4c:
-    block_26b51:
-    block_26ab8:
-    block_269d2:
-    block_26bfc:
-    block_26c01:
-    block_26b56:
-    block_26c2f:
     let var_7142 = u64[r1 + 72]
     u64[r1 + 616] = var_7142
     let var_7144 = u64[r1 + 600]
@@ -1919,7 +1740,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     if (var_7262 == 0) goto block_26ed7;
 
     block_2716b:
-    goto block_268be;
+    goto block_2682e;
 
     block_27061:
     let var_7344 = u64[r1 + 608]
@@ -1986,7 +1807,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_7339 = 1 + var_7335
     u64[r1 + 1168] = var_7339
     u64[r1 + 1176] = 32 >>u (32 << var_7339)
-    goto block_26c2f;
+    goto block_2682e;
 
     block_26f40:
     let var_7288 = u64[r1 + 1008]
@@ -2027,28 +1848,14 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_7322 = ptr_500 + 1
 
     block_27170:
-    block_27185:
-    block_2737c:
-    block_27381:
-    block_2726a:
-    block_27256:
-    block_27386:
-    block_2739b:
     let ptr_514 = ptr_516 - 648
     let var_7479 = u32[8 + ptr_516_40 + 393216]
-    let var_7480 = 12
-    let var_7481 = 10
-    func_177()
+    func_177(ptr_514, r7)
 
     block_2779a:
-    block_277ae:
-    block_27830:
-    block_2782b:
-    block_2780a:
-    func_178()
+    func_178(r1, r7)
 
     block_27835:
-    block_27836:
     if (4277993472 >=u r1 - 1048) goto block_2784b;
 
     block_2784b:
@@ -2059,9 +1866,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     return
 
     block_27a75:
-    let var_7534 = 8
-    let var_7535 = 45
-    func_180()
+    func_180(r1, r7)
 
     block_27abb:
     goto block_27ac0;
@@ -2111,7 +1916,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_27b30:
     let var_7555 = u64[r1 + 144]
     let var_7556 = 900
-    goto block_26300;
+    goto block_261f8;
 
     block_27c94:
     let var_7610 = u64[r1 + 168]
@@ -2207,7 +2012,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_7671 = 8
     let var_7672 = 45
     let var_7673 = 906
-    goto block_3aa2;
+    goto block_34ec;
 
     block_27f87:
     if (4277993472 >=u r1 - 200) goto block_27f9c;
@@ -2227,7 +2032,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_7755 = 16
     let var_7756 = 6
     let var_7757 = 912
-    goto block_3aa2;
+    goto block_34ec;
 
     return
 
@@ -2251,8 +2056,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_28207:
     let var_7797 = u64[r1 + 208]
-    let var_7798 = 1
-    func_185()
+    func_185(r1, r7)
 
     u64[r1 + 208] = 8
 
@@ -2319,8 +2123,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_284ec:
     let var_7894 = 32 >>u (32 << (3 << ptr_544_40))
-    let var_7896 = 14
-    func_188()
+    func_188(r1, r7)
 
     block_284e5:
     return
@@ -2333,7 +2136,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_7900 = 8
     let var_7901 = 43
     let var_7902 = 920
-    goto block_3aa2;
+    goto block_34ec;
 
     return
 
@@ -2405,7 +2208,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 600] = 32 >>u (32 << var_8060)
     let var_8066 = 28
     let var_8067 = 940
-    goto block_3aa2;
+    goto block_34ec;
 
     block_289c9:
     let var_8071 = ptr_558 + 1
@@ -2466,7 +2269,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_8099 = 4
     let var_8100 = 29
     let var_8101 = 942
-    goto block_3aa2;
+    goto block_34ec;
 
     block_28b5e:
     let var_8135 = u64[r1 + 856]
@@ -2649,7 +2452,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_8298 = 4
     let var_8299 = 30
     let var_8300 = 946
-    goto block_3aa2;
+    goto block_34ec;
 
     block_2900a:
     let var_8336 = u64[r1 + 1528]
@@ -2762,7 +2565,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 1936] = 32 >>u (32 << var_8463)
     let var_8469 = 31
     let var_8470 = 948
-    goto block_3aa2;
+    goto block_34ec;
 
     block_2930b:
     let var_8474 = ptr_574 + 1
@@ -2845,9 +2648,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_293d4:
     let ptr_576 = u64[r1 + 1400]
     let var_8503 = u64[r1 + 1944]
-    let var_8504 = 16
-    let var_8505 = 26
-    func_190()
+    func_190(r1, r7)
 
     block_2955b:
     let var_8550 = u32[u64[r1 + 432] + 393216]
@@ -3119,12 +2920,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     goto block_29b45;
 
     block_29bea:
-    block_29bff:
-    block_29d8a:
-    block_29d8f:
-    block_29d85:
-    block_29d6d:
-    block_29dc4:
     let var_8929 = ptr_601 + 1
     let var_8930 = ptr_602 + 1
 
@@ -3142,7 +2937,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     if (var_8945 == 0) goto block_29e38;
 
     block_29e38:
-    goto block_29d6d;
+    goto block_29bea;
 
     block_29e25:
     let var_8947 = ptr_603 + 1
@@ -3224,7 +3019,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_2a475:
     let var_9221 = ptr_605_40->field_393216
-    func_193()
+    func_193(r1, r7)
 
     block_2a3d1:
     let var_9205 = u32[4 + ptr_605_40 + 393216]
@@ -3332,8 +3127,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_2a87d:
     let ptr_629 = r1 - 424
-    let var_9380 = 3
-    func_195()
+    func_195(ptr_629)
 
     return
 
@@ -3393,7 +3187,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_9465 = 8
     let var_9466 = 43
     let var_9467 = 984
-    goto block_3aa2;
+    goto block_34ec;
 
     block_2acbe:
     let var_9447 = 978
@@ -3411,7 +3205,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 1272] = var_9790
     u64[r1 + 1280] = 32 >>u (32 << var_9790)
     let var_9796 = 1002
-    goto block_26300;
+    goto block_261f8;
 
     block_2b517:
     goto block_2b51c;
@@ -3424,7 +3218,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_9818 = 0
     let var_9819 = 0
     let var_9820 = 1010
-    goto block_3aa2;
+    goto block_34ec;
 
     block_2b5b8:
     goto block_2b5bd;
@@ -3433,7 +3227,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_9821 = 24
     let var_9822 = 20
     let var_9823 = 1012
-    goto block_3aa2;
+    goto block_34ec;
 
     block_2b793:
     let var_9882 = u64[r1 + 1624]
@@ -3598,7 +3392,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_10048 = 12
     let var_10049 = 10
     let var_10050 = 1024
-    goto block_3aa2;
+    goto block_34ec;
 
     block_2bb24:
     return
@@ -3674,7 +3468,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_10214 = 36
     let var_10215 = 15
     let var_10216 = 1040
-    goto block_3aa2;
+    goto block_34ec;
 
     block_2bef6:
     let var_10205 = u64[r1 + 1376]
@@ -3704,7 +3498,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_10257 = 0
     let var_10258 = 0
     let var_10259 = 1044
-    goto block_3aa2;
+    goto block_34ec;
 
     block_2c072:
     goto block_2c077;
@@ -3721,13 +3515,13 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_10270 = 16
     let var_10271 = 17
     let var_10272 = 1046
-    goto block_3aa2;
+    goto block_34ec;
 
     block_2c12a:
     let var_10286 = 0
     let var_10287 = 0
     let var_10288 = 1048
-    goto block_3aa2;
+    goto block_34ec;
 
     block_2c147:
     goto block_2c14c;
@@ -3969,7 +3763,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_10618 = 16
     let var_10619 = 5
     let var_10620 = 1056
-    goto block_3aa2;
+    goto block_34ec;
 
     return
 
@@ -3981,7 +3775,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_10641 = 0
     let var_10642 = 0
     let var_10643 = 1058
-    goto block_3aa2;
+    goto block_34ec;
 
     block_2c971:
     goto block_2c976;
@@ -5169,9 +4963,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_2ee87:
     let ptr_882 = r1 - 200
     let var_12158 = 32 >>u (32 << 1 + u32[12 + var_12581 + 393216])
-    let var_12161 = 2
-    let var_12162 = 1
-    func_207()
+    func_207(ptr_882)
 
     return
 
@@ -5185,7 +4977,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_12168 = 40
     let var_12169 = 19552
     let var_12170 = 1066
-    goto block_3c2a;
+    goto block_3b2a;
 
     return
 
@@ -5219,7 +5011,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 288] = 32 >>u (32 << var_12236)
     let var_12242 = 1
     let var_12243 = 1070
-    goto block_3aa2;
+    goto block_34ec;
 
     u64[r1 + 264] = 8
 
@@ -5438,7 +5230,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_12518 = 8
     let var_12519 = 39
     let var_12520 = 1084
-    goto block_3aa2;
+    goto block_34ec;
 
     goto block_2f81d;
 
@@ -5485,7 +5277,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_12534 = 0
     let var_12535 = 0
     let var_12536 = 1086
-    goto block_3aa2;
+    goto block_34ec;
 
     block_2f8de:
     goto block_2f8e3;
@@ -5497,7 +5289,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_12540 = 6
     let var_12541 = 19584
     let var_12542 = 1088
-    goto block_3c2a;
+    goto block_3b2a;
 
     block_2fa36:
     if (4277993472 >=u r1 - 2968) goto block_2fa4b;
@@ -5507,7 +5299,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_12589 = 36
     let var_12590 = 47
     let var_12591 = 1098
-    goto block_3aa2;
+    goto block_34ec;
 
     return
 
@@ -5515,7 +5307,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_12605 = 0
     let var_12606 = 0
     let var_12607 = 1100
-    goto block_3aa2;
+    goto block_34ec;
 
     block_2faef:
     goto block_2faf4;
@@ -5536,7 +5328,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_12623 = 6
     let var_12624 = 19456
     let var_12625 = 1102
-    goto block_3c2a;
+    goto block_3b2a;
 
     block_2fd32:
     let var_12702 = ptr_930 + 1
@@ -5615,7 +5407,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_12798 = 16
     let var_12799 = 54
     let var_12800 = 1112
-    goto block_3aa2;
+    goto block_34ec;
 
     block_3006b:
     let var_12826 = 0
@@ -5623,7 +5415,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_12828 = 6
     let var_12829 = 19616
     let var_12830 = 1114
-    goto block_3c2a;
+    goto block_3b2a;
 
     block_3008f:
     goto block_30094;
@@ -5693,7 +5485,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_12883 = 6
     let var_12884 = 19648
     let var_12885 = 1116
-    goto block_3c2a;
+    goto block_3b2a;
 
     block_3028d:
     goto block_30292;
@@ -5703,7 +5495,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_30292:
     let var_12914 = u64[r1 + 1064]
     let var_12915 = 1120
-    goto block_77ed;
+    goto block_49bd;
 
     block_30269:
     let var_12909 = 0
@@ -5711,7 +5503,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_12911 = 6
     let var_12912 = 19680
     let var_12913 = 1118
-    goto block_3c2a;
+    goto block_3b2a;
 
     block_302dd:
     let var_12923 = 8 + u64[r1 + 1120]
@@ -5753,7 +5545,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_12965 = 1
     mem[65280] = u64[r1 + 1160]
     let var_12967 = 1124
-    goto block_c55a;
+    goto block_c05f;
 
     block_3034e:
     let var_12939 = u8[u64[r1 + 1128] + 393216]
@@ -5779,7 +5571,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_13107 = 6
     let var_13108 = 19712
     let var_13109 = 1128
-    goto block_3c2a;
+    goto block_3b2a;
 
     block_30441:
     goto block_3043c;
@@ -5971,7 +5763,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 2008] = 32 >>u (32 << var_13173)
     let var_13179 = 1
     let var_13180 = 1134
-    goto block_3aa2;
+    goto block_34ec;
 
     u64[r1 + 1984] = 8
 
@@ -6233,7 +6025,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_13513 = 6
     let var_13514 = 14880
     let var_13515 = 1148
-    goto block_3c2a;
+    goto block_3b2a;
 
     goto block_31056;
 
@@ -6288,7 +6080,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_13541 = 6
     let var_13542 = 14912
     let var_13543 = 1150
-    goto block_3c2a;
+    goto block_3b2a;
 
     block_31306:
     let var_13577 = u64[r1 + 448]
@@ -6338,13 +6130,13 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_13593 = 36
     let var_13594 = 14944
     let var_13595 = 1154
-    goto block_3c2a;
+    goto block_3b2a;
 
     block_319b1:
     let var_13818 = 0
     let var_13819 = 0
     let var_13820 = 1190
-    goto block_3aa2;
+    goto block_34ec;
 
     block_319ce:
     goto block_319d3;
@@ -6363,7 +6155,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_13851 = 0
     let var_13852 = 0
     let var_13853 = 1196
-    goto block_3aa2;
+    goto block_34ec;
 
     block_31ac5:
     goto block_31aca;
@@ -6388,13 +6180,13 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_13875 = 8
     let var_13876 = 34
     let var_13877 = 1198
-    goto block_3aa2;
+    goto block_34ec;
 
     block_31bbb:
     let var_13891 = 0
     let var_13892 = 0
     let var_13893 = 1200
-    goto block_3aa2;
+    goto block_34ec;
 
     block_31bd8:
     goto block_31bdd;
@@ -6418,7 +6210,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_13912 = 8
     let var_13913 = 49
     let var_13914 = 1202
-    goto block_3aa2;
+    goto block_34ec;
 
     block_31e1f:
     let var_13980 = 1204
@@ -6596,37 +6388,14 @@ fn func_2(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
 fn func_3(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     if (4277993472 >=u r1 - 88) {
-        func_4()
+        func_4(r1 - 88, r7)
     }
 
     block_05f5:
-    block_06f4:
-    block_07e6:
-    block_08d2:
-    block_0bfb:
-    block_0928:
-    block_0c05:
-    block_0c9c:
-    block_087d:
-    block_0ca1:
-    block_0d92:
-    block_10bb:
-    block_0de8:
-    block_10c5:
-    block_115c:
-    block_0d37:
-    block_05f5:
-    block_06f4:
-    block_07e6:
-    block_087d:
-    block_0928:
-    block_0ca1:
-    block_0de8:
-    block_3171:
     let ptr_16 = r1 - 296
     let var_562 = u8[32 >>u (32 << r11 + u32[4 + r10 + 393216]) + 393216]
     let var_571 = 32 >>u (32 << 1 + r11)
-    func_10()
+    func_10(ptr_16, r7)
 }
 
 fn func_4(r1: u64, r7: u64) {

@@ -2,10 +2,8 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     goto block_000a;
 
     block_000a:
-    func_1()
+    func_1(r1 - 16)
 
-    block_05ae:
-    block_05e4:
     block_05ae:
 }
 

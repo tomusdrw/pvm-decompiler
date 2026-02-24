@@ -3,24 +3,9 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     mem[131076] = 1
     mem[131077] = 1
     mem[131078] = 1
-    let var_290 = 0
-    let var_291 = 197120
-    let var_292 = 4
-    func_1()
+    func_1(r1 - 1376)
 
     block_0354:
-    block_03a8:
-    block_041b:
-    block_000a:
-    block_0077:
-    block_00f8:
-    block_00cc:
-    block_006c:
-    block_03fb:
-    block_03a3:
-    block_000a:
-    block_0354:
-    block_052d:
     let var_207 = u64[r1 + 200]
     u64[r1 + 328] = var_207
     let cond_12 = !(var_207 ^ 2)
@@ -82,7 +67,7 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     u64[r1 + 584] = var_266
     u64[r1 + 592] = var_266
     u64[r1 + 144] = var_266
-    goto block_041b;
+    goto block_0354;
 
     block_05b1:
     let var_230 = u64[r1 + 200]

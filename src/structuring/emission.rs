@@ -345,6 +345,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
             for &eb in else_blocks {
                 self.emitted.insert(eb);
             }
+            self.emitted.insert(header);
             return;
         }
 
@@ -481,6 +482,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
         }
         let prefix = "    ".repeat(indent);
         let len_before = self.output.len();
+        let mut block_reg_values: HashMap<u8, String> = HashMap::new();
         if let Some(block) = self.cfg.blocks.get(&block_pc) {
             let len = block.instructions.len();
             let end = if skip_terminator && len > 0 {
@@ -491,6 +493,15 @@ impl<'a, 'p> Emitter<'a, 'p> {
 
             for (pc, instr) in &block.instructions[..end] {
                 if let Some(lifted) = self.lifted {
+                    if let Some((reg, value)) = register_value_after_instruction(
+                        lifted,
+                        *pc,
+                        instr,
+                        &self.plan.emission_eliminated_pcs,
+                        &self.plan.var_aliases,
+                    ) {
+                        block_reg_values.insert(reg, value);
+                    }
                     // Skip eliminated PCs (folded/propagated).
                     if lifted.eliminated_pcs.contains(pc)
                         || self.plan.emission_eliminated_pcs.contains(pc)
@@ -500,13 +511,29 @@ impl<'a, 'p> Emitter<'a, 'p> {
                     // Check if this Jump is a function call
                     if let Instruction::Jump { offset } = instr {
                         if let Some(callee) = lifted.direct_call_sites.get(pc).cloned() {
-                            let _ = writeln!(self.output, "{}{}()", prefix, callee);
+                            let line = format_named_call(
+                                lifted,
+                                &callee,
+                                *pc,
+                                &block_reg_values,
+                                &self.plan.var_aliases,
+                                &self.plan.emission_eliminated_pcs,
+                            );
+                            let _ = writeln!(self.output, "{}{}", prefix, line);
                             continue;
                         }
                         let target =
                             crate::cfg::ControlFlowGraph::compute_jump_target(*pc, *offset);
                         if let Some(callee) = lifted.call_targets.get(&target) {
-                            let _ = writeln!(self.output, "{}{}()", prefix, callee);
+                            let line = format_named_call(
+                                lifted,
+                                callee,
+                                *pc,
+                                &block_reg_values,
+                                &self.plan.var_aliases,
+                                &self.plan.emission_eliminated_pcs,
+                            );
+                            let _ = writeln!(self.output, "{}{}", prefix, line);
                             continue;
                         }
                         if Some(target) == fallthrough_target {
@@ -524,7 +551,15 @@ impl<'a, 'p> Emitter<'a, 'p> {
                     if let Instruction::JumpInd { reg, .. } = instr {
                         // First try: resolve register to a constant PC in call_targets
                         if let Some(callee) = lifted.resolve_indirect_call(*pc, *reg) {
-                            let _ = writeln!(self.output, "{}{}()", prefix, callee);
+                            let line = format_named_call(
+                                lifted,
+                                &callee,
+                                *pc,
+                                &block_reg_values,
+                                &self.plan.var_aliases,
+                                &self.plan.emission_eliminated_pcs,
+                            );
+                            let _ = writeln!(self.output, "{}{}", prefix, line);
                             continue;
                         }
                         // Unresolved indirect jumps are rendered explicitly.
@@ -1733,7 +1768,61 @@ fn fix_blank_lines(input: &str) -> String {
 
     let mut out = deduped.join("\n");
     out.push('\n');
+    collapse_consecutive_labels(&out)
+}
+
+/// Collapse runs of consecutive labels into a single canonical label.
+/// Rewrites goto targets to preserve control-flow readability.
+fn collapse_consecutive_labels(input: &str) -> String {
+    let lines: Vec<String> = input.lines().map(|s| s.to_string()).collect();
+    let mut collapsed: Vec<String> = Vec::with_capacity(lines.len());
+    let mut aliases: HashMap<String, String> = HashMap::new();
+
+    let mut i = 0usize;
+    while i < lines.len() {
+        if let Some(canonical_label) = parse_block_label_name(&lines[i]) {
+            collapsed.push(lines[i].clone());
+            let mut j = i + 1;
+            while j < lines.len() {
+                if let Some(alias_label) = parse_block_label_name(&lines[j]) {
+                    aliases.insert(alias_label, canonical_label.clone());
+                    j += 1;
+                } else {
+                    break;
+                }
+            }
+            i = j;
+            continue;
+        }
+
+        collapsed.push(lines[i].clone());
+        i += 1;
+    }
+
+    let mut rewritten: Vec<String> = collapsed;
+    if !aliases.is_empty() {
+        rewritten = rewritten
+            .into_iter()
+            .map(|line| apply_aliases(&line, &aliases))
+            .collect();
+    }
+
+    let mut out = rewritten.join("\n");
+    out.push('\n');
     out
+}
+
+fn parse_block_label_name(line: &str) -> Option<String> {
+    let trimmed = line.trim();
+    if !(trimmed.starts_with("block_") && trimmed.ends_with(':')) {
+        return None;
+    }
+    let label = &trimmed[..trimmed.len() - 1];
+    let hex_suffix = &label["block_".len()..];
+    if hex_suffix.is_empty() || !hex_suffix.chars().all(|c| c.is_ascii_hexdigit()) {
+        return None;
+    }
+    Some(label.to_string())
 }
 
 /// Build human-readable labels for blocks that are targets of goto/switch statements.
@@ -1949,6 +2038,98 @@ fn format_pc_with_local_declarations(
         return Some(format!("let {}", raw_line));
     }
     Some(raw_line)
+}
+
+/// Track a register's value after an instruction to make call arguments explicit.
+fn register_value_after_instruction(
+    lifted: &LiftedProgram,
+    pc: usize,
+    instr: &Instruction,
+    emission_eliminated_pcs: &HashSet<usize>,
+    var_aliases: &HashMap<String, String>,
+) -> Option<(u8, String)> {
+    use crate::lifting::{Expression, format_expression};
+
+    let def_reg = InstructionShape::classify(instr).def_reg()?;
+
+    if (lifted.eliminated_pcs.contains(&pc) || emission_eliminated_pcs.contains(&pc))
+        && let Some(expr) = lifted.expressions.get(&pc)
+    {
+        // Keep register-value tracking coherent even when the defining instruction
+        // is folded away from the emitted output.
+        if !matches!(expr, Expression::Raw(_) | Expression::Store { .. }) {
+            let resolved = lifted.resolve_eliminated_vars(expr);
+            let value = apply_aliases(&format_expression(&resolved), var_aliases);
+            if value == format!("r{}", def_reg) {
+                return None;
+            }
+            return Some((def_reg, value));
+        }
+    }
+
+    if let Some(var) = lifted.variables.get(&(pc, def_reg)) {
+        return Some((def_reg, resolve_alias(&var.name, var_aliases)));
+    }
+
+    Some((def_reg, format!("r{}", def_reg)))
+}
+
+fn format_named_call(
+    lifted: &LiftedProgram,
+    callee: &str,
+    call_pc: usize,
+    block_reg_values: &HashMap<u8, String>,
+    var_aliases: &HashMap<String, String>,
+    emission_eliminated_pcs: &HashSet<usize>,
+) -> String {
+    let args = lifted
+        .call_param_regs
+        .get(callee)
+        .map(|regs| {
+            regs.iter()
+                .map(|&reg| {
+                    format_call_arg(
+                        lifted,
+                        call_pc,
+                        reg,
+                        block_reg_values,
+                        var_aliases,
+                        emission_eliminated_pcs,
+                    )
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    format!("{}({})", callee, args.join(", "))
+}
+
+fn format_call_arg(
+    lifted: &LiftedProgram,
+    call_pc: usize,
+    reg: u8,
+    block_reg_values: &HashMap<u8, String>,
+    var_aliases: &HashMap<String, String>,
+    emission_eliminated_pcs: &HashSet<usize>,
+) -> String {
+    use crate::lifting::format_expression;
+
+    if let Some(value) = block_reg_values.get(&reg) {
+        return value.clone();
+    }
+
+    if let Some(name) = lifted.var_at_use.get(&(call_pc, reg)) {
+        if let Some(def_pc) = lifted.var_name_to_def_pc.get(name.as_str())
+            && (lifted.eliminated_pcs.contains(def_pc)
+                || emission_eliminated_pcs.contains(def_pc))
+            && let Some(expr) = lifted.expressions.get(def_pc)
+        {
+            let resolved = lifted.resolve_eliminated_vars(expr);
+            return apply_aliases(&format_expression(&resolved), var_aliases);
+        }
+        return resolve_alias(name, var_aliases);
+    }
+
+    format!("r{}", reg)
 }
 
 fn replace_identifier(input: &str, from: &str, to: &str) -> String {
@@ -3578,6 +3759,65 @@ mod tests {
     }
 
     #[test]
+    fn test_call_target_renders_explicit_arguments_from_register_state() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (
+                            0,
+                            Instruction::LoadImm {
+                                reg: 1,
+                                value: 100,
+                            },
+                        ),
+                        (4, Instruction::LoadImm { reg: 7, value: 17 }),
+                        (8, Instruction::LoadImm { reg: 0, value: 1 }),
+                        (
+                            12,
+                            Instruction::Jump {
+                                offset: 0x100 - 12,
+                            },
+                        ),
+                    ],
+                    vec![20],
+                ),
+                (20, vec![(20, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        lifted.call_targets.insert(0x100, "helper_func".to_string());
+        lifted
+            .call_param_regs
+            .insert("helper_func".to_string(), vec![1, 7]);
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
+
+        let call_line = pseudo
+            .lines()
+            .find(|line| line.contains("helper_func("))
+            .expect("helper_func call should be present");
+        assert!(
+            call_line.contains(','),
+            "Call should render both arguments explicitly: {}",
+            pseudo
+        );
+        assert!(
+            !call_line.contains("helper_func()"),
+            "Call should not be rendered as zero-arg when signature is known: {}",
+            pseudo
+        );
+    }
+
+    #[test]
     fn test_unresolved_direct_jump_renders_labeled_goto() {
         use crate::dataflow::DataFlowAnalysis;
         use crate::lifting::LiftedProgram;
@@ -4060,5 +4300,39 @@ mod tests {
                 output
             );
         }
+    }
+
+    #[test]
+    fn test_collapse_consecutive_labels_rewrites_gotos_to_canonical_label() {
+        let input = "\
+block_0001:
+block_0002:
+block_0003:
+goto block_0002;
+case 4: goto block_0003;
+";
+
+        let output = fix_blank_lines(input);
+
+        assert!(
+            output.contains("block_0001:"),
+            "Canonical label should remain: {}",
+            output
+        );
+        assert!(
+            !output.contains("block_0002:"),
+            "Alias labels should be collapsed: {}",
+            output
+        );
+        assert!(
+            !output.contains("block_0003:"),
+            "Alias labels should be collapsed: {}",
+            output
+        );
+        assert!(
+            output.contains("goto block_0001;"),
+            "Goto targets should be rewritten to canonical label: {}",
+            output
+        );
     }
 }
