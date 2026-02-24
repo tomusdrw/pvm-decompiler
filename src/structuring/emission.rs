@@ -2363,6 +2363,7 @@ fn format_pc_with_local_declarations(
         return None;
     }
     let (raw_line, declare_var) = lifted.format_pc_raw(pc, instr)?;
+    let raw_line = recover_folded_addition_assignment(lifted, pc, instr, &raw_line, var_aliases);
     let raw_line = apply_aliases(&raw_line, var_aliases);
     if let Some(var_name) = declare_var
         && declared_vars.insert(resolve_alias(&var_name, var_aliases))
@@ -2370,6 +2371,69 @@ fn format_pc_with_local_declarations(
         return Some(format!("let {}", raw_line));
     }
     Some(raw_line)
+}
+
+fn recover_folded_addition_assignment(
+    lifted: &LiftedProgram,
+    pc: usize,
+    instr: &Instruction,
+    raw_line: &str,
+    var_aliases: &HashMap<String, String>,
+) -> String {
+    let Some(rhs) = recover_folded_addition_rhs(lifted, pc, instr, var_aliases) else {
+        return raw_line.to_string();
+    };
+    let Some(eq_pos) = raw_line.find(" = ") else {
+        return raw_line.to_string();
+    };
+    let lhs = raw_line[..eq_pos].trim_end();
+    format!("{} = {}", lhs, rhs)
+}
+
+fn recover_folded_addition_rhs(
+    lifted: &LiftedProgram,
+    pc: usize,
+    instr: &Instruction,
+    var_aliases: &HashMap<String, String>,
+) -> Option<String> {
+    use crate::lifting::Expression;
+
+    if !matches!(lifted.expressions.get(&pc), Some(Expression::Const(_))) {
+        return None;
+    }
+
+    match instr {
+        Instruction::Add32 { src1, src2, .. } | Instruction::Add64 { src1, src2, .. } => Some(
+            format!(
+                "{} + {}",
+                format_add_operand(lifted, pc, *src1, var_aliases),
+                format_add_operand(lifted, pc, *src2, var_aliases)
+            ),
+        ),
+        _ => None,
+    }
+}
+
+fn format_add_operand(
+    lifted: &LiftedProgram,
+    use_pc: usize,
+    reg: u8,
+    var_aliases: &HashMap<String, String>,
+) -> String {
+    use crate::lifting::format_expression;
+
+    if let Some(name) = lifted.var_at_use.get(&(use_pc, reg)) {
+        if let Some(def_pc) = lifted.var_name_to_def_pc.get(name.as_str())
+            && lifted.eliminated_pcs.contains(def_pc)
+            && let Some(expr) = lifted.expressions.get(def_pc)
+        {
+            let resolved = lifted.resolve_eliminated_vars(expr);
+            return apply_aliases(&format_expression(&resolved), var_aliases);
+        }
+        return resolve_alias(name, var_aliases);
+    }
+
+    format!("r{}", reg)
 }
 
 /// Track a register's value after an instruction to make call arguments explicit.

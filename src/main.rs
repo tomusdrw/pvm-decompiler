@@ -1045,15 +1045,15 @@ mod integration_tests {
             .expect("simple-add.pvm fixture should exist");
         let output = decompile_bytes(&buffer).expect("decompilation should succeed");
 
-        // Should produce a main function with the addition result (42 + 100 = 142)
+        // Should produce a main function and preserve the explicit addition operation.
         assert!(
             output.contains("fn main"),
             "Output should contain main function: {}",
             output
         );
         assert!(
-            output.contains("142"),
-            "Output should contain the computed constant 142 (42 + 100): {}",
+            output.contains("42 + 100") || output.contains("100 + 42"),
+            "Output should contain explicit addition (42 + 100): {}",
             output
         );
     }

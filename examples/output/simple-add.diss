@@ -1,4 +1,4 @@
 fn main() {
-    let var_2 = 142
+    let var_2 = 42 + 100
 }
 
