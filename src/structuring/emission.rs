@@ -181,6 +181,7 @@ impl StructuralAnalysis {
                 "=== Pseudo-Code ===\n\n".to_string()
             },
             emitted: HashSet::new(),
+            reachable_blocks: self.dom_tree.rpo.iter().copied().collect(),
             lifted,
             labels,
             if_map,
@@ -262,6 +263,7 @@ struct Emitter<'a, 'p> {
     cfg: &'a ControlFlowGraph,
     output: String,
     emitted: HashSet<usize>,
+    reachable_blocks: HashSet<usize>,
     lifted: Option<&'a LiftedProgram>,
     labels: HashMap<usize, String>,
     if_map: HashMap<usize, &'a Structure>,
@@ -278,7 +280,22 @@ impl<'a, 'p> Emitter<'a, 'p> {
         for (idx, &block_pc) in chain.iter().enumerate() {
             // Chained blocks have a single predecessor in the chain, so they
             // can be rendered as plain fallthrough without local labels.
-            let fallthrough_target = chain.get(idx + 1).copied();
+            let mut fallthrough_target = chain.get(idx + 1).copied();
+            if fallthrough_target.is_none()
+                && let Some(block) = self.cfg.blocks.get(&block_pc)
+                && block.successors.len() == 1
+            {
+                let succ = block.successors[0];
+                // Allow fallthrough into an immediately emitted structured header
+                // to avoid `goto label; label:` noise at region boundaries.
+                if !self.emitted.contains(&succ)
+                    && (self.loop_map.contains_key(&succ)
+                        || self.if_map.contains_key(&succ)
+                        || self.switch_headers.contains(&succ))
+                {
+                    fallthrough_target = Some(succ);
+                }
+            }
             self.emit_block_body_with_fallthrough(block_pc, indent, false, fallthrough_target);
             self.emitted.insert(block_pc);
         }
@@ -310,8 +327,17 @@ impl<'a, 'p> Emitter<'a, 'p> {
             let Some(succ_block) = self.cfg.blocks.get(&succ) else {
                 break;
             };
-            // Only chain into blocks with a single predecessor to avoid hiding join labels.
-            if succ_block.predecessors.len() != 1 {
+            // Only chain into blocks with a single effective predecessor.
+            // Ignore unreachable pure-fallthrough padding predecessors.
+            let effective_pred_count = succ_block
+                .predecessors
+                .iter()
+                .filter(|pred| {
+                    self.reachable_blocks.contains(pred)
+                        || !self.is_ignorable_unreachable_predecessor(**pred)
+                })
+                .count();
+            if effective_pred_count != 1 {
                 break;
             }
 
@@ -321,6 +347,19 @@ impl<'a, 'p> Emitter<'a, 'p> {
         }
 
         chain
+    }
+
+    fn is_ignorable_unreachable_predecessor(&self, pred_pc: usize) -> bool {
+        if self.reachable_blocks.contains(&pred_pc) {
+            return false;
+        }
+        let Some(block) = self.cfg.blocks.get(&pred_pc) else {
+            return false;
+        };
+        block
+            .instructions
+            .iter()
+            .all(|(_, instr)| matches!(instr, Instruction::Fallthrough))
     }
 
     fn emit_if(
@@ -450,13 +489,23 @@ impl<'a, 'p> Emitter<'a, 'p> {
         indent: usize,
         loop_context: Option<usize>,
     ) -> Option<&'static str> {
+        self.emit_block_with_loop_control_and_fallthrough(block_pc, indent, loop_context, None)
+    }
+
+    fn emit_block_with_loop_control_and_fallthrough(
+        &mut self,
+        block_pc: usize,
+        indent: usize,
+        loop_context: Option<usize>,
+        fallthrough_target: Option<usize>,
+    ) -> Option<&'static str> {
         if let Some(loop_header) = loop_context
             && let Some(action) = self.plan.loop_terminal_action(loop_header, block_pc)
         {
             self.emit_block_body(block_pc, indent, true);
             return Some(action.keyword());
         }
-        self.emit_block_body(block_pc, indent, false);
+        self.emit_block_body_with_fallthrough(block_pc, indent, false, fallthrough_target);
         None
     }
 
@@ -717,7 +766,10 @@ impl<'a, 'p> Emitter<'a, 'p> {
         let output_before_loop = self.output.len();
 
         let prefix = "    ".repeat(indent);
-        let cond_str = condition
+        let render_condition = condition
+            .as_ref()
+            .map(|c| maybe_invert_loop_condition(self.cfg, header_pc, body, c));
+        let cond_str = render_condition
             .as_ref()
             .map(|c| {
                 format_condition_maybe_lifted(
@@ -749,7 +801,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
         // Emit header block body (before the condition branch)
         self.emit_block_body(header_pc, indent + 1, true);
 
-        for &body_pc in &body_ordered {
+        for (idx, &body_pc) in body_ordered.iter().enumerate() {
             if body_pc == header_pc || self.emitted.contains(&body_pc) {
                 continue;
             }
@@ -800,10 +852,26 @@ impl<'a, 'p> Emitter<'a, 'p> {
             }
 
             let inner_prefix = "    ".repeat(indent + 1);
+            let fallthrough_target = body_ordered[idx + 1..].iter().copied().find(|next| {
+                *next != header_pc
+                    && reachable.contains(next)
+                    && !self.emitted.contains(next)
+                    && !lifted_suppressed_non_header.contains(next)
+            });
             if is_latch {
-                self.emit_block_body(body_pc, indent + 1, true);
+                self.emit_block_body_with_fallthrough(
+                    body_pc,
+                    indent + 1,
+                    true,
+                    fallthrough_target,
+                );
             } else {
-                let ctrl = self.emit_block_with_loop_control(body_pc, indent + 1, Some(header_pc));
+                let ctrl = self.emit_block_with_loop_control_and_fallthrough(
+                    body_pc,
+                    indent + 1,
+                    Some(header_pc),
+                    fallthrough_target,
+                );
                 if let Some(keyword) = ctrl {
                     // Suppress `continue` at the very end of the loop body — it's implicit.
                     let is_last = last_emittable == Some(body_pc);
@@ -1768,7 +1836,9 @@ fn fix_blank_lines(input: &str) -> String {
 
     let mut out = deduped.join("\n");
     out.push('\n');
-    collapse_consecutive_labels(&out)
+    let collapsed = collapse_consecutive_labels(&out);
+    let without_unused_labels = prune_unused_labels(&collapsed);
+    prune_unused_pure_let_definitions(&without_unused_labels)
 }
 
 /// Collapse runs of consecutive labels into a single canonical label.
@@ -1812,17 +1882,279 @@ fn collapse_consecutive_labels(input: &str) -> String {
     out
 }
 
+/// Remove label definitions that are never targeted by any emitted goto.
+fn prune_unused_labels(input: &str) -> String {
+    let referenced = collect_referenced_labels(input);
+    let mut kept: Vec<String> = Vec::new();
+    let mut prev_blank = false;
+
+    for line in input.lines() {
+        if let Some(label) = parse_block_label_name(line)
+            && !referenced.contains(&label)
+        {
+            continue;
+        }
+
+        let is_blank = line.trim().is_empty();
+        if is_blank {
+            if prev_blank || kept.is_empty() {
+                continue;
+            }
+            prev_blank = true;
+        } else {
+            prev_blank = false;
+        }
+        kept.push(line.to_string());
+    }
+
+    while kept.last().is_some_and(|line| line.trim().is_empty()) {
+        kept.pop();
+    }
+
+    let mut out = kept.join("\n");
+    out.push('\n');
+    out
+}
+
+fn collect_referenced_labels(input: &str) -> HashSet<String> {
+    let mut referenced = HashSet::new();
+
+    for line in input.lines() {
+        let mut rest = line;
+        while let Some(idx) = rest.find("goto ") {
+            let after = &rest[idx + "goto ".len()..];
+            let label: String = after
+                .chars()
+                .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+                .collect();
+            if label.is_empty() {
+                break;
+            }
+            if is_block_label_name(&label) {
+                referenced.insert(label.clone());
+            }
+            rest = &after[label.len()..];
+        }
+    }
+
+    referenced
+}
+
+/// Remove pure local `let` bindings that have no remaining identifier uses.
+/// Keeps effectful bindings (e.g. function calls) even when their target is unused.
+fn prune_unused_pure_let_definitions(input: &str) -> String {
+    let mut lines: Vec<String> = input.lines().map(|s| s.to_string()).collect();
+    let has_halt = lines.iter().any(|line| line.trim() == "halt()");
+    if !has_halt {
+        return input.to_string();
+    }
+    let func_ids = assign_function_ids(&lines);
+    let has_functions = func_ids.iter().any(Option::is_some);
+    let halt_func_ids: HashSet<usize> = if has_functions {
+        lines
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, line)| {
+                if line.trim() == "halt()" {
+                    func_ids[idx]
+                } else {
+                    None
+                }
+            })
+            .collect()
+    } else {
+        HashSet::new()
+    };
+
+    loop {
+        let mut uses: HashMap<String, usize> = HashMap::new();
+
+        for line in &lines {
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            if let Some((_, rhs)) = parse_let_binding(trimmed) {
+                for ident in collect_identifiers(rhs) {
+                    *uses.entry(ident).or_insert(0) += 1;
+                }
+            } else {
+                for ident in collect_identifiers(trimmed) {
+                    *uses.entry(ident).or_insert(0) += 1;
+                }
+            }
+        }
+
+        let mut changed = false;
+        let mut kept = Vec::with_capacity(lines.len());
+        for (idx, line) in lines.iter().enumerate() {
+            let trimmed = line.trim();
+            let remove = if let Some((name, rhs)) = parse_let_binding(trimmed) {
+                let in_halt_context = if has_functions {
+                    func_ids[idx].is_some_and(|fid| halt_func_ids.contains(&fid))
+                } else {
+                    true
+                };
+                in_halt_context && uses.get(name).copied().unwrap_or(0) == 0 && is_pure_let_rhs(rhs)
+            } else {
+                false
+            };
+            if remove {
+                changed = true;
+                continue;
+            }
+            kept.push(line.clone());
+        }
+
+        if !changed {
+            break;
+        }
+        lines = kept;
+    }
+
+    let mut compact: Vec<String> = Vec::new();
+    let mut prev_blank = false;
+    for line in lines {
+        let is_blank = line.trim().is_empty();
+        if is_blank {
+            if prev_blank || compact.is_empty() {
+                continue;
+            }
+            prev_blank = true;
+        } else {
+            prev_blank = false;
+        }
+        compact.push(line);
+    }
+    while compact.last().is_some_and(|line| line.trim().is_empty()) {
+        compact.pop();
+    }
+
+    let mut out = compact.join("\n");
+    out.push('\n');
+    out
+}
+
+fn assign_function_ids(lines: &[String]) -> Vec<Option<usize>> {
+    let mut ids = vec![None; lines.len()];
+    let mut current_fn: Option<usize> = None;
+    let mut next_fn_id = 0usize;
+    let mut depth: isize = 0;
+
+    for (idx, line) in lines.iter().enumerate() {
+        let trimmed = line.trim_start();
+
+        if current_fn.is_none() && trimmed.starts_with("fn ") && trimmed.ends_with('{') {
+            current_fn = Some(next_fn_id);
+            next_fn_id += 1;
+            depth = 1;
+            ids[idx] = current_fn;
+            continue;
+        }
+
+        if let Some(fid) = current_fn {
+            ids[idx] = Some(fid);
+            depth += count_char(line, '{') as isize;
+            depth -= count_char(line, '}') as isize;
+            if depth <= 0 {
+                current_fn = None;
+                depth = 0;
+            }
+        }
+    }
+
+    ids
+}
+
+fn count_char(s: &str, needle: char) -> usize {
+    s.chars().filter(|&c| c == needle).count()
+}
+
+fn parse_let_binding(line: &str) -> Option<(&str, &str)> {
+    let rest = line.strip_prefix("let ")?;
+    let name_end = rest
+        .find(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+        .unwrap_or(rest.len());
+    if name_end == 0 {
+        return None;
+    }
+    let name = &rest[..name_end];
+    let mut tail = rest[name_end..].trim_start();
+    if tail.starts_with(':') {
+        if let Some(eq_pos) = tail.find('=') {
+            tail = tail[eq_pos + 1..].trim_start();
+        } else {
+            tail = "";
+        }
+    } else if tail.starts_with('=') {
+        tail = tail[1..].trim_start();
+    } else {
+        tail = "";
+    }
+    Some((name, tail))
+}
+
+fn collect_identifiers(text: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let bytes = text.as_bytes();
+    let mut i = 0usize;
+    while i < bytes.len() {
+        if bytes[i].is_ascii_alphabetic() || bytes[i] == b'_' {
+            let start = i;
+            i += 1;
+            while i < bytes.len() && (bytes[i].is_ascii_alphanumeric() || bytes[i] == b'_') {
+                i += 1;
+            }
+            out.push(text[start..i].to_string());
+        } else {
+            i += 1;
+        }
+    }
+    out
+}
+
+fn is_pure_let_rhs(rhs: &str) -> bool {
+    !has_probable_call(rhs)
+}
+
+fn has_probable_call(expr: &str) -> bool {
+    let bytes = expr.as_bytes();
+    for i in 0..bytes.len() {
+        if bytes[i] != b'(' {
+            continue;
+        }
+        let mut j = i;
+        while j > 0 && bytes[j - 1].is_ascii_whitespace() {
+            j -= 1;
+        }
+        if j == 0 {
+            continue;
+        }
+        if is_ident_byte(bytes[j - 1]) {
+            return true;
+        }
+    }
+    false
+}
+
 fn parse_block_label_name(line: &str) -> Option<String> {
     let trimmed = line.trim();
     if !(trimmed.starts_with("block_") && trimmed.ends_with(':')) {
         return None;
     }
     let label = &trimmed[..trimmed.len() - 1];
-    let hex_suffix = &label["block_".len()..];
-    if hex_suffix.is_empty() || !hex_suffix.chars().all(|c| c.is_ascii_hexdigit()) {
+    if !is_block_label_name(label) {
         return None;
     }
     Some(label.to_string())
+}
+
+fn is_block_label_name(label: &str) -> bool {
+    if !label.starts_with("block_") {
+        return false;
+    }
+    let hex_suffix = &label["block_".len()..];
+    !hex_suffix.is_empty() && hex_suffix.chars().all(|c| c.is_ascii_hexdigit())
 }
 
 /// Build human-readable labels for blocks that are targets of goto/switch statements.
@@ -2232,6 +2564,66 @@ fn format_condition(cond: &Condition) -> String {
     format!("{} {} {}", lhs, op, rhs)
 }
 
+fn maybe_invert_loop_condition(
+    cfg: &ControlFlowGraph,
+    header_pc: usize,
+    loop_body: &HashSet<usize>,
+    cond: &Condition,
+) -> Condition {
+    if should_invert_loop_condition(cfg, header_pc, loop_body) {
+        invert_condition(cond)
+    } else {
+        cond.clone()
+    }
+}
+
+fn should_invert_loop_condition(
+    cfg: &ControlFlowGraph,
+    header_pc: usize,
+    loop_body: &HashSet<usize>,
+) -> bool {
+    let Some(header_block) = cfg.blocks.get(&header_pc) else {
+        return false;
+    };
+    let Some((branch_pc, instr)) = header_block.instructions.last() else {
+        return false;
+    };
+    let shape = InstructionShape::classify(instr);
+    if !shape.is_conditional_branch() {
+        return false;
+    }
+    let Some(offset) = shape.branch_offset() else {
+        return false;
+    };
+    let branch_target = crate::cfg::ControlFlowGraph::compute_jump_target(*branch_pc, offset);
+    let branch_goes_to_body = loop_body.contains(&branch_target);
+    let fallthrough_goes_to_body = header_block
+        .successors
+        .iter()
+        .any(|succ| *succ != branch_target && loop_body.contains(succ));
+    !branch_goes_to_body && fallthrough_goes_to_body
+}
+
+fn invert_condition(cond: &Condition) -> Condition {
+    let op = match &cond.op {
+        CondOp::Eq => CondOp::Ne,
+        CondOp::Ne => CondOp::Eq,
+        CondOp::LtS => CondOp::GeS,
+        CondOp::LeS => CondOp::GtS,
+        CondOp::GeS => CondOp::LtS,
+        CondOp::GtS => CondOp::LeS,
+        CondOp::LeU => CondOp::GtU,
+        CondOp::GeU => CondOp::LtU,
+        CondOp::LtU => CondOp::GeU,
+        CondOp::GtU => CondOp::LeU,
+    };
+    Condition {
+        op,
+        lhs: cond.lhs.clone(),
+        rhs: cond.rhs.clone(),
+    }
+}
+
 /// Format a condition using lifted variable names when available.
 /// When the condition is `cond_var != 0` and cond_var was defined by a comparison
 /// expression (e.g. `x <u y`), inline the comparison directly.
@@ -2428,6 +2820,66 @@ mod tests {
         assert!(
             pseudo.contains("r0 = 42"),
             "Should contain init: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_loop_exit_branch_inverts_condition_and_elides_forwarder_jump() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // Header exits on r1 != 0, while fallthrough enters body via a
+        // forwarder block that jumps directly to the latch body.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (0, vec![(0, Instruction::Jump { offset: 10 })], vec![10]),
+                (
+                    10,
+                    vec![(
+                        10,
+                        Instruction::BranchNeImm {
+                            reg: 1,
+                            value: 0,
+                            offset: 20,
+                        },
+                    )],
+                    vec![30, 20],
+                ),
+                (20, vec![(20, Instruction::Jump { offset: 20 })], vec![40]),
+                (
+                    40,
+                    vec![
+                        (
+                            40,
+                            Instruction::Add32 {
+                                dst: 2,
+                                src1: 2,
+                                src2: 3,
+                            },
+                        ),
+                        (44, Instruction::Jump { offset: -34 }),
+                    ],
+                    vec![10],
+                ),
+                (30, vec![(30, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
+
+        assert!(
+            pseudo.contains("while (r1 == 0)"),
+            "Exit-branch loop conditions should be inverted for while rendering: {}",
+            pseudo
+        );
+        assert!(
+            !pseudo.contains("goto block_0028;"),
+            "Forwarder jumps to the next loop body block should be elided: {}",
             pseudo
         );
     }
@@ -4320,6 +4772,53 @@ case 4: goto block_0003;
         assert!(
             output.contains("goto block_0001;"),
             "Goto targets should be rewritten to canonical label: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_prune_unused_labels_keeps_only_referenced_targets() {
+        let input = "\
+block_0001:
+let var_0 = 1
+goto block_0003;
+block_0003:
+return
+";
+
+        let output = fix_blank_lines(input);
+
+        assert!(
+            !output.contains("block_0001:"),
+            "Unused labels should be removed: {}",
+            output
+        );
+        assert!(
+            output.contains("block_0003:"),
+            "Referenced labels should be preserved: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_prune_unused_pure_let_definitions_keeps_effectful_bindings() {
+        let input = "\
+let ptr_0_64 = 17179869184
+let var_1 = 1
+let var_2 = sbrk(var_1)
+halt()
+";
+
+        let output = fix_blank_lines(input);
+
+        assert!(
+            !output.contains("let ptr_0_64 = 17179869184"),
+            "Unused pure let should be removed: {}",
+            output
+        );
+        assert!(
+            output.contains("let var_2 = sbrk(var_1)"),
+            "Effectful let bindings must be preserved even if unused: {}",
             output
         );
     }

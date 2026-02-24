@@ -1,20 +1,10 @@
 fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
-    goto block_000a;
-
-    block_000a:
     func_1(r1 - 16)
 
-    block_0415:
-}
-
-fn func_0() {
-    return
 }
 
 fn func_1(r1: u64) {
-    let var_1 = u64[r1 + 8]
     let ptr_0_40 = u64[r1] - 327680
-    let ptr_0_56 = HEAP_PTR
     let var_9 = HEAP_PTR + 4
     let ptr_0_88 = var_9
     let ptr_0_112 = var_9 + 268
@@ -36,19 +26,15 @@ fn func_1(r1: u64) {
 
     ptr_0_400 = ptr_0_120
 
-    block_01ee:
     let var_81 = HEAP_PAGES
     let var_82 = var_81 + ptr_0_400
 
     if (var_81 <u var_82) {
-        let var_87 = -1
     }
 
     HEAP_PAGES = var_82
     let ptr_8 = sbrk(var_82 - var_81 << 16)
-    goto block_0227;
 
-    block_0227:
     if (var_81 <s 0) {
         let var_103 = HEAP_PAGES
         let var_104 = var_103 + ptr_0_344
@@ -60,7 +46,6 @@ fn func_1(r1: u64) {
     goto block_031a;
 
     if (var_104 <u 256) {
-        let var_109 = -1
     } else {
         HEAP_PAGES = var_104
         let ptr_14 = sbrk(var_104 - var_103 << 16)
@@ -85,9 +70,7 @@ fn func_1(r1: u64) {
     let ptr_0_520 = 0
     let ptr_0_528 = 1
     let ptr_0_536 = ptr_0_40->field_327680
-    goto block_032a;
 
-    block_032a:
     while (ptr_0_536 >s 0) {
         let var_136 = ptr_0_528 + ptr_0_520
         ptr_0_520 = var_136 - ptr_0_520
@@ -98,7 +81,6 @@ fn func_1(r1: u64) {
     RESULT_PTR = ptr_0_88
     RESULT_LEN = 4
 
-    let var_44 = RESULT_PTR + 327680 + RESULT_LEN
     halt()
 }
 

@@ -154,7 +154,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Detect function boundaries
-    let detected_functions = detect_functions(&cfg);
+    let detected_functions =
+        prune_unreachable_trivial_functions(&cfg, &program, detect_functions(&cfg));
     if verbosity >= Verbosity::Verbose {
         let _ = writeln!(
             all_output,
@@ -329,6 +330,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for &pc in &prologue_pcs {
             lifted.eliminated_pcs.insert(pc);
         }
+        let redundant_halt_setup_pcs = redundant_halt_setup_pcs_for_function(&func_cfg, &epilogues);
+        for pc in redundant_halt_setup_pcs {
+            lifted.eliminated_pcs.insert(pc);
+        }
         // Eliminate LoadImm64 instructions from call patterns (return address setup)
         for &pc in &call_pattern_eliminated_pcs {
             lifted.eliminated_pcs.insert(pc);
@@ -431,7 +436,8 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
     let stripped = decoder::try_strip_metadata(buffer)?;
     let program = decoder::decode_spi(stripped).or_else(|_| decoder::decode_blob(stripped))?;
     let cfg = ControlFlowGraph::build(&program);
-    let detected_functions = functions::detect_functions(&cfg);
+    let detected_functions =
+        prune_unreachable_trivial_functions(&cfg, &program, functions::detect_functions(&cfg));
     let call_graph = functions::build_call_graph(&cfg, &detected_functions, &program);
 
     let direct_call_patterns =
@@ -506,6 +512,10 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
             lifted.epilogue_blocks.insert(*block_pc, kind.clone());
         }
         for &pc in &prologue_pcs {
+            lifted.eliminated_pcs.insert(pc);
+        }
+        let redundant_halt_setup_pcs = redundant_halt_setup_pcs_for_function(&func_cfg, &epilogues);
+        for pc in redundant_halt_setup_pcs {
             lifted.eliminated_pcs.insert(pc);
         }
         for &pc in &call_pattern_eliminated_pcs {
@@ -608,6 +618,53 @@ fn write_cfg(cfg: &ControlFlowGraph, out: &mut String) {
     }
 }
 
+fn prune_unreachable_trivial_functions(
+    cfg: &ControlFlowGraph,
+    program: &decoder::DecodedProgram,
+    detected_functions: Vec<functions::Function>,
+) -> Vec<functions::Function> {
+    let jump_table_targets: HashSet<usize> =
+        program.jump_table.iter().map(|&pc| pc as usize).collect();
+
+    detected_functions
+        .into_iter()
+        .filter(|func| {
+            if func.entry_pc == cfg.entry_pc || jump_table_targets.contains(&func.entry_pc) {
+                return true;
+            }
+
+            let has_any_predecessor = cfg
+                .blocks
+                .get(&func.entry_pc)
+                .is_some_and(|block| !block.predecessors.is_empty());
+            if has_any_predecessor {
+                return true;
+            }
+
+            !is_trivial_unreachable_stub(cfg, func)
+        })
+        .collect()
+}
+
+fn is_trivial_unreachable_stub(cfg: &ControlFlowGraph, func: &functions::Function) -> bool {
+    if func.block_pcs.is_empty() {
+        return true;
+    }
+
+    for block_pc in &func.block_pcs {
+        let Some(block) = cfg.blocks.get(block_pc) else {
+            continue;
+        };
+        for (_, instr) in &block.instructions {
+            if !matches!(instr, Instruction::Trap | Instruction::Fallthrough) {
+                return false;
+            }
+        }
+    }
+
+    true
+}
+
 fn redundant_call_setup_pcs_for_function(
     func_cfg: &ControlFlowGraph,
     dataflow: &DataFlowAnalysis,
@@ -685,6 +742,96 @@ fn redundant_call_setup_pcs_for_function(
     }
 
     eliminated
+}
+
+fn redundant_halt_setup_pcs_for_function(
+    func_cfg: &ControlFlowGraph,
+    epilogues: &HashMap<usize, functions::EpilogueKind>,
+) -> HashSet<usize> {
+    let mut eliminated = HashSet::new();
+
+    for (&block_pc, kind) in epilogues {
+        let functions::EpilogueKind::Halt {
+            eliminated_pcs: halt_epilogue_pcs,
+        } = kind
+        else {
+            continue;
+        };
+        let Some(block) = func_cfg.blocks.get(&block_pc) else {
+            continue;
+        };
+
+        let halt_epilogue_set: HashSet<usize> = halt_epilogue_pcs.iter().copied().collect();
+        let mut needed_regs: HashSet<u8> = HashSet::new();
+
+        for (pc, instr) in block.instructions.iter().rev() {
+            if halt_epilogue_set.contains(pc) {
+                continue;
+            }
+
+            let shape = crate::instruction::InstructionShape::classify(instr);
+            let (defs, uses) = shape.def_use();
+
+            if is_halt_setup_side_effecting(&shape) {
+                for reg in defs {
+                    needed_regs.remove(&reg);
+                }
+                needed_regs.extend(uses);
+                continue;
+            }
+
+            let defs_needed = defs.iter().any(|reg| needed_regs.contains(reg));
+            if !defs_needed && is_eliminable_halt_setup_shape(&shape) {
+                eliminated.insert(*pc);
+                continue;
+            }
+
+            for reg in defs {
+                needed_regs.remove(&reg);
+            }
+            needed_regs.extend(uses);
+        }
+    }
+
+    eliminated
+}
+
+fn is_halt_setup_side_effecting(shape: &crate::instruction::InstructionShape) -> bool {
+    use crate::instruction::InstructionShape;
+    matches!(
+        shape,
+        InstructionShape::Store { .. }
+            | InstructionShape::StoreAbsolute { .. }
+            | InstructionShape::StoreImm { .. }
+            | InstructionShape::StoreImmInd { .. }
+            | InstructionShape::Jump { .. }
+            | InstructionShape::JumpInd { .. }
+            | InstructionShape::LoadImmJump { .. }
+            | InstructionShape::LoadImmJumpInd { .. }
+            | InstructionShape::BranchImm { .. }
+            | InstructionShape::BranchReg { .. }
+            | InstructionShape::Ecalli { .. }
+            | InstructionShape::Unknown { .. }
+            | InstructionShape::NoOp { name: "trap" }
+    )
+}
+
+fn is_eliminable_halt_setup_shape(shape: &crate::instruction::InstructionShape) -> bool {
+    use crate::instruction::InstructionShape;
+    matches!(
+        shape,
+        InstructionShape::NoOp {
+            name: "fallthrough"
+        } | InstructionShape::LoadImm { .. }
+            | InstructionShape::BinReg { .. }
+            | InstructionShape::BinImm { .. }
+            | InstructionShape::BinImmRev { .. }
+            | InstructionShape::Unary { .. }
+            | InstructionShape::Load { .. }
+            | InstructionShape::LoadAbsolute { .. }
+            | InstructionShape::CmovReg { .. }
+            | InstructionShape::CmovImm { .. }
+    )
 }
 
 #[cfg(test)]
@@ -769,10 +916,78 @@ mod integration_tests {
             "Fibonacci should contain loops or branches: {}",
             output
         );
-        // Should have return
+        // Should have a function terminator
         assert!(
-            output.contains("return"),
-            "Functions should have return statements: {}",
+            output.contains("return") || output.contains("halt()"),
+            "Functions should have return or halt terminators: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_fibonacci_regression_elides_redundant_entry_goto_and_dead_stub_function() {
+        let buffer = std::fs::read("examples/compiled/fibonacci.pvm")
+            .expect("fibonacci.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        assert!(
+            !output.contains("goto block_000a;"),
+            "Linear entry jumps to immediately emitted blocks should be elided: {}",
+            output
+        );
+        assert!(
+            !output.contains("fn func_0()"),
+            "Unreachable trap-only stubs should not be emitted as functions: {}",
+            output
+        );
+        assert!(
+            !output
+                .lines()
+                .any(|line| line.trim_start().starts_with("block_")),
+            "Unreferenced block labels should be pruned from structured output: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_fibonacci_regression_inverts_loop_condition_and_elides_forwarder_jump() {
+        let buffer = std::fs::read("examples/compiled/fibonacci.pvm")
+            .expect("fibonacci.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        assert!(
+            output.contains("while (ptr_0_80 <u ptr_0_56)"),
+            "Loop header exit-branch conditions should render as continue conditions: {}",
+            output
+        );
+        assert!(
+            !output.contains("goto block_00b9;"),
+            "Loop forwarder jumps to the next body block should be elided: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_fibonacci_regression_elides_dead_pre_halt_setup_noise() {
+        let buffer = std::fs::read("examples/compiled/fibonacci.pvm")
+            .expect("fibonacci.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        let lines: Vec<&str> = output.lines().collect();
+        let halt_idx = lines
+            .iter()
+            .position(|line| line.trim() == "halt()")
+            .expect("fibonacci output should contain halt()");
+        let prev_non_empty = lines[..halt_idx]
+            .iter()
+            .rev()
+            .find(|line| !line.trim().is_empty())
+            .copied()
+            .unwrap_or("");
+
+        assert!(
+            !prev_non_empty.trim_start().starts_with("let "),
+            "Dead temporary setup immediately before halt should be eliminated: {}",
             output
         );
     }
@@ -963,6 +1178,77 @@ mod integration_tests {
         assert!(
             !eliminated.contains(&12),
             "r0 return-address setup must be left to call-pattern elimination"
+        );
+    }
+
+    #[test]
+    fn test_redundant_halt_setup_elimination_is_precise() {
+        use crate::cfg::build_test_cfg;
+
+        // Halt block setup:
+        // - r4 feeds a store side effect (must be kept)
+        // - r5/r6 chain is dead and should be removed
+        // - r7 constant after side-effect is dead and should be removed
+        // - final LoadImm r2 + JumpInd r2 are epilogue instructions (handled by epilogue detection)
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (0, Instruction::LoadImm { reg: 4, value: 10 }),
+                    (4, Instruction::LoadImm { reg: 5, value: 1 }),
+                    (
+                        8,
+                        Instruction::Add32 {
+                            dst: 6,
+                            src1: 5,
+                            src2: 5,
+                        },
+                    ),
+                    (
+                        12,
+                        Instruction::StoreIndU64 {
+                            base: 1,
+                            src: 4,
+                            offset: 0,
+                        },
+                    ),
+                    (16, Instruction::LoadImm { reg: 7, value: 99 }),
+                    (
+                        20,
+                        Instruction::LoadImm {
+                            reg: 2,
+                            value: -65536,
+                        },
+                    ),
+                    (24, Instruction::JumpInd { reg: 2, offset: 0 }),
+                ],
+                vec![],
+            )],
+        );
+
+        let epilogues = detect_epilogues(&cfg);
+        let eliminated = redundant_halt_setup_pcs_for_function(&cfg, &epilogues);
+
+        assert!(
+            !eliminated.contains(&0),
+            "setup feeding a side-effecting store must be preserved"
+        );
+        assert!(
+            eliminated.contains(&4) && eliminated.contains(&8),
+            "dead pure setup chain should be eliminated"
+        );
+        assert!(
+            !eliminated.contains(&12),
+            "side-effecting store must be preserved"
+        );
+        assert!(
+            eliminated.contains(&16),
+            "dead pure setup after side effects should be eliminated"
+        );
+        assert!(
+            !eliminated.contains(&20) && !eliminated.contains(&24),
+            "halt epilogue instructions are handled by epilogue detection, not this pass"
         );
     }
 

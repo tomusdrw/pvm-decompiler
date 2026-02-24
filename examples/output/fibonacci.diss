@@ -1,31 +1,17 @@
 fn main(r1: u64, r7: u64, r8: u64) {
-    goto block_000a;
-
-    block_000a:
     let ptr_0_56 = u32[r7]
     let ptr_0_80 = 0
     let ptr_0_88 = 1
     let ptr_0_96 = 0
-    goto block_006e;
 
-    block_006e:
-    while (ptr_0_80 >=u ptr_0_56) {
-        goto block_00b9;
-
+    while (ptr_0_80 <u ptr_0_56) {
         ptr_0_80 = ptr_0_80 + 1
         ptr_0_88 = ptr_0_96 + ptr_0_88
         ptr_0_96 = ptr_0_88
     }
 
-    block_0052:
     mem[131072] = ptr_0_96
-    let ptr_0_64 = 17179869184
 
-    let var_9 = ptr_0_64 + 327680 + (ptr_0_64 >>u 32)
     halt()
-}
-
-fn func_0() {
-    return
 }
 

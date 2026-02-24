@@ -2,7 +2,3 @@ fn main() {
     let var_2 = 142
 }
 
-fn func_0() {
-    return
-}
-

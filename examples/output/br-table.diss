@@ -1,7 +1,4 @@
 fn main(r1: u64, r7: u64, r8: u64) {
-    goto block_000a;
-
-    block_000a:
     let var_1 = u32[r7]
 
     if (var_1 == 0) {
@@ -17,9 +14,7 @@ fn main(r1: u64, r7: u64, r8: u64) {
         goto block_0062;
     }
 
-    block_00a5:
     ptr_0_80 = 200
-    goto block_0062;
 
     block_0062:
     if (!(ptr_0_80)) {
@@ -35,13 +30,7 @@ fn main(r1: u64, r7: u64, r8: u64) {
 
     block_00d5:
     mem[131072] = ptr_0_128
-    let ptr_0_72 = 17179869184
 
-    let var_9 = ptr_0_72 + 327680 + (ptr_0_72 >>u 32)
     halt()
-}
-
-fn func_0() {
-    return
 }
 
