@@ -2435,13 +2435,14 @@ fn format_add_operand(
 ) -> String {
     use crate::lifting::format_expression;
 
+    let ctx = lifted.format_context();
     if let Some(name) = lifted.var_at_use.get(&(use_pc, reg)) {
         if let Some(def_pc) = lifted.var_name_to_def_pc.get(name.as_str())
             && lifted.eliminated_pcs.contains(def_pc)
             && let Some(expr) = lifted.expressions.get(def_pc)
         {
             let resolved = lifted.resolve_eliminated_vars(expr);
-            return apply_aliases(&format_expression(&resolved), var_aliases);
+            return apply_aliases(&format_expression(&resolved, &ctx), var_aliases);
         }
         return resolve_alias(name, var_aliases);
     }
@@ -2460,6 +2461,7 @@ fn register_value_after_instruction(
     use crate::lifting::{Expression, format_expression};
 
     let def_reg = InstructionShape::classify(instr).def_reg()?;
+    let ctx = lifted.format_context();
 
     if (lifted.eliminated_pcs.contains(&pc) || emission_eliminated_pcs.contains(&pc))
         && let Some(expr) = lifted.expressions.get(&pc)
@@ -2468,7 +2470,7 @@ fn register_value_after_instruction(
         // is folded away from the emitted output.
         if !matches!(expr, Expression::Raw(_) | Expression::Store { .. }) {
             let resolved = lifted.resolve_eliminated_vars(expr);
-            let value = apply_aliases(&format_expression(&resolved), var_aliases);
+            let value = apply_aliases(&format_expression(&resolved, &ctx), var_aliases);
             if value == format!("r{}", def_reg) {
                 return None;
             }
@@ -2526,13 +2528,14 @@ fn format_call_arg(
         return value.clone();
     }
 
+    let ctx = lifted.format_context();
     if let Some(name) = lifted.var_at_use.get(&(call_pc, reg)) {
         if let Some(def_pc) = lifted.var_name_to_def_pc.get(name.as_str())
             && (lifted.eliminated_pcs.contains(def_pc) || emission_eliminated_pcs.contains(def_pc))
             && let Some(expr) = lifted.expressions.get(def_pc)
         {
             let resolved = lifted.resolve_eliminated_vars(expr);
-            return apply_aliases(&format_expression(&resolved), var_aliases);
+            return apply_aliases(&format_expression(&resolved, &ctx), var_aliases);
         }
         return resolve_alias(name, var_aliases);
     }
@@ -2717,6 +2720,7 @@ fn format_condition_lifted(
 ) -> String {
     use crate::lifting::format_expression;
 
+    let ctx = lifted.format_context();
     // Try to inline boolean variable definitions into conditions.
     // Pattern: `cond_var != 0` where cond_var = (x <u y) → inline as `x <u y`
     // Pattern: `cond_var == 0` where cond_var = (x <u y) → inline as `!(x <u y)`
@@ -2738,9 +2742,9 @@ fn format_condition_lifted(
                     op: crate::instruction::UnaryOp::Not,
                     operand: Box::new(resolved),
                 };
-                return format_expression(&simplify_expression(negated));
+                return format_expression(&simplify_expression(negated), &ctx);
             } else {
-                return format_expression(&resolved);
+                return format_expression(&resolved, &ctx);
             }
         }
     }
@@ -2795,7 +2799,7 @@ fn format_operand_lifted(
                         .count();
                     if use_count <= 1 {
                         let resolved = lifted.resolve_eliminated_vars(expr);
-                        return format_expression(&resolved);
+                        return format_expression(&resolved, &lifted.format_context());
                     }
                 }
                 name.clone()

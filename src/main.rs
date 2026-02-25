@@ -231,9 +231,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let function_entry_pcs: std::collections::HashSet<usize> =
         detected_functions.iter().map(|f| f.entry_pc).collect();
 
-    // Set memory base for expression formatting
-    lifting::set_memory_base(program.memory_base);
-
     // Precompute per-function CFG/dataflow once and collect parameter registers
     // for explicit call argument rendering.
     let mut function_cfgs: HashMap<usize, ControlFlowGraph> = HashMap::new();
@@ -459,8 +456,6 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
 
     let function_entry_pcs: std::collections::HashSet<usize> =
         detected_functions.iter().map(|f| f.entry_pc).collect();
-
-    lifting::set_memory_base(program.memory_base);
 
     let mut function_cfgs: HashMap<usize, ControlFlowGraph> = HashMap::new();
     let mut function_dataflow: HashMap<usize, DataFlowAnalysis> = HashMap::new();

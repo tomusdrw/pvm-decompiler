@@ -11,24 +11,25 @@ use crate::dataflow::DataFlowAnalysis;
 use crate::instruction::{BinOp, InstructionShape, MemWidth, UnaryOp};
 use crate::ir::ssa::SsaProgram;
 use crate::structuring::DominatorTree;
-use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use wasm_pvm::pvm::Instruction;
 
-thread_local! {
-    /// The PVM linear memory base address, set before formatting expressions.
-    static MEMORY_BASE: Cell<Option<u64>> = const { Cell::new(None) };
+/// Formatting context threaded through expression rendering.
+/// Replaces the former thread-local `MEMORY_BASE` global state.
+#[derive(Debug, Clone, Default)]
+pub struct FormatContext {
+    /// The PVM linear memory base address.
+    /// When set, expressions involving this constant are simplified
+    /// (e.g. `addr + MEMORY_BASE` → `pvm_addr(addr)`).
+    pub memory_base: Option<u64>,
 }
 
-/// Set the memory base for expression formatting.
-pub fn set_memory_base(base: Option<u64>) {
-    MEMORY_BASE.with(|cell| cell.set(base));
-}
-
-/// Get the current memory base.
-fn get_memory_base() -> Option<u64> {
-    MEMORY_BASE.with(|cell| cell.get())
+impl FormatContext {
+    /// Create a context with the given memory base.
+    pub fn new(memory_base: Option<u64>) -> Self {
+        Self { memory_base }
+    }
 }
 
 /// Inferred variable type based on usage context.
@@ -134,6 +135,13 @@ pub struct LiftedProgram {
     /// Linear memory base address (e.g. 0x50000 = 327680 for PVM).
     /// When set, expressions involving this constant are simplified.
     pub memory_base: Option<u64>,
+}
+
+impl LiftedProgram {
+    /// Build a `FormatContext` from this program's settings.
+    pub fn format_context(&self) -> FormatContext {
+        FormatContext::new(self.memory_base)
+    }
 }
 
 /// A set of variable declarations collected for a block, to be emitted at its top.
@@ -1106,11 +1114,11 @@ impl LiftedProgram {
                         value,
                         ..
                     } => {
-                        let base_str = format_expression(base);
+                        let base_str = format_expression(base, &self.format_context());
                         store_map.insert((base_str, *offset), (*value.clone(), *pc));
                     }
                     Expression::Load { base, offset, .. } => {
-                        let base_str = format_expression(base);
+                        let base_str = format_expression(base, &self.format_context());
                         if let Some((stored_value, _store_pc)) = store_map.get(&(base_str, *offset))
                         {
                             // Replace the load expression with the stored value.
@@ -1143,7 +1151,7 @@ impl LiftedProgram {
                 continue;
             }
             if let Some(Expression::Store { base, offset, .. }) = self.expressions.get(&pc) {
-                let base_str = format_expression(base);
+                let base_str = format_expression(base, &self.format_context());
                 // Only eliminate stores to known stack slots (ptr_* base).
                 if base_str.starts_with("ptr_") && !live_loads.contains(&(base_str, *offset)) {
                     self.eliminated_pcs.insert(pc);
@@ -1253,6 +1261,7 @@ impl LiftedProgram {
         pc: usize,
         instr: &Instruction,
     ) -> Option<(String, Option<String>)> {
+        let ctx = self.format_context();
         let expr = self.expressions.get(&pc)?;
         let dst_name = self.def_var_name_with_type(pc, instr).map(|(name, _)| name);
 
@@ -1269,15 +1278,19 @@ impl LiftedProgram {
                     && let Some(slot_name) = self.stack_vars.get(&(base_name.clone(), *offset))
                 {
                     return Some((
-                        format!("{} = {}", slot_name, format_expression(value)),
+                        format!("{} = {}", slot_name, format_expression(value, &ctx)),
                         Some(slot_name.clone()),
                     ));
                 }
-                if let Some(name) = resolve_named_global(base, *offset, *width) {
-                    Some((format!("{} = {}", name, format_expression(value)), None))
-                } else if let Some(mem_access) = format_mem_base_access(base, *offset, *width) {
+                if let Some(name) = resolve_named_global(base, *offset, *width, &ctx) {
                     Some((
-                        format!("{} = {}", mem_access, format_expression(value)),
+                        format!("{} = {}", name, format_expression(value, &ctx)),
+                        None,
+                    ))
+                } else if let Some(mem_access) = format_mem_base_access(base, *offset, *width, &ctx)
+                {
+                    Some((
+                        format!("{} = {}", mem_access, format_expression(value, &ctx)),
                         None,
                     ))
                 } else {
@@ -1285,15 +1298,16 @@ impl LiftedProgram {
                         format!(
                             "{}[{}] = {}",
                             width,
-                            format_mem_address(base, *offset),
-                            format_expression(value)
+                            format_mem_address(base, *offset, &ctx),
+                            format_expression(value, &ctx)
                         ),
                         None,
                     ))
                 }
             }
             Expression::Call { name, args } => {
-                let arg_strs: Vec<String> = args.iter().map(format_expression).collect();
+                let arg_strs: Vec<String> =
+                    args.iter().map(|a| format_expression(a, &ctx)).collect();
                 let call = format!("{}({})", name, arg_strs.join(", "));
                 if let Some(dst) = dst_name {
                     Some((format!("{} = {}", dst, call), Some(dst)))
@@ -1303,9 +1317,12 @@ impl LiftedProgram {
             }
             _ => {
                 if let Some(dst) = dst_name {
-                    Some((format!("{} = {}", dst, format_expression(expr)), Some(dst)))
+                    Some((
+                        format!("{} = {}", dst, format_expression(expr, &ctx)),
+                        Some(dst),
+                    ))
                 } else {
-                    Some((format_expression(expr), None))
+                    Some((format_expression(expr, &ctx), None))
                 }
             }
         }
@@ -1889,9 +1906,11 @@ fn expression_depth(expr: &Expression) -> usize {
 
 /// Recursively collect all (base_str, offset) pairs from Load expressions in an expression tree.
 fn collect_live_loads(expr: &Expression, live: &mut HashSet<(String, i32)>) {
+    // Use default context (no memory base) since we only need consistent string keys.
+    let ctx = FormatContext::default();
     match expr {
         Expression::Load { base, offset, .. } => {
-            live.insert((format_expression(base), *offset));
+            live.insert((format_expression(base, &ctx), *offset));
             collect_live_loads(base, live);
         }
         Expression::BinOp { lhs, rhs, .. } => {
@@ -2091,7 +2110,7 @@ fn format_const(v: i64) -> String {
 }
 
 /// Format an Expression tree as a human-readable string with minimal parentheses.
-pub fn format_expression(expr: &Expression) -> String {
+pub fn format_expression(expr: &Expression, ctx: &FormatContext) -> String {
     match expr {
         Expression::Const(v) => format_const(*v),
         Expression::Var(name) => name.clone(),
@@ -2103,32 +2122,32 @@ pub fn format_expression(expr: &Expression) -> String {
                 && *v < 0
             {
                 // If subtracting the memory base, this converts PVM addr → WASM offset
-                if let Some(mem_base) = get_memory_base()
+                if let Some(mem_base) = ctx.memory_base
                     && (-*v) as u64 == mem_base
                 {
-                    let lhs_str = format_expression(lhs);
+                    let lhs_str = format_expression(lhs, ctx);
                     return format!("wasm_ptr({})", lhs_str);
                 }
-                let lhs_str = format_expression_maybe_parens(lhs, BinOp::Sub, true);
+                let lhs_str = format_expression_maybe_parens(lhs, BinOp::Sub, true, ctx);
                 return format!("{} - {}", lhs_str, format_const(-v));
             }
             // Simplify `x + MEMORY_BASE` (converting WASM offset → PVM address)
             if *op == BinOp::Add
                 && let Expression::Const(v) = rhs.as_ref()
                 && *v > 0
-                && let Some(mem_base) = get_memory_base()
+                && let Some(mem_base) = ctx.memory_base
                 && *v as u64 == mem_base
             {
-                let lhs_str = format_expression(lhs);
+                let lhs_str = format_expression(lhs, ctx);
                 return format!("pvm_addr({})", lhs_str);
             }
             if *op == BinOp::Add
                 && let Expression::Const(v) = lhs.as_ref()
                 && *v > 0
-                && let Some(mem_base) = get_memory_base()
+                && let Some(mem_base) = ctx.memory_base
                 && *v as u64 == mem_base
             {
-                let rhs_str = format_expression(rhs);
+                let rhs_str = format_expression(rhs, ctx);
                 return format!("pvm_addr({})", rhs_str);
             }
             // Convert `0 <u (a | b)` to `(a | b) != 0` for non-boolean expressions.
@@ -2137,7 +2156,7 @@ pub fn format_expression(expr: &Expression) -> String {
                 && matches!(lhs.as_ref(), Expression::Const(0))
                 && !is_boolean_expr(rhs)
             {
-                let rhs_str = format_expression(rhs);
+                let rhs_str = format_expression(rhs, ctx);
                 // Wrap in parens if the rhs is a binary operation to avoid precedence issues
                 let rhs_str = if matches!(rhs.as_ref(), Expression::BinOp { .. }) {
                     format!("({})", rhs_str)
@@ -2146,28 +2165,28 @@ pub fn format_expression(expr: &Expression) -> String {
                 };
                 return format!("{} != 0", rhs_str);
             }
-            let lhs_str = format_expression_maybe_parens(lhs, *op, true);
-            let rhs_str = format_expression_maybe_parens(rhs, *op, false);
+            let lhs_str = format_expression_maybe_parens(lhs, *op, true, ctx);
+            let rhs_str = format_expression_maybe_parens(rhs, *op, false, ctx);
             format!("{} {} {}", lhs_str, op, rhs_str)
         }
         Expression::UnaryOp { op, operand } => {
-            format!("{}({})", op, format_expression(operand))
+            format!("{}({})", op, format_expression(operand, ctx))
         }
         Expression::Load {
             width,
             base,
             offset,
         } => {
-            if let Some(name) = resolve_named_global(base, *offset, *width) {
+            if let Some(name) = resolve_named_global(base, *offset, *width, ctx) {
                 name
-            } else if let Some(mem_access) = format_mem_base_access(base, *offset, *width) {
+            } else if let Some(mem_access) = format_mem_base_access(base, *offset, *width, ctx) {
                 mem_access
-            } else if let Some(field) = format_struct_field(base, *offset, *width) {
+            } else if let Some(field) = format_struct_field(base, *offset, *width, ctx) {
                 field
-            } else if let Some(arr) = format_array_access(base, *offset, *width) {
+            } else if let Some(arr) = format_array_access(base, *offset, *width, ctx) {
                 arr
             } else {
-                format!("{}[{}]", width, format_mem_address(base, *offset))
+                format!("{}[{}]", width, format_mem_address(base, *offset, ctx))
             }
         }
         Expression::Store {
@@ -2176,25 +2195,25 @@ pub fn format_expression(expr: &Expression) -> String {
             offset,
             value,
         } => {
-            if let Some(name) = resolve_named_global(base, *offset, *width) {
-                format!("{} = {}", name, format_expression(value))
-            } else if let Some(mem_access) = format_mem_base_access(base, *offset, *width) {
-                format!("{} = {}", mem_access, format_expression(value))
-            } else if let Some(field) = format_struct_field(base, *offset, *width) {
-                format!("{} = {}", field, format_expression(value))
-            } else if let Some(arr) = format_array_access(base, *offset, *width) {
-                format!("{} = {}", arr, format_expression(value))
+            if let Some(name) = resolve_named_global(base, *offset, *width, ctx) {
+                format!("{} = {}", name, format_expression(value, ctx))
+            } else if let Some(mem_access) = format_mem_base_access(base, *offset, *width, ctx) {
+                format!("{} = {}", mem_access, format_expression(value, ctx))
+            } else if let Some(field) = format_struct_field(base, *offset, *width, ctx) {
+                format!("{} = {}", field, format_expression(value, ctx))
+            } else if let Some(arr) = format_array_access(base, *offset, *width, ctx) {
+                format!("{} = {}", arr, format_expression(value, ctx))
             } else {
                 format!(
                     "{}[{}] = {}",
                     width,
-                    format_mem_address(base, *offset),
-                    format_expression(value)
+                    format_mem_address(base, *offset, ctx),
+                    format_expression(value, ctx)
                 )
             }
         }
         Expression::Call { name, args } => {
-            let arg_strs: Vec<String> = args.iter().map(format_expression).collect();
+            let arg_strs: Vec<String> = args.iter().map(|a| format_expression(a, ctx)).collect();
             format!("{}({})", name, arg_strs.join(", "))
         }
     }
@@ -2203,8 +2222,13 @@ pub fn format_expression(expr: &Expression) -> String {
 /// Detect if a Load/Store base expression references linear memory via MEMORY_BASE
 /// and simplify it to a width-preserving memory access.
 /// For example, `u8[var_61 + 0x50000]` → `u8[var_61]` when memory_base = 0x50000.
-fn format_mem_base_access(base: &Expression, offset: i32, width: MemWidth) -> Option<String> {
-    let mem_base = get_memory_base()? as i64;
+fn format_mem_base_access(
+    base: &Expression,
+    offset: i32,
+    width: MemWidth,
+    ctx: &FormatContext,
+) -> Option<String> {
+    let mem_base = ctx.memory_base? as i64;
 
     // Pattern 1: base = BinOp(var, Add, Const(MEMORY_BASE)), offset = 0
     if offset == 0
@@ -2217,19 +2241,19 @@ fn format_mem_base_access(base: &Expression, offset: i32, width: MemWidth) -> Op
         if let Expression::Const(v) = rhs.as_ref()
             && *v == mem_base
         {
-            return Some(format!("{}[{}]", width, format_expression(lhs)));
+            return Some(format!("{}[{}]", width, format_expression(lhs, ctx)));
         }
         if let Expression::Const(v) = lhs.as_ref()
             && *v == mem_base
         {
-            return Some(format!("{}[{}]", width, format_expression(rhs)));
+            return Some(format!("{}[{}]", width, format_expression(rhs, ctx)));
         }
     }
 
     // Pattern 2: base = var, offset = MEMORY_BASE (e.g., LoadInd { base: var, offset: 0x50000 })
     // Preserve the access width in the rendered syntax.
     if offset as i64 == mem_base {
-        return Some(format!("{}[{}]", width, format_expression(base)));
+        return Some(format!("{}[{}]", width, format_expression(base, ctx)));
     }
 
     None
@@ -2237,13 +2261,18 @@ fn format_mem_base_access(base: &Expression, offset: i32, width: MemWidth) -> Op
 
 /// Format a pointer dereference as a struct field access if the base is a pointer variable.
 /// Returns `Some("ptr->field_N")` for pointer bases, `None` otherwise.
-fn format_struct_field(base: &Expression, offset: i32, width: MemWidth) -> Option<String> {
+fn format_struct_field(
+    base: &Expression,
+    offset: i32,
+    width: MemWidth,
+    ctx: &FormatContext,
+) -> Option<String> {
     if let Expression::Var(name) = base
         && name.starts_with("ptr_")
         && offset >= 0
     {
         // If offset equals the memory base, this is a linear memory access
-        if let Some(mem_base) = get_memory_base()
+        if let Some(mem_base) = ctx.memory_base
             && offset as u64 == mem_base
         {
             return Some(format!("{}[{}]", width, name));
@@ -2262,7 +2291,12 @@ fn format_struct_field(base: &Expression, offset: i32, width: MemWidth) -> Optio
 ///
 /// Byte-width accesses (u8/i8) are excluded because `base + index * 1` doesn't
 /// clearly indicate array semantics.
-fn format_array_access(base: &Expression, offset: i32, width: MemWidth) -> Option<String> {
+fn format_array_access(
+    base: &Expression,
+    offset: i32,
+    width: MemWidth,
+    ctx: &FormatContext,
+) -> Option<String> {
     // Only match when the constant offset is zero (the index handles all addressing)
     if offset != 0 {
         return None;
@@ -2292,8 +2326,8 @@ fn format_array_access(base: &Expression, offset: i32, width: MemWidth) -> Optio
         {
             return Some(format!(
                 "{}[{}]",
-                format_expression(ptr),
-                format_expression(index)
+                format_expression(ptr, ctx),
+                format_expression(index, ctx)
             ));
         }
         // Also match: lhs = index * element_size, rhs = ptr (commutative Add)
@@ -2307,8 +2341,8 @@ fn format_array_access(base: &Expression, offset: i32, width: MemWidth) -> Optio
         {
             return Some(format!(
                 "{}[{}]",
-                format_expression(index_expr),
-                format_expression(index)
+                format_expression(index_expr, ctx),
+                format_expression(index, ctx)
             ));
         }
     }
@@ -2318,7 +2352,12 @@ fn format_array_access(base: &Expression, offset: i32, width: MemWidth) -> Optio
 
 /// Resolve a known PVM/AssemblyScript global address to a named constant.
 /// Returns `Some("GLOBAL_NAME")` if the absolute address matches a known global.
-fn resolve_named_global(base: &Expression, offset: i32, width: MemWidth) -> Option<String> {
+fn resolve_named_global(
+    base: &Expression,
+    offset: i32,
+    width: MemWidth,
+    ctx: &FormatContext,
+) -> Option<String> {
     // Compute absolute address from base + offset
     let addr = match base {
         Expression::Const(b) => (*b).wrapping_add(offset as i64),
@@ -2333,7 +2372,7 @@ fn resolve_named_global(base: &Expression, offset: i32, width: MemWidth) -> Opti
         0x3000C => Some("HEAP_PAGES".to_string()),
         _ => {
             // Check if address falls within linear memory (>= memory_base)
-            if let Some(mem_base) = get_memory_base() {
+            if let Some(mem_base) = ctx.memory_base {
                 let mem_base_i64 = mem_base as i64;
                 if addr >= mem_base_i64 {
                     let wasm_offset = addr - mem_base_i64;
@@ -2346,27 +2385,36 @@ fn resolve_named_global(base: &Expression, offset: i32, width: MemWidth) -> Opti
 }
 
 /// Format a memory address `base + offset` with clean output.
-fn format_mem_address(base: &Expression, offset: i32) -> String {
+fn format_mem_address(base: &Expression, offset: i32, ctx: &FormatContext) -> String {
     match (base, offset) {
         // Pure constant address: base is 0 → just show offset
         (Expression::Const(0), off) => format_const(off as i64),
         // Constant base + offset → fold them
         (Expression::Const(b), off) => format_const((*b).wrapping_add(off as i64)),
         // Zero offset → just base
-        (_, 0) => format_expression(base),
+        (_, 0) => format_expression(base, ctx),
         // Negative offset
         (_, off) if off < 0 => format!(
             "{} - {}",
-            format_expression(base),
+            format_expression(base, ctx),
             format_const((-off) as i64)
         ),
         // Positive offset
-        (_, off) => format!("{} + {}", format_expression(base), format_const(off as i64)),
+        (_, off) => format!(
+            "{} + {}",
+            format_expression(base, ctx),
+            format_const(off as i64)
+        ),
     }
 }
 
 /// Format a sub-expression, adding parentheses only when needed for precedence.
-fn format_expression_maybe_parens(expr: &Expression, parent_op: BinOp, is_left: bool) -> String {
+fn format_expression_maybe_parens(
+    expr: &Expression,
+    parent_op: BinOp,
+    is_left: bool,
+    ctx: &FormatContext,
+) -> String {
     match expr {
         Expression::BinOp { op, .. } => {
             let child_prec = op_precedence(*op);
@@ -2385,12 +2433,12 @@ fn format_expression_maybe_parens(expr: &Expression, parent_op: BinOp, is_left: 
                 false
             };
             if needs_parens {
-                format!("({})", format_expression(expr))
+                format!("({})", format_expression(expr, ctx))
             } else {
-                format_expression(expr)
+                format_expression(expr, ctx)
             }
         }
-        _ => format_expression(expr),
+        _ => format_expression(expr, ctx),
     }
 }
 
@@ -2437,6 +2485,11 @@ mod tests {
     use super::*;
     use crate::cfg::build_test_cfg;
     use crate::dataflow::DataFlowAnalysis;
+
+    /// Default formatting context for tests (no memory base).
+    fn ctx() -> FormatContext {
+        FormatContext::default()
+    }
 
     #[test]
     fn test_variable_naming_simple() {
@@ -2506,7 +2559,7 @@ mod tests {
 
         // PC 4's expression should be the folded result: 42 + 1 = 43.
         let expr = lifted.expressions.get(&4).unwrap();
-        let formatted = format_expression(expr);
+        let formatted = format_expression(expr, &ctx());
         assert!(
             formatted.contains("43"),
             "Expression should contain folded constant 43 (42 + 1), got: {}",
@@ -2713,7 +2766,7 @@ mod tests {
             rhs: Box::new(Expression::Const(0)),
         };
         let simplified = simplify_expression(expr);
-        assert_eq!(format_expression(&simplified), "x");
+        assert_eq!(format_expression(&simplified, &ctx()), "x");
     }
 
     #[test]
@@ -2724,7 +2777,7 @@ mod tests {
             rhs: Box::new(Expression::Const(0)),
         };
         let simplified = simplify_expression(expr);
-        assert_eq!(format_expression(&simplified), "x");
+        assert_eq!(format_expression(&simplified, &ctx()), "x");
     }
 
     #[test]
@@ -2735,7 +2788,7 @@ mod tests {
             rhs: Box::new(Expression::Const(1)),
         };
         let simplified = simplify_expression(expr);
-        assert_eq!(format_expression(&simplified), "x");
+        assert_eq!(format_expression(&simplified, &ctx()), "x");
     }
 
     #[test]
@@ -2746,7 +2799,7 @@ mod tests {
             rhs: Box::new(Expression::Const(0)),
         };
         let simplified = simplify_expression(expr);
-        assert_eq!(format_expression(&simplified), "0");
+        assert_eq!(format_expression(&simplified, &ctx()), "0");
     }
 
     #[test]
@@ -2757,7 +2810,7 @@ mod tests {
             rhs: Box::new(Expression::Const(0)),
         };
         let simplified = simplify_expression(expr);
-        assert_eq!(format_expression(&simplified), "0");
+        assert_eq!(format_expression(&simplified, &ctx()), "0");
     }
 
     #[test]
@@ -2768,7 +2821,7 @@ mod tests {
             rhs: Box::new(Expression::Const(1)),
         };
         let simplified = simplify_expression(expr);
-        assert_eq!(format_expression(&simplified), "!(cond_0)");
+        assert_eq!(format_expression(&simplified, &ctx()), "!(cond_0)");
     }
 
     #[test]
@@ -2782,7 +2835,7 @@ mod tests {
             }),
         };
         let simplified = simplify_expression(expr);
-        assert_eq!(format_expression(&simplified), "cond_0");
+        assert_eq!(format_expression(&simplified, &ctx()), "cond_0");
     }
 
     #[test]
@@ -2797,7 +2850,7 @@ mod tests {
             }),
         };
         let simplified = simplify_expression(expr);
-        assert_eq!(format_expression(&simplified), "x >=u y");
+        assert_eq!(format_expression(&simplified, &ctx()), "x >=u y");
 
         // !(a <s b) → a >=s b
         let expr_signed = Expression::UnaryOp {
@@ -2809,7 +2862,7 @@ mod tests {
             }),
         };
         let simplified_signed = simplify_expression(expr_signed);
-        assert_eq!(format_expression(&simplified_signed), "a >=s b");
+        assert_eq!(format_expression(&simplified_signed, &ctx()), "a >=s b");
 
         // !(x >s y) → x <=s y
         let expr_gt = Expression::UnaryOp {
@@ -2821,7 +2874,7 @@ mod tests {
             }),
         };
         let simplified_gt = simplify_expression(expr_gt);
-        assert_eq!(format_expression(&simplified_gt), "x <=s y");
+        assert_eq!(format_expression(&simplified_gt, &ctx()), "x <=s y");
 
         // !(x >=u y) → x <u y
         let expr_ge = Expression::UnaryOp {
@@ -2833,7 +2886,7 @@ mod tests {
             }),
         };
         let simplified_ge = simplify_expression(expr_ge);
-        assert_eq!(format_expression(&simplified_ge), "a <u b");
+        assert_eq!(format_expression(&simplified_ge, &ctx()), "a <u b");
     }
 
     #[test]
@@ -2853,7 +2906,7 @@ mod tests {
             }),
         };
         let simplified = simplify_expression(expr);
-        assert_eq!(format_expression(&simplified), "x >=u y");
+        assert_eq!(format_expression(&simplified, &ctx()), "x >=u y");
     }
 
     #[test]
@@ -2869,7 +2922,7 @@ mod tests {
             }),
         };
         let simplified = simplify_expression(expr);
-        assert_eq!(format_expression(&simplified), "x <u y");
+        assert_eq!(format_expression(&simplified, &ctx()), "x <u y");
     }
 
     #[test]
@@ -2884,7 +2937,7 @@ mod tests {
                 rhs: Box::new(Expression::Var("b".to_string())),
             }),
         };
-        assert_eq!(format_expression(&expr), "(a | b) != 0");
+        assert_eq!(format_expression(&expr, &ctx()), "(a | b) != 0");
 
         // 0 <u x → x != 0 (simple variable, no parens needed)
         let expr2 = Expression::BinOp {
@@ -2892,7 +2945,7 @@ mod tests {
             lhs: Box::new(Expression::Const(0)),
             rhs: Box::new(Expression::Var("x".to_string())),
         };
-        assert_eq!(format_expression(&expr2), "x != 0");
+        assert_eq!(format_expression(&expr2, &ctx()), "x != 0");
     }
 
     #[test]
@@ -2904,7 +2957,7 @@ mod tests {
             rhs: Box::new(Expression::Var("x".to_string())),
         };
         let simplified = simplify_expression(expr);
-        assert_eq!(format_expression(&simplified), "x >s 1");
+        assert_eq!(format_expression(&simplified, &ctx()), "x >s 1");
 
         // 5 <u x → x >u 5
         let expr2 = Expression::BinOp {
@@ -2913,7 +2966,7 @@ mod tests {
             rhs: Box::new(Expression::Var("x".to_string())),
         };
         let simplified2 = simplify_expression(expr2);
-        assert_eq!(format_expression(&simplified2), "x >u 5");
+        assert_eq!(format_expression(&simplified2, &ctx()), "x >u 5");
 
         // 0 <s x → x >s 0
         let expr3 = Expression::BinOp {
@@ -2922,7 +2975,7 @@ mod tests {
             rhs: Box::new(Expression::Var("x".to_string())),
         };
         let simplified3 = simplify_expression(expr3);
-        assert_eq!(format_expression(&simplified3), "x >s 0");
+        assert_eq!(format_expression(&simplified3, &ctx()), "x >s 0");
 
         // 0 <u x → stays as-is (handled by format_expression as x != 0)
         let expr4 = Expression::BinOp {
@@ -2931,7 +2984,7 @@ mod tests {
             rhs: Box::new(Expression::Var("x".to_string())),
         };
         let simplified4 = simplify_expression(expr4);
-        assert_eq!(format_expression(&simplified4), "x != 0");
+        assert_eq!(format_expression(&simplified4, &ctx()), "x != 0");
     }
 
     #[test]
@@ -2942,7 +2995,7 @@ mod tests {
             rhs: Box::new(Expression::Const(0)),
         };
         let simplified = simplify_expression(expr);
-        assert_eq!(format_expression(&simplified), "x");
+        assert_eq!(format_expression(&simplified, &ctx()), "x");
     }
 
     #[test]
@@ -2958,7 +3011,7 @@ mod tests {
             rhs: Box::new(Expression::Const(1)),
         };
         let simplified = simplify_expression(expr);
-        assert_eq!(format_expression(&simplified), "x");
+        assert_eq!(format_expression(&simplified, &ctx()), "x");
     }
 
     #[test]
@@ -2969,7 +3022,7 @@ mod tests {
             rhs: Box::new(Expression::Const(5)),
         };
         let simplified = simplify_expression(expr);
-        assert_eq!(format_expression(&simplified), "x + 5");
+        assert_eq!(format_expression(&simplified, &ctx()), "x + 5");
     }
 
     #[test]
@@ -2984,7 +3037,7 @@ mod tests {
             }),
             rhs: Box::new(Expression::Var("c".to_string())),
         };
-        let formatted = format_expression(&expr);
+        let formatted = format_expression(&expr, &ctx());
         assert_eq!(formatted, "(a + b) * c");
     }
 
@@ -3000,7 +3053,7 @@ mod tests {
             }),
             rhs: Box::new(Expression::Var("c".to_string())),
         };
-        let formatted = format_expression(&expr);
+        let formatted = format_expression(&expr, &ctx());
         assert_eq!(formatted, "a * b + c");
     }
 
@@ -3017,7 +3070,7 @@ mod tests {
                 rhs: Box::new(Expression::Var("c".to_string())),
             }),
         };
-        let formatted = format_expression(&expr);
+        let formatted = format_expression(&expr, &ctx());
         assert_eq!(formatted, "a - (b - c)");
 
         // a + (b + c) should NOT parenthesise — addition is commutative
@@ -3030,7 +3083,7 @@ mod tests {
                 rhs: Box::new(Expression::Var("c".to_string())),
             }),
         };
-        let formatted2 = format_expression(&expr2);
+        let formatted2 = format_expression(&expr2, &ctx());
         assert_eq!(formatted2, "a + b + c");
     }
 
@@ -3126,7 +3179,7 @@ mod tests {
         // The expression at PC 10 should contain the folded result.
         // With constant propagation (r0=100) and simplification, it becomes 100 + 8 + 16 = 124.
         let expr = lifted.expressions.get(&10).unwrap();
-        let formatted = format_expression(expr);
+        let formatted = format_expression(expr, &ctx());
         assert!(
             formatted.contains("124"),
             "Expression should be folded to 124 (100 + 8 + 16), got: {}",
@@ -3325,7 +3378,7 @@ mod tests {
         assert!(
             !matches!(expr, Expression::Load { .. }),
             "Load at PC 12 should have been forwarded, got: {}",
-            format_expression(expr)
+            format_expression(expr, &ctx())
         );
     }
 
@@ -3454,7 +3507,7 @@ mod tests {
             assert!(
                 !matches!(e, Expression::Load { .. }),
                 "Load should have been forwarded, got: {}",
-                format_expression(e)
+                format_expression(e, &ctx())
             );
         }
 
@@ -3809,7 +3862,7 @@ mod tests {
             base: Box::new(Expression::Var("ptr_0".to_string())),
             offset: 8,
         };
-        assert_eq!(format_expression(&load), "ptr_0->field_8");
+        assert_eq!(format_expression(&load, &ctx()), "ptr_0->field_8");
 
         // Load from ptr_0 + 0 → ptr_0->field_0
         let load_zero = Expression::Load {
@@ -3817,7 +3870,7 @@ mod tests {
             base: Box::new(Expression::Var("ptr_0".to_string())),
             offset: 0,
         };
-        assert_eq!(format_expression(&load_zero), "ptr_0->field_0");
+        assert_eq!(format_expression(&load_zero, &ctx()), "ptr_0->field_0");
 
         // Store to ptr_1 + 12 → ptr_1->field_12 = value
         let store = Expression::Store {
@@ -3826,7 +3879,7 @@ mod tests {
             offset: 12,
             value: Box::new(Expression::Var("var_0".to_string())),
         };
-        assert_eq!(format_expression(&store), "ptr_1->field_12 = var_0");
+        assert_eq!(format_expression(&store, &ctx()), "ptr_1->field_12 = var_0");
 
         // Non-pointer base should NOT use struct notation
         let load_var = Expression::Load {
@@ -3834,7 +3887,7 @@ mod tests {
             base: Box::new(Expression::Var("var_0".to_string())),
             offset: 8,
         };
-        assert_eq!(format_expression(&load_var), "u64[var_0 + 8]");
+        assert_eq!(format_expression(&load_var, &ctx()), "u64[var_0 + 8]");
 
         // Negative offset should NOT use struct notation
         let load_neg = Expression::Load {
@@ -3842,7 +3895,7 @@ mod tests {
             base: Box::new(Expression::Var("ptr_0".to_string())),
             offset: -4,
         };
-        assert_eq!(format_expression(&load_neg), "u64[ptr_0 - 4]");
+        assert_eq!(format_expression(&load_neg, &ctx()), "u64[ptr_0 - 4]");
     }
 
     #[test]
@@ -3861,7 +3914,7 @@ mod tests {
             }),
             offset: 0,
         };
-        assert_eq!(format_expression(&load), "ptr_0[var_1]");
+        assert_eq!(format_expression(&load, &ctx()), "ptr_0[var_1]");
 
         // u64 load: base + index * 8 → base[index]
         let load64 = Expression::Load {
@@ -3877,7 +3930,7 @@ mod tests {
             }),
             offset: 0,
         };
-        assert_eq!(format_expression(&load64), "arr[i]");
+        assert_eq!(format_expression(&load64, &ctx()), "arr[i]");
 
         // u16 load: base + index * 2 → base[index]
         let load16 = Expression::Load {
@@ -3893,7 +3946,7 @@ mod tests {
             }),
             offset: 0,
         };
-        assert_eq!(format_expression(&load16), "buf[idx]");
+        assert_eq!(format_expression(&load16, &ctx()), "buf[idx]");
 
         // Wrong multiplier: u32 load with * 8 should NOT match
         let load_wrong = Expression::Load {
@@ -3909,7 +3962,10 @@ mod tests {
             }),
             offset: 0,
         };
-        assert_eq!(format_expression(&load_wrong), "u32[ptr_0 + var_1 * 8]");
+        assert_eq!(
+            format_expression(&load_wrong, &ctx()),
+            "u32[ptr_0 + var_1 * 8]"
+        );
 
         // Non-zero offset: should NOT match array pattern
         let load_offset = Expression::Load {
@@ -3926,7 +3982,7 @@ mod tests {
             offset: 8,
         };
         assert_eq!(
-            format_expression(&load_offset),
+            format_expression(&load_offset, &ctx()),
             "u32[ptr_0 + var_1 * 4 + 8]"
         );
 
@@ -3945,7 +4001,7 @@ mod tests {
             offset: 0,
             value: Box::new(Expression::Const(42)),
         };
-        assert_eq!(format_expression(&store), "arr[i] = 42");
+        assert_eq!(format_expression(&store, &ctx()), "arr[i] = 42");
 
         // Commutative: index * 4 + base → base[index]
         let load_comm = Expression::Load {
@@ -3961,7 +4017,7 @@ mod tests {
             }),
             offset: 0,
         };
-        assert_eq!(format_expression(&load_comm), "ptr_0[var_1]");
+        assert_eq!(format_expression(&load_comm, &ctx()), "ptr_0[var_1]");
 
         // Byte-width (u8) should NOT trigger array pattern even with * 1
         let load_u8 = Expression::Load {
@@ -3973,7 +4029,7 @@ mod tests {
             }),
             offset: 0,
         };
-        assert_eq!(format_expression(&load_u8), "u8[buf + i]");
+        assert_eq!(format_expression(&load_u8, &ctx()), "u8[buf + i]");
 
         // Struct field access should take priority: ptr_ base with non-zero offset
         // is struct, not array (even if the base contains a multiply)
@@ -3982,7 +4038,7 @@ mod tests {
             base: Box::new(Expression::Var("ptr_0".to_string())),
             offset: 8,
         };
-        assert_eq!(format_expression(&struct_load), "ptr_0->field_8");
+        assert_eq!(format_expression(&struct_load, &ctx()), "ptr_0->field_8");
     }
 
     #[test]
@@ -4046,7 +4102,7 @@ mod tests {
         // The expression should be call_indirect
         let expr = lifted.expressions.get(&4);
         assert!(expr.is_some());
-        let formatted = format_expression(expr.unwrap());
+        let formatted = format_expression(expr.unwrap(), &ctx());
         assert!(
             formatted.contains("call_indirect"),
             "Unknown target should render as call_indirect: {}",
@@ -4062,28 +4118,28 @@ mod tests {
             base: Box::new(Expression::Const(0x30008)),
             offset: 0,
         };
-        assert_eq!(format_expression(&expr_heap_ptr), "HEAP_PTR");
+        assert_eq!(format_expression(&expr_heap_ptr, &ctx()), "HEAP_PTR");
 
         let expr_result_ptr = Expression::Load {
             width: MemWidth::U32,
             base: Box::new(Expression::Const(0x30000)),
             offset: 0,
         };
-        assert_eq!(format_expression(&expr_result_ptr), "RESULT_PTR");
+        assert_eq!(format_expression(&expr_result_ptr, &ctx()), "RESULT_PTR");
 
         let expr_result_len = Expression::Load {
             width: MemWidth::U32,
             base: Box::new(Expression::Const(0x30004)),
             offset: 0,
         };
-        assert_eq!(format_expression(&expr_result_len), "RESULT_LEN");
+        assert_eq!(format_expression(&expr_result_len, &ctx()), "RESULT_LEN");
 
         let expr_heap_pages = Expression::Load {
             width: MemWidth::U32,
             base: Box::new(Expression::Const(0x3000C)),
             offset: 0,
         };
-        assert_eq!(format_expression(&expr_heap_pages), "HEAP_PAGES");
+        assert_eq!(format_expression(&expr_heap_pages, &ctx()), "HEAP_PAGES");
     }
 
     #[test]
@@ -4094,13 +4150,12 @@ mod tests {
             offset: 0,
             value: Box::new(Expression::Const(1036)),
         };
-        assert_eq!(format_expression(&expr), "HEAP_PTR = 1036");
+        assert_eq!(format_expression(&expr, &ctx()), "HEAP_PTR = 1036");
     }
 
     #[test]
     fn test_memory_base_simplification() {
-        // Set memory base for this test
-        set_memory_base(Some(0x50000));
+        let ctx = FormatContext::new(Some(0x50000));
 
         // x + (-0x50000) → wasm_ptr(x)
         let expr = Expression::BinOp {
@@ -4108,7 +4163,7 @@ mod tests {
             lhs: Box::new(Expression::Var("addr".to_string())),
             rhs: Box::new(Expression::Const(-0x50000)),
         };
-        assert_eq!(format_expression(&expr), "wasm_ptr(addr)");
+        assert_eq!(format_expression(&expr, &ctx), "wasm_ptr(addr)");
 
         // x + 0x50000 → pvm_addr(x)
         let expr2 = Expression::BinOp {
@@ -4116,7 +4171,7 @@ mod tests {
             lhs: Box::new(Expression::Var("offset".to_string())),
             rhs: Box::new(Expression::Const(0x50000)),
         };
-        assert_eq!(format_expression(&expr2), "pvm_addr(offset)");
+        assert_eq!(format_expression(&expr2, &ctx), "pvm_addr(offset)");
 
         // ptr->field_0x50000 → u32[ptr] (linear memory access, width-preserving)
         let load = Expression::Load {
@@ -4124,7 +4179,7 @@ mod tests {
             base: Box::new(Expression::Var("ptr_0".to_string())),
             offset: 0x50000,
         };
-        assert_eq!(format_expression(&load), "u32[ptr_0]");
+        assert_eq!(format_expression(&load, &ctx), "u32[ptr_0]");
 
         // u8[var + 0x50000] → u8[var]  (base is BinOp with memory base)
         let load2 = Expression::Load {
@@ -4136,7 +4191,7 @@ mod tests {
             }),
             offset: 0,
         };
-        assert_eq!(format_expression(&load2), "u8[idx]");
+        assert_eq!(format_expression(&load2, &ctx), "u8[idx]");
 
         // u32[0] for constant address = memory base
         let load3 = Expression::Load {
@@ -4144,10 +4199,7 @@ mod tests {
             base: Box::new(Expression::Const(0x50000)),
             offset: 0,
         };
-        assert_eq!(format_expression(&load3), "u32[0]");
-
-        // Clean up
-        set_memory_base(None);
+        assert_eq!(format_expression(&load3, &ctx), "u32[0]");
     }
 
     fn empty_lifted() -> LiftedProgram {
@@ -4225,7 +4277,7 @@ mod tests {
         let expr = Expression::Var("var_b".to_string());
         let resolved = lifted.resolve_eliminated_vars(&expr);
         assert_eq!(
-            format_expression(&resolved),
+            format_expression(&resolved, &ctx()),
             "42 + 10",
             "var_b should be resolved to its definition (42 + 10)"
         );
@@ -4234,7 +4286,7 @@ mod tests {
         let expr2 = Expression::Var("var_c".to_string());
         let resolved2 = lifted.resolve_eliminated_vars(&expr2);
         assert_eq!(
-            format_expression(&resolved2),
+            format_expression(&resolved2, &ctx()),
             "var_c",
             "var_c should NOT be resolved (not eliminated)"
         );
@@ -4247,7 +4299,7 @@ mod tests {
         };
         let resolved3 = lifted.resolve_eliminated_vars(&compound);
         assert_eq!(
-            format_expression(&resolved3),
+            format_expression(&resolved3, &ctx()),
             "42 + 10 + var_c",
             "Should resolve eliminated var_b but keep live var_c"
         );
