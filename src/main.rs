@@ -1228,7 +1228,7 @@ mod integration_tests {
                         20,
                         Instruction::LoadImm {
                             reg: 2,
-                            value: -65536,
+                            value: -0x10000,
                         },
                     ),
                     (24, Instruction::JumpInd { reg: 2, offset: 0 }),

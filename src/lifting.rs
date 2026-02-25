@@ -624,7 +624,7 @@ impl LiftedProgram {
                 "{}[{} + {}] = {}",
                 width,
                 self.reg_name(pc, base),
-                offset,
+                format_const(offset as i64),
                 value
             )),
             InstructionShape::Unknown { opcode } => {
@@ -657,12 +657,12 @@ impl LiftedProgram {
     }
 
     /// Check if a JumpInd target register holds a known halt address constant.
-    /// The PVM halt address is typically -65536 (0xFFFF_FFFF_FFFF_0000).
+    /// The PVM halt address is typically -0x10000 (0xFFFF_FFFF_FFFF_0000).
     fn is_halt_target(&self, use_pc: usize, reg: u8) -> bool {
         if let Some(var_name) = self.var_at_use.get(&(use_pc, reg))
             && let Some(Expression::Const(val)) = self.expression_for_var(var_name)
         {
-            return *val == -65536;
+            return *val == -0x10000;
         }
         false
     }
@@ -2078,10 +2078,22 @@ fn collect_loop_bodies(
     result
 }
 
+/// Format an integer constant: use hex for large values (|v| >= 0x1000), decimal otherwise.
+fn format_const(v: i64) -> String {
+    if v >= 0x1000 {
+        format!("0x{:X}", v)
+    } else if v <= -0x1000 {
+        // Use wrapping_neg to avoid overflow on i64::MIN, then format as unsigned hex.
+        format!("-0x{:X}", (v as u64).wrapping_neg())
+    } else {
+        format!("{}", v)
+    }
+}
+
 /// Format an Expression tree as a human-readable string with minimal parentheses.
 pub fn format_expression(expr: &Expression) -> String {
     match expr {
-        Expression::Const(v) => format!("{}", v),
+        Expression::Const(v) => format_const(*v),
         Expression::Var(name) => name.clone(),
         Expression::Raw(s) => s.clone(),
         Expression::BinOp { op, lhs, rhs } => {
@@ -2098,7 +2110,7 @@ pub fn format_expression(expr: &Expression) -> String {
                     return format!("wasm_ptr({})", lhs_str);
                 }
                 let lhs_str = format_expression_maybe_parens(lhs, BinOp::Sub, true);
-                return format!("{} - {}", lhs_str, -v);
+                return format!("{} - {}", lhs_str, format_const(-v));
             }
             // Simplify `x + MEMORY_BASE` (converting WASM offset → PVM address)
             if *op == BinOp::Add
@@ -2190,7 +2202,7 @@ pub fn format_expression(expr: &Expression) -> String {
 
 /// Detect if a Load/Store base expression references linear memory via MEMORY_BASE
 /// and simplify it to a width-preserving memory access.
-/// For example, `u8[var_61 + 327680]` → `u8[var_61]` when memory_base = 327680.
+/// For example, `u8[var_61 + 0x50000]` → `u8[var_61]` when memory_base = 0x50000.
 fn format_mem_base_access(base: &Expression, offset: i32, width: MemWidth) -> Option<String> {
     let mem_base = get_memory_base()? as i64;
 
@@ -2214,7 +2226,7 @@ fn format_mem_base_access(base: &Expression, offset: i32, width: MemWidth) -> Op
         }
     }
 
-    // Pattern 2: base = var, offset = MEMORY_BASE (e.g., LoadInd { base: var, offset: 327680 })
+    // Pattern 2: base = var, offset = MEMORY_BASE (e.g., LoadInd { base: var, offset: 0x50000 })
     // Preserve the access width in the rendered syntax.
     if offset as i64 == mem_base {
         return Some(format!("{}[{}]", width, format_expression(base)));
@@ -2315,17 +2327,17 @@ fn resolve_named_global(base: &Expression, offset: i32, width: MemWidth) -> Opti
     };
 
     match addr {
-        196608 => Some("RESULT_PTR".to_string()), // 0x30000
-        196612 => Some("RESULT_LEN".to_string()), // 0x30004
-        196616 => Some("HEAP_PTR".to_string()),   // 0x30008
-        196620 => Some("HEAP_PAGES".to_string()), // 0x3000C
+        0x30000 => Some("RESULT_PTR".to_string()),
+        0x30004 => Some("RESULT_LEN".to_string()),
+        0x30008 => Some("HEAP_PTR".to_string()),
+        0x3000C => Some("HEAP_PAGES".to_string()),
         _ => {
             // Check if address falls within linear memory (>= memory_base)
             if let Some(mem_base) = get_memory_base() {
                 let mem_base_i64 = mem_base as i64;
                 if addr >= mem_base_i64 {
                     let wasm_offset = addr - mem_base_i64;
-                    return Some(format!("{}[{}]", width, wasm_offset));
+                    return Some(format!("{}[{}]", width, format_const(wasm_offset)));
                 }
             }
             None
@@ -2337,15 +2349,15 @@ fn resolve_named_global(base: &Expression, offset: i32, width: MemWidth) -> Opti
 fn format_mem_address(base: &Expression, offset: i32) -> String {
     match (base, offset) {
         // Pure constant address: base is 0 → just show offset
-        (Expression::Const(0), off) => format!("{}", off),
+        (Expression::Const(0), off) => format_const(off as i64),
         // Constant base + offset → fold them
-        (Expression::Const(b), off) => format!("{}", (*b).wrapping_add(off as i64)),
+        (Expression::Const(b), off) => format_const((*b).wrapping_add(off as i64)),
         // Zero offset → just base
         (_, 0) => format_expression(base),
         // Negative offset
-        (_, off) if off < 0 => format!("{} - {}", format_expression(base), -off),
+        (_, off) if off < 0 => format!("{} - {}", format_expression(base), format_const((-off) as i64)),
         // Positive offset
-        (_, off) => format!("{} + {}", format_expression(base), off),
+        (_, off) => format!("{} + {}", format_expression(base), format_const(off as i64)),
     }
 }
 
@@ -4043,28 +4055,28 @@ mod tests {
         // resolve_named_global should return named constants for known PVM addresses
         let expr_heap_ptr = Expression::Load {
             width: MemWidth::U32,
-            base: Box::new(Expression::Const(196616)),
+            base: Box::new(Expression::Const(0x30008)),
             offset: 0,
         };
         assert_eq!(format_expression(&expr_heap_ptr), "HEAP_PTR");
 
         let expr_result_ptr = Expression::Load {
             width: MemWidth::U32,
-            base: Box::new(Expression::Const(196608)),
+            base: Box::new(Expression::Const(0x30000)),
             offset: 0,
         };
         assert_eq!(format_expression(&expr_result_ptr), "RESULT_PTR");
 
         let expr_result_len = Expression::Load {
             width: MemWidth::U32,
-            base: Box::new(Expression::Const(196612)),
+            base: Box::new(Expression::Const(0x30004)),
             offset: 0,
         };
         assert_eq!(format_expression(&expr_result_len), "RESULT_LEN");
 
         let expr_heap_pages = Expression::Load {
             width: MemWidth::U32,
-            base: Box::new(Expression::Const(196620)),
+            base: Box::new(Expression::Const(0x3000C)),
             offset: 0,
         };
         assert_eq!(format_expression(&expr_heap_pages), "HEAP_PAGES");
@@ -4074,7 +4086,7 @@ mod tests {
     fn test_named_globals_in_store() {
         let expr = Expression::Store {
             width: MemWidth::U32,
-            base: Box::new(Expression::Const(196616)),
+            base: Box::new(Expression::Const(0x30008)),
             offset: 0,
             value: Box::new(Expression::Const(1036)),
         };
@@ -4086,37 +4098,37 @@ mod tests {
         // Set memory base for this test
         set_memory_base(Some(0x50000));
 
-        // x + (-327680) → wasm_ptr(x)
+        // x + (-0x50000) → wasm_ptr(x)
         let expr = Expression::BinOp {
             op: BinOp::Add,
             lhs: Box::new(Expression::Var("addr".to_string())),
-            rhs: Box::new(Expression::Const(-327680)),
+            rhs: Box::new(Expression::Const(-0x50000)),
         };
         assert_eq!(format_expression(&expr), "wasm_ptr(addr)");
 
-        // x + 327680 → pvm_addr(x)
+        // x + 0x50000 → pvm_addr(x)
         let expr2 = Expression::BinOp {
             op: BinOp::Add,
             lhs: Box::new(Expression::Var("offset".to_string())),
-            rhs: Box::new(Expression::Const(327680)),
+            rhs: Box::new(Expression::Const(0x50000)),
         };
         assert_eq!(format_expression(&expr2), "pvm_addr(offset)");
 
-        // ptr->field_327680 → u32[ptr] (linear memory access, width-preserving)
+        // ptr->field_0x50000 → u32[ptr] (linear memory access, width-preserving)
         let load = Expression::Load {
             width: MemWidth::U32,
             base: Box::new(Expression::Var("ptr_0".to_string())),
-            offset: 327680,
+            offset: 0x50000,
         };
         assert_eq!(format_expression(&load), "u32[ptr_0]");
 
-        // u8[var + 327680] → u8[var]  (base is BinOp with memory base)
+        // u8[var + 0x50000] → u8[var]  (base is BinOp with memory base)
         let load2 = Expression::Load {
             width: MemWidth::U8,
             base: Box::new(Expression::BinOp {
                 op: BinOp::Add,
                 lhs: Box::new(Expression::Var("idx".to_string())),
-                rhs: Box::new(Expression::Const(327680)),
+                rhs: Box::new(Expression::Const(0x50000)),
             }),
             offset: 0,
         };
@@ -4125,7 +4137,7 @@ mod tests {
         // u32[0] for constant address = memory base
         let load3 = Expression::Load {
             width: MemWidth::U32,
-            base: Box::new(Expression::Const(327680)),
+            base: Box::new(Expression::Const(0x50000)),
             offset: 0,
         };
         assert_eq!(format_expression(&load3), "u32[0]");

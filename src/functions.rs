@@ -569,7 +569,7 @@ pub enum EpilogueKind {
     /// Function return: restore callee-saved registers, restore r0, sp += N, JumpInd r0.
     /// Contains the PCs of all epilogue instructions to eliminate.
     Return { eliminated_pcs: Vec<usize> },
-    /// Program halt: LoadImm reg = -65536, JumpInd reg.
+    /// Program halt: LoadImm reg = -0x10000, JumpInd reg.
     /// Contains the PCs of the halt instructions to eliminate.
     Halt { eliminated_pcs: Vec<usize> },
 }
@@ -584,7 +584,7 @@ pub fn detect_epilogues(cfg: &ControlFlowGraph) -> HashMap<usize, EpilogueKind> 
             continue;
         }
 
-        // Check for halt pattern: LoadImm reg = -65536 + JumpInd reg
+        // Check for halt pattern: LoadImm reg = -0x10000 + JumpInd reg
         if block.instructions.len() >= 2 {
             let last_idx = block.instructions.len() - 1;
             let (jump_pc, jump_instr) = &block.instructions[last_idx];
@@ -593,7 +593,7 @@ pub fn detect_epilogues(cfg: &ControlFlowGraph) -> HashMap<usize, EpilogueKind> 
             if let Instruction::JumpInd { reg: jump_reg, .. } = jump_instr
                 && let Instruction::LoadImm {
                     reg: load_reg,
-                    value: -65536,
+                    value: -0x10000,
                 } = load_instr
                 && jump_reg == load_reg
             {
@@ -1147,7 +1147,7 @@ mod tests {
 
     #[test]
     fn test_detect_epilogue_halt_pattern() {
-        // Block with: LoadImm r2 = -65536, JumpInd r2
+        // Block with: LoadImm r2 = -0x10000, JumpInd r2
         let cfg = build_test_cfg(
             0,
             vec![(
@@ -1158,7 +1158,7 @@ mod tests {
                         4,
                         Instruction::LoadImm {
                             reg: 2,
-                            value: -65536,
+                            value: -0x10000,
                         },
                     ),
                     (8, Instruction::JumpInd { reg: 2, offset: 0 }),

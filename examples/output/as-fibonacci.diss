@@ -4,7 +4,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 }
 
 fn func_1(r1: u64) {
-    let ptr_0_40 = u64[r1] - 327680
+    let ptr_0_40 = u64[r1] - 0x50000
     let var_9 = HEAP_PTR + 4
     let ptr_0_88 = var_9
     let ptr_0_112 = var_9 + 268
@@ -14,7 +14,7 @@ fn func_1(r1: u64) {
     let ptr_0_192 = var_27
 
     if (var_27 <u var_9 + 268) {
-        let var_64 = (ptr_0_112 - ptr_0_192 + 65535 & -65536) >>u 16
+        let var_64 = (ptr_0_112 - ptr_0_192 + 0xFFFF & -0x10000) >>u 16
         let ptr_0_344 = var_64
         let ptr_0_400 = var_64
     } else {
