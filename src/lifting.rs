@@ -2355,7 +2355,11 @@ fn format_mem_address(base: &Expression, offset: i32) -> String {
         // Zero offset → just base
         (_, 0) => format_expression(base),
         // Negative offset
-        (_, off) if off < 0 => format!("{} - {}", format_expression(base), format_const((-off) as i64)),
+        (_, off) if off < 0 => format!(
+            "{} - {}",
+            format_expression(base),
+            format_const((-off) as i64)
+        ),
         // Positive offset
         (_, off) => format!("{} + {}", format_expression(base), format_const(off as i64)),
     }
