@@ -284,9 +284,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             progress("preparing analysis...");
         }
 
-        let func_cfg = function_cfgs
-            .remove(&func.entry_pc)
-            .unwrap_or_else(|| build_function_cfg(&cfg, func, &direct_call_patterns, &program.jump_table));
+        let func_cfg = function_cfgs.remove(&func.entry_pc).unwrap_or_else(|| {
+            build_function_cfg(&cfg, func, &direct_call_patterns, &program.jump_table)
+        });
 
         if verbosity >= Verbosity::Verbose {
             eprintln!("  Computing dominator tree...");
@@ -482,7 +482,8 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
     let mut function_dataflow: HashMap<usize, DataFlowAnalysis> = HashMap::new();
     let mut function_params_by_name: HashMap<String, Vec<u8>> = HashMap::new();
     for func in &detected_functions {
-        let func_cfg = functions::build_function_cfg(&cfg, func, &direct_call_patterns, &program.jump_table);
+        let func_cfg =
+            functions::build_function_cfg(&cfg, func, &direct_call_patterns, &program.jump_table);
         let dataflow = DataFlowAnalysis::analyze(&func_cfg);
         let mut params: Vec<u8> = dataflow
             .live_in
@@ -499,9 +500,9 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
 
     let mut output = String::new();
     for func in &detected_functions {
-        let func_cfg = function_cfgs
-            .remove(&func.entry_pc)
-            .unwrap_or_else(|| functions::build_function_cfg(&cfg, func, &direct_call_patterns, &program.jump_table));
+        let func_cfg = function_cfgs.remove(&func.entry_pc).unwrap_or_else(|| {
+            functions::build_function_cfg(&cfg, func, &direct_call_patterns, &program.jump_table)
+        });
         let dom_tree = structuring::DominatorTree::compute(&func_cfg);
         let dataflow = function_dataflow
             .remove(&func.entry_pc)
