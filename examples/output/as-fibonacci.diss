@@ -17,11 +17,8 @@ fn func_1(r1: u64) {
         let var_64 = (ptr_0_112 - ptr_0_192 + 0xFFFF & -0x10000) >>u 16
         let ptr_0_344 = var_64
         let ptr_0_400 = var_64
-    } else {
-        goto block_0263;
     }
 
-    block_0263:
     goto block_0268;
 
     ptr_0_400 = ptr_0_120
@@ -39,11 +36,8 @@ fn func_1(r1: u64) {
     if (var_81 <s 0) {
         let var_103 = HEAP_PAGES
         let var_104 = var_103 + ptr_0_344
-    } else {
-        goto block_0315;
     }
 
-    block_0315:
     goto block_031a;
 
     if (var_104 <u 256) {
@@ -57,15 +51,9 @@ fn func_1(r1: u64) {
     block_02d9:
     if (var_103 <s 0) {
         return
-    } else {
-        goto block_0320;
     }
 
-    block_0320:
-    goto block_031a;
-
     block_031a:
-    goto block_0268;
 
     block_0268:
     HEAP_PTR = ptr_0_112

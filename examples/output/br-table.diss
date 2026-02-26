@@ -20,13 +20,9 @@ fn main(r1: u64, r7: u64, r8: u64) {
     if (!(ptr_0_80)) {
         let ptr_0_128 = 999
         goto block_00d5;
-    } else {
-        goto block_00c9;
     }
 
-    block_00c9:
     ptr_0_128 = ptr_0_80
-    goto block_00d5;
 
     block_00d5:
     u32[0x20000] = ptr_0_128

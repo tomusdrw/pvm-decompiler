@@ -14,21 +14,14 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     let ptr_5_200 = var_274
 
     if (u8[ptr_5_40 + ptr_5_64 * ptr_5_56 + ptr_5_144 + 0x50000] != 0) {
-    } else {
-        goto block_05b1;
     }
 
-    block_05b1:
     if (!(ptr_5_200 ^ 3)) {
         let ptr_5_608 = 1
         goto block_06ca;
-    } else {
-        goto block_06bf;
     }
 
-    block_06bf:
     ptr_5_608 = 0
-    goto block_06ca;
 
     block_06ca:
     let ptr_5_464 = ptr_5_608
@@ -38,18 +31,14 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     goto block_06a6;
 
     ptr_5_600 = 1
-    goto block_06a6;
 
     block_06a6:
     ptr_5_464 = ptr_5_600
-    goto block_05ef;
 
     block_05ef:
     u8[ptr_5_48 + ptr_5_64 * ptr_5_56 + ptr_5_144 + 0x50000] = ptr_5_464
     let ptr_5_144 = ptr_5_144 + 1
-    goto block_0369;
 
-    block_0369:
 }
 
 fn func_1(r1: u64) {

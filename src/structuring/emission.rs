@@ -2061,7 +2061,8 @@ fn fix_blank_lines(input: &str) -> String {
     let mut out = deduped.join("\n");
     out.push('\n');
     let collapsed = collapse_consecutive_labels(&out);
-    let without_unused_labels = prune_unused_labels(&collapsed);
+    let without_redundant_gotos = elide_redundant_gotos(&collapsed);
+    let without_unused_labels = prune_unused_labels(&without_redundant_gotos);
     prune_unused_pure_let_definitions(&without_unused_labels)
 }
 
@@ -2107,6 +2108,103 @@ fn collapse_consecutive_labels(input: &str) -> String {
 }
 
 /// Remove label definitions that are never targeted by any emitted goto.
+/// Remove goto statements that jump to the immediately following label.
+///
+/// Handles two patterns:
+///
+/// **Pattern 1** – bare goto to next label:
+/// ```text
+///     goto block_XXXX;
+///                           ← optional blank lines
+///     block_XXXX:
+/// ```
+/// The goto line is removed.
+///
+/// **Pattern 2** – else-only-goto to next label:
+/// ```text
+///     } else {
+///         goto block_XXXX;
+///     }
+///                           ← optional blank lines
+///     block_XXXX:
+/// ```
+/// The three else lines are replaced with a single `}` to close the if.
+fn elide_redundant_gotos(input: &str) -> String {
+    let lines: Vec<&str> = input.lines().collect();
+    let mut kept: Vec<&str> = Vec::with_capacity(lines.len());
+    let mut i = 0;
+
+    while i < lines.len() {
+        // Try Pattern 2: } else { / goto block_XXXX; / }
+        if i + 2 < lines.len() {
+            let l0 = lines[i].trim();
+            let l1 = lines[i + 1].trim();
+            let l2 = lines[i + 2].trim();
+
+            if l0 == "} else {" && l2 == "}" {
+                if let Some(goto_label) = parse_goto_target(l1) {
+                    // Look ahead past blank lines for matching label
+                    let mut j = i + 3;
+                    while j < lines.len() && lines[j].trim().is_empty() {
+                        j += 1;
+                    }
+                    if j < lines.len() {
+                        if let Some(next_label) = parse_block_label_name(lines[j]) {
+                            if goto_label == next_label {
+                                // Replace the else block with just `}` to close the if.
+                                // The closing brace line (lines[i+2]) already has
+                                // the right indentation.
+                                kept.push(lines[i + 2]);
+                                i += 3;
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Try Pattern 1: goto block_XXXX;
+        {
+            let trimmed = lines[i].trim();
+            if let Some(goto_label) = parse_goto_target(trimmed) {
+                let mut j = i + 1;
+                while j < lines.len() && lines[j].trim().is_empty() {
+                    j += 1;
+                }
+                if j < lines.len() {
+                    if let Some(next_label) = parse_block_label_name(lines[j]) {
+                        if goto_label == next_label {
+                            // Skip the goto line
+                            i += 1;
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+
+        kept.push(lines[i]);
+        i += 1;
+    }
+
+    let mut out = kept.join("\n");
+    out.push('\n');
+    out
+}
+
+/// Extract the label name from a `goto block_XXXX;` statement.
+fn parse_goto_target(trimmed: &str) -> Option<String> {
+    let rest = trimmed.strip_prefix("goto ")?;
+    let rest = rest.strip_suffix(';')?;
+    let label = rest.trim();
+    if is_block_label_name(label) {
+        Some(label.to_string())
+    } else {
+        None
+    }
+}
+
 fn prune_unused_labels(input: &str) -> String {
     let referenced = collect_referenced_labels(input);
     let mut kept: Vec<String> = Vec::new();
@@ -4582,14 +4680,16 @@ mod tests {
         let result = StructuralAnalysis::analyze(&cfg, &empty_program());
         let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
 
+        // When the only goto to block_0018 falls through to it, the
+        // redundant-goto pass elides it and the label becomes unused.
         assert!(
-            pseudo.contains("goto block_0018;"),
-            "Unknown Jump should render as explicit labeled goto: {}",
+            !pseudo.contains("goto block_0018;"),
+            "Fallthrough goto should be elided: {}",
             pseudo
         );
         assert!(
-            pseudo.contains("block_0018:"),
-            "Goto target should have a stable label definition: {}",
+            !pseudo.contains("block_0018:"),
+            "Label with no remaining goto references should be pruned: {}",
             pseudo
         );
     }
@@ -5174,9 +5274,16 @@ return
             "Unused labels should be removed: {}",
             output
         );
+        // The goto to block_0003 is elided (it falls through), so
+        // block_0003 becomes unreferenced and is also pruned.
         assert!(
-            output.contains("block_0003:"),
-            "Referenced labels should be preserved: {}",
+            !output.contains("goto block_0003;"),
+            "Redundant goto to next label should be elided: {}",
+            output
+        );
+        assert!(
+            !output.contains("block_0003:"),
+            "Label with no remaining references should be pruned: {}",
             output
         );
     }
