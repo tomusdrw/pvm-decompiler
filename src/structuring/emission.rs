@@ -6,6 +6,8 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::Write;
 use wasm_pvm::pvm::Instruction;
 
+type DispatchSwitch<'a> = (u8, &'a [(Vec<u32>, usize)]);
+
 use super::FunctionSignature;
 
 impl StructuralAnalysis {
@@ -140,6 +142,7 @@ impl StructuralAnalysis {
         let mut loop_map: HashMap<usize, &Structure> = HashMap::new();
         let mut if_map: HashMap<usize, &Structure> = HashMap::new();
         let mut switch_map: HashMap<usize, &Structure> = HashMap::new();
+        let mut dispatch_switch_map: HashMap<usize, &Structure> = HashMap::new();
 
         for s in &self.structures {
             match s {
@@ -154,13 +157,16 @@ impl StructuralAnalysis {
                     is_dispatch,
                     ..
                 } => {
-                    if !is_dispatch {
+                    if *is_dispatch {
+                        dispatch_switch_map.insert(*header, s);
+                    } else {
                         switch_map.insert(*header, s);
                     }
                 }
             }
         }
-        let switch_headers: HashSet<usize> = switch_map.keys().copied().collect();
+        let mut switch_headers: HashSet<usize> = switch_map.keys().copied().collect();
+        switch_headers.extend(dispatch_switch_map.keys().copied());
 
         let emission_plan = build_emission_plan(
             cfg,
@@ -189,6 +195,7 @@ impl StructuralAnalysis {
             switch_headers,
             plan: &emission_plan,
             declared_vars,
+            dispatch_loop_header: None,
         };
 
         for &block_pc in &self.dom_tree.rpo {
@@ -196,8 +203,17 @@ impl StructuralAnalysis {
                 continue;
             }
 
+            let dispatch_switch: Option<DispatchSwitch<'_>> =
+                dispatch_switch_map.get(&block_pc).and_then(|s| match *s {
+                    Structure::Switch { reg, cases, .. } => Some((*reg, cases.as_slice())),
+                    _ => None,
+                });
+            let render_dispatch_loop = dispatch_switch
+                .as_ref()
+                .is_some_and(|(_, cases)| em.should_emit_dispatch_loop(block_pc, cases));
+
             // Emit label if this block has one.
-            if let Some(label) = em.labels.get(&block_pc) {
+            if !render_dispatch_loop && let Some(label) = em.labels.get(&block_pc) {
                 let _ = writeln!(em.output, "{}:", label);
             }
 
@@ -224,8 +240,14 @@ impl StructuralAnalysis {
                     0,
                     None,
                 );
+            } else if let Some((reg, cases)) = dispatch_switch {
+                if render_dispatch_loop {
+                    em.emit_dispatch_loop(block_pc, reg, cases);
+                } else {
+                    em.emit_linear_region(block_pc, 0);
+                }
             } else if let Some(Structure::Switch { reg, cases, .. }) = switch_map.get(&block_pc) {
-                em.emit_switch(block_pc, *reg, cases);
+                em.emit_switch(block_pc, *reg, cases, 0);
             } else {
                 // Emit a linear plain region to avoid redundant goto-to-next-block noise.
                 em.emit_linear_region(block_pc, 0);
@@ -271,6 +293,7 @@ struct Emitter<'a, 'p> {
     switch_headers: HashSet<usize>,
     plan: &'p EmissionPlan,
     declared_vars: HashSet<String>,
+    dispatch_loop_header: Option<usize>,
 }
 
 impl<'a, 'p> Emitter<'a, 'p> {
@@ -588,6 +611,10 @@ impl<'a, 'p> Emitter<'a, 'p> {
                         if Some(target) == fallthrough_target {
                             continue;
                         }
+                        if Some(target) == self.dispatch_loop_header {
+                            let _ = writeln!(self.output, "{}continue", prefix);
+                            continue;
+                        }
                         let target_label = self
                             .labels
                             .get(&target)
@@ -650,11 +677,15 @@ impl<'a, 'p> Emitter<'a, 'p> {
                             "...".to_string()
                         };
                         let cond_str = apply_aliases(&cond_str, &self.plan.var_aliases);
-                        let _ = writeln!(
-                            self.output,
-                            "{}if ({}) goto {};",
-                            prefix, cond_str, target_label
-                        );
+                        if Some(target) == self.dispatch_loop_header {
+                            let _ = writeln!(self.output, "{}if ({}) continue;", prefix, cond_str);
+                        } else {
+                            let _ = writeln!(
+                                self.output,
+                                "{}if ({}) goto {};",
+                                prefix, cond_str, target_label
+                            );
+                        }
                         continue;
                     }
                     if let Some(line) = format_pc_with_local_declarations(
@@ -903,8 +934,16 @@ impl<'a, 'p> Emitter<'a, 'p> {
     }
 
     /// Emit a switch/case structure.
-    fn emit_switch(&mut self, block_pc: usize, reg: u8, cases: &[(Vec<u32>, usize)]) {
-        self.emit_block_body(block_pc, 0, true);
+    fn emit_switch(
+        &mut self,
+        block_pc: usize,
+        reg: u8,
+        cases: &[(Vec<u32>, usize)],
+        indent: usize,
+    ) {
+        self.emit_block_body(block_pc, indent, true);
+        let prefix = "    ".repeat(indent);
+        let case_prefix = "    ".repeat(indent + 1);
 
         let switch_var = if let Some(lifted) = self.lifted {
             if let Some(branch_pc) = last_instruction_pc(self.cfg, block_pc) {
@@ -925,7 +964,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
                             .find(|v| v.name == name)
                             .map(|v| format!("{}", v.var_type))
                             .unwrap_or_else(|| "u64".to_string());
-                        let _ = writeln!(self.output, "let {}: {};", name, type_str);
+                        let _ = writeln!(self.output, "{}let {}: {};", prefix, name, type_str);
                     }
                     name
                 } else {
@@ -938,19 +977,194 @@ impl<'a, 'p> Emitter<'a, 'p> {
             format!("r{}", reg)
         };
         let switch_var = apply_aliases(&switch_var, &self.plan.var_aliases);
-        let _ = writeln!(self.output, "switch ({}) {{", switch_var);
+        let _ = writeln!(self.output, "{}switch ({}) {{", prefix, switch_var);
         for (values, target) in cases.iter() {
             let vals: Vec<String> = values.iter().map(|v| format!("{}", v)).collect();
+            if Some(*target) == self.dispatch_loop_header {
+                let _ = writeln!(
+                    self.output,
+                    "{}case {}: continue;",
+                    case_prefix,
+                    vals.join(", ")
+                );
+                continue;
+            }
             let target_label = format_goto_target(*target, &self.labels);
             let _ = writeln!(
                 self.output,
-                "    case {}: goto {};",
+                "{}case {}: goto {};",
+                case_prefix,
                 vals.join(", "),
                 target_label
             );
         }
-        self.output.push_str("}\n");
+        let _ = writeln!(self.output, "{}}}", prefix);
         self.emitted.insert(block_pc);
+    }
+
+    /// True when switch cases contain a meaningful back-edge region to structure
+    /// as `loop { switch { ... } }`.
+    fn should_emit_dispatch_loop(&self, header_pc: usize, cases: &[(Vec<u32>, usize)]) -> bool {
+        let Some(header_block) = self.cfg.blocks.get(&header_pc) else {
+            return false;
+        };
+        let header_succs: HashSet<usize> = header_block.successors.iter().copied().collect();
+
+        let mut roots: Vec<usize> = cases.iter().map(|(_, target)| *target).collect();
+        roots.sort_unstable();
+        roots.dedup();
+        roots.retain(|target| {
+            *target != header_pc
+                && self.cfg.blocks.contains_key(target)
+                && header_succs.contains(target)
+                && !self.emitted.contains(target)
+        });
+        if roots.len() < 2 {
+            return false;
+        }
+
+        let mut visited: HashSet<usize> = HashSet::new();
+        let mut queue: VecDeque<usize> = roots.into_iter().collect();
+        while let Some(pc) = queue.pop_front() {
+            if !visited.insert(pc) {
+                continue;
+            }
+            if let Some(block) = self.cfg.blocks.get(&pc) {
+                for &succ in &block.successors {
+                    if succ == header_pc {
+                        return true;
+                    }
+                    if !visited.contains(&succ) {
+                        queue.push_back(succ);
+                    }
+                }
+            }
+        }
+
+        false
+    }
+
+    /// Emit dispatch infrastructure as `loop { switch { ... } }`.
+    fn emit_dispatch_loop(&mut self, header_pc: usize, reg: u8, cases: &[(Vec<u32>, usize)]) {
+        let header_succs: HashSet<usize> = self
+            .cfg
+            .blocks
+            .get(&header_pc)
+            .map(|b| b.successors.iter().copied().collect())
+            .unwrap_or_default();
+        let local_cases: Vec<(Vec<u32>, usize)> = cases
+            .iter()
+            .filter(|(_, target)| {
+                self.cfg.blocks.contains_key(target)
+                    && (*target == header_pc
+                        || (header_succs.contains(target) && !self.emitted.contains(target)))
+            })
+            .cloned()
+            .collect();
+        if local_cases.is_empty() {
+            self.emit_linear_region(header_pc, 0);
+            return;
+        }
+
+        let _ = writeln!(self.output, "loop {{");
+        let previous_header = self.dispatch_loop_header.replace(header_pc);
+        self.emit_switch(header_pc, reg, &local_cases, 1);
+        self.emit_dispatch_targets(header_pc, &local_cases, 1);
+        self.dispatch_loop_header = previous_header;
+        let _ = writeln!(self.output, "}}");
+    }
+
+    /// Emit case target regions for a dispatch loop.
+    fn emit_dispatch_targets(
+        &mut self,
+        dispatch_header: usize,
+        cases: &[(Vec<u32>, usize)],
+        indent: usize,
+    ) {
+        let prefix = "    ".repeat(indent);
+        let mut roots: Vec<usize> = cases.iter().map(|(_, target)| *target).collect();
+        roots.sort_unstable();
+        roots.dedup();
+
+        for target_pc in roots {
+            if target_pc == dispatch_header
+                || self.emitted.contains(&target_pc)
+                || !self.cfg.blocks.contains_key(&target_pc)
+            {
+                continue;
+            }
+            let _ = writeln!(
+                self.output,
+                "{}{}:",
+                prefix,
+                self.label_for_target(target_pc)
+            );
+
+            let mut reachable = Vec::new();
+            let mut visited: HashSet<usize> = HashSet::new();
+            let mut queue = VecDeque::new();
+            queue.push_back(target_pc);
+
+            while let Some(pc) = queue.pop_front() {
+                if pc == dispatch_header || !visited.insert(pc) || self.emitted.contains(&pc) {
+                    continue;
+                }
+                reachable.push(pc);
+                self.emitted.insert(pc);
+                if let Some(block) = self.cfg.blocks.get(&pc) {
+                    for &succ in &block.successors {
+                        if succ != dispatch_header
+                            && !visited.contains(&succ)
+                            && !self.emitted.contains(&succ)
+                        {
+                            queue.push_back(succ);
+                        }
+                    }
+                }
+            }
+
+            for &block_pc in &reachable {
+                if block_pc != target_pc
+                    && let Some(label) = self.labels.get(&block_pc)
+                {
+                    let _ = writeln!(self.output, "{}{}:", prefix, label);
+                }
+
+                if let Some(Structure::Loop {
+                    body,
+                    latch,
+                    condition,
+                    ..
+                }) = self.loop_map.get(&block_pc)
+                {
+                    self.emit_loop(block_pc, body, *latch, condition, indent);
+                } else if let Some(Structure::IfThenElse {
+                    then_blocks,
+                    else_blocks,
+                    condition,
+                    ..
+                }) = self.if_map.get(&block_pc).copied()
+                {
+                    self.emit_if(
+                        block_pc,
+                        then_blocks,
+                        else_blocks,
+                        condition.as_ref(),
+                        indent,
+                        None,
+                    );
+                } else {
+                    self.emit_block_body(block_pc, indent, false);
+                }
+            }
+        }
+    }
+
+    fn label_for_target(&self, target: usize) -> String {
+        self.labels
+            .get(&target)
+            .cloned()
+            .unwrap_or_else(|| format!("block_{:04x}", target))
     }
 
     /// Emit switch target blocks that weren't reached by the RPO walk.
@@ -2287,14 +2501,11 @@ fn build_block_labels(cfg: &ControlFlowGraph, structures: &[Structure]) -> HashM
     let mut goto_targets: HashSet<usize> = HashSet::new();
 
     for s in structures {
-        if let Structure::Switch {
-            cases,
-            is_dispatch: false,
-            ..
-        } = s
-        {
+        if let Structure::Switch { cases, .. } = s {
             for (_, target) in cases {
-                goto_targets.insert(*target);
+                if cfg.blocks.contains_key(target) {
+                    goto_targets.insert(*target);
+                }
             }
         }
     }
@@ -4826,6 +5037,90 @@ mod tests {
                 output
             );
         }
+    }
+
+    #[test]
+    fn test_dispatch_switch_renders_as_loop_switch() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+        use std::collections::HashSet;
+
+        // Dispatch-like CFG:
+        //   0: JumpInd switch -> case targets 4 and 8
+        //   4: case body then Jump back to 0 (should render as `continue`)
+        //   8: conditional branch to 12, fallthrough back to 0
+        //  12: exit trap
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(0, Instruction::JumpInd { reg: 3, offset: 0 })],
+                    vec![4, 8],
+                ),
+                (
+                    4,
+                    vec![
+                        (4, Instruction::LoadImm { reg: 1, value: 7 }),
+                        (6, Instruction::Jump { offset: -6 }),
+                    ],
+                    vec![0],
+                ),
+                (
+                    8,
+                    vec![(
+                        8,
+                        Instruction::BranchNeImm {
+                            reg: 2,
+                            value: 0,
+                            offset: 4,
+                        },
+                    )],
+                    vec![12, 0],
+                ),
+                (12, vec![(12, Instruction::Trap)], vec![]),
+            ],
+        );
+        let program = DecodedProgram {
+            jump_table: vec![4, 8],
+            instructions: vec![(0, Instruction::JumpInd { reg: 3, offset: 0 })],
+            memory_base: None,
+            code_len: 13,
+        };
+        let dom_tree = crate::structuring::DominatorTree::compute(&cfg);
+        let function_entry_pcs: HashSet<usize> = [0].into_iter().collect();
+        let result =
+            StructuralAnalysis::analyze_with_dom_tree(&cfg, &program, dom_tree, function_entry_pcs);
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let pseudo = result.pseudo_code(&cfg, Some(&lifted), None);
+
+        assert!(
+            pseudo.contains("loop {"),
+            "Dispatch switch should render as loop: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("switch ("),
+            "Dispatch loop should include switch: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("case 0: goto block_0004;"),
+            "Dispatch case 0 should target block_0004: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("case 1: goto block_0008;"),
+            "Dispatch case 1 should target block_0008: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("continue"),
+            "Back-edge to dispatch header should render as continue: {}",
+            pseudo
+        );
     }
 
     #[test]

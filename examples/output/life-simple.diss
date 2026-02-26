@@ -6,6 +6,34 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     func_1(r1 - 1376)
 
     block_0354:
+    u64[r1 + 200] = r7
+    let var_178 = u64[r1 + 64]
+    u64[r1 + 208] = var_178
+    let var_180 = u64[r1 + 56]
+    u64[r1 + 216] = var_180
+    let var_184 = var_178 * var_180
+    u64[r1 + 224] = var_184
+    u64[r1 + 232] = var_184
+    u64[r1 + 240] = var_184
+    let var_187 = u64[r1 + 144]
+    u64[r1 + 248] = var_187
+    let var_191 = var_184 + var_187
+    u64[r1 + 256] = var_191
+    u64[r1 + 264] = var_191
+    let var_193 = u64[r1 + 40]
+    u64[r1 + 272] = var_193
+    u64[r1 + 280] = var_191
+    let var_199 = var_193 + var_191
+    u64[r1 + 288] = var_199
+    u64[r1 + 296] = var_199
+    let var_200 = u8[var_199 + 0x50000]
+    u64[r1 + 304] = var_200
+    u64[r1 + 312] = var_200
+    let cond_11 = var_200 != 0
+    u64[r1 + 320] = cond_11
+    if (var_200 != 0) goto block_052d;
+
+    block_052d:
     let var_207 = u64[r1 + 200]
     u64[r1 + 328] = var_207
     let cond_12 = !(var_207 ^ 2)
@@ -26,11 +54,24 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     u64[r1 + 416] = cond_14
     if (var_223 != 0) goto block_068f;
 
+    goto block_05b1;
+
     block_068f:
     u64[r1 + 600] = 1
     goto block_06a6;
 
     goto block_069b;
+
+    block_05b1:
+    let var_230 = u64[r1 + 200]
+    u64[r1 + 424] = var_230
+    let cond_15 = !(var_230 ^ 3)
+    u64[r1 + 432] = cond_15
+    u64[r1 + 440] = cond_15
+    u64[r1 + 448] = cond_15
+    let cond_16 = cond_15 != 0
+    u64[r1 + 456] = cond_16
+    if (cond_15 != 0) goto block_06b3;
 
     block_06a6:
     u64[r1 + 464] = u64[r1 + 600]
@@ -39,6 +80,12 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     block_069b:
     u64[r1 + 600] = 0
     goto block_06a6;
+
+    block_06b3:
+    u64[r1 + 608] = 1
+    goto block_06ca;
+
+    goto block_06bf;
 
     block_05ef:
     let var_240 = u64[r1 + 64]
@@ -68,22 +115,6 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     u64[r1 + 592] = var_266
     u64[r1 + 144] = var_266
     goto block_0354;
-
-    let var_230 = u64[r1 + 200]
-    u64[r1 + 424] = var_230
-    let cond_15 = !(var_230 ^ 3)
-    u64[r1 + 432] = cond_15
-    u64[r1 + 440] = cond_15
-    u64[r1 + 448] = cond_15
-    let cond_16 = cond_15 != 0
-    u64[r1 + 456] = cond_16
-    if (cond_15 != 0) goto block_06b3;
-
-    block_06b3:
-    u64[r1 + 608] = 1
-    goto block_06ca;
-
-    goto block_06bf;
 
     block_06ca:
     u64[r1 + 464] = u64[r1 + 608]
