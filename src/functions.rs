@@ -602,7 +602,7 @@ pub fn build_function_cfg(
             let mut orphan_continuations: Vec<usize> = sub_cfg
                 .blocks
                 .iter()
-                .filter(|&(&pc, ref block)| {
+                .filter(|&(&pc, block)| {
                     pc != function.entry_pc
                         && block.predecessors.is_empty()
                         && jump_table_pcs.contains(&pc)
