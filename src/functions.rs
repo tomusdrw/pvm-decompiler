@@ -543,7 +543,12 @@ pub fn detect_direct_call_patterns(
 
 /// Build a sub-CFG containing only the blocks belonging to a function.
 /// Edges to blocks outside the function are removed.
-pub fn build_function_cfg(cfg: &ControlFlowGraph, function: &Function) -> ControlFlowGraph {
+pub fn build_function_cfg(
+    cfg: &ControlFlowGraph,
+    function: &Function,
+    direct_call_patterns: &[DirectCallPattern],
+    jump_table: &[u32],
+) -> ControlFlowGraph {
     let mut sub_cfg = ControlFlowGraph::new(function.entry_pc);
 
     for &block_pc in &function.block_pcs {
@@ -557,6 +562,72 @@ pub fn build_function_cfg(cfg: &ControlFlowGraph, function: &Function) -> Contro
                 .predecessors
                 .retain(|p| function.block_pcs.contains(p));
             sub_cfg.add_block(sub_block);
+        }
+    }
+
+    // Add synthetic call-return edges: when a block calls a function and
+    // execution resumes at return_pc (both within this function), connect
+    // them so the post-call blocks are reachable from the entry.
+    for pat in direct_call_patterns {
+        if function.block_pcs.contains(&pat.caller_block_pc)
+            && function.block_pcs.contains(&pat.return_pc)
+        {
+            if let Some(block) = sub_cfg.blocks.get_mut(&pat.caller_block_pc) {
+                if !block.successors.contains(&pat.return_pc) {
+                    block.successors.push(pat.return_pc);
+                }
+            }
+            if let Some(block) = sub_cfg.blocks.get_mut(&pat.return_pc) {
+                if !block.predecessors.contains(&pat.caller_block_pc) {
+                    block.predecessors.push(pat.caller_block_pc);
+                }
+            }
+        }
+    }
+
+    // For trampoline call patterns (where return_pc is outside this function),
+    // find orphan blocks that are jump table entries and connect them to the
+    // trampoline entry (jump_target_pc). These orphan blocks are dispatch targets
+    // reached via JumpInd after the callee returns, but have no static
+    // predecessors in the func CFG. We connect to jump_target_pc (not
+    // caller_block_pc) to avoid creating a false two-way branch at the caller.
+    let jump_table_pcs: HashSet<usize> = jump_table.iter().map(|&e| e as usize).collect();
+    for pat in direct_call_patterns {
+        let trampoline_pc = pat.jump_target_pc;
+        if function.block_pcs.contains(&pat.caller_block_pc)
+            && !function.block_pcs.contains(&pat.return_pc)
+            && function.block_pcs.contains(&trampoline_pc)
+        {
+            // Find orphan blocks that are jump table entries (dispatch continuation targets).
+            let mut orphan_continuations: Vec<usize> = sub_cfg
+                .blocks
+                .iter()
+                .filter(|&(&pc, ref block)| {
+                    pc != function.entry_pc
+                        && block.predecessors.is_empty()
+                        && jump_table_pcs.contains(&pc)
+                })
+                .map(|(&pc, _)| pc)
+                .collect();
+            orphan_continuations.sort();
+
+            // Connect the first orphan continuation to the trampoline entry.
+            if let Some(&continuation_pc) = orphan_continuations
+                .iter()
+                .find(|&&pc| pc > pat.caller_block_pc)
+                .or(orphan_continuations.first())
+            {
+                if let Some(block) = sub_cfg.blocks.get_mut(&trampoline_pc) {
+                    if !block.successors.contains(&continuation_pc) {
+                        block.successors.push(continuation_pc);
+                    }
+                }
+                if let Some(block) = sub_cfg.blocks.get_mut(&continuation_pc) {
+                    if !block.predecessors.contains(&trampoline_pc) {
+                        block.predecessors.push(trampoline_pc);
+                    }
+                }
+            }
         }
     }
 
@@ -870,7 +941,7 @@ mod tests {
             block_pcs: [0, 10].into_iter().collect(),
         };
 
-        let sub_cfg = build_function_cfg(&cfg, &function);
+        let sub_cfg = build_function_cfg(&cfg, &function, &[], &[]);
         assert_eq!(sub_cfg.blocks.len(), 2);
         assert_eq!(sub_cfg.entry_pc, 0);
 
@@ -988,7 +1059,7 @@ mod tests {
 
         // Each function should analyze without panic.
         for func in &functions {
-            let func_cfg = build_function_cfg(&cfg, func);
+            let func_cfg = build_function_cfg(&cfg, func, &[], &[]);
             assert_eq!(func_cfg.entry_pc, func.entry_pc);
             assert_eq!(func_cfg.blocks.len(), func.block_pcs.len());
 

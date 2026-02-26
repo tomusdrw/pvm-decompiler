@@ -6,88 +6,612 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_4ba4:
     if (0xFEFD0000 >=u ptr_1088 - 3760) {
-        let ptr_45 = ptr_1088 - 3760
         RESULT_PTR = 0x4DFC
+        let var_883 = 1856
+        let var_884 = 0
+        let var_885 = 0
         goto block_399c;
     }
 
     block_399c:
-    if (0xFEFD0000 >=u ptr_45 - 192) {
-        let ptr_12 = ptr_45 - 192
-        func_13(ptr_12, r7)
-    }
-
-    block_34ec:
-    let var_234 = 32 >>u (32 << 16 + ptr_13_40)
-    func_15(r1, r7)
-
-    block_3b2a:
-    if (0xFEFD0000 >=u ptr_884 - 208) goto block_3c3f;
-
-    block_3c3f:
-    let var_249 = 32 >>u (32 << (var_894 << var_893))
-    goto block_34ec;
+    if (0xFEFD0000 >=u ptr_12 - 192) goto block_39b1;
 
     return
 
-    u64[r1 + 104] = r7
-    let var_253 = u64[r1 + 64]
-    u64[r1 + 112] = var_253
-    let cond_12 = var_253 <u 0
-    u64[r1 + 120] = cond_12
-    if (var_253 <u 0) goto block_3d11;
+    block_39b1:
+    let ptr_12 = ptr_13 - 192
+    let ptr_12_40 = var_883
+    let ptr_12_48 = var_884
+    let ptr_12_56 = var_885
+    func_13(ptr_12, r7)
 
-    block_3d11:
-    goto block_3d16;
+    u32[12 + ptr_12_40 + 0x60000] = ptr_12_272
+    goto block_4ab2;
 
-    goto block_3ce0;
+    block_4ab2:
+    let ptr_12_104 = var_13441
+    let ptr_12_112 = ptr_12_64
+    if (ptr_12_64 <u 0) goto block_3d11;
 
-    block_3d16:
-    r10 = u64[r1 + 56]
-    func_16(r1, r7)
+    let ptr_15 = ptr_12_104 + 0x60000
+    let ptr_16 = ptr_12_64 + 0x60000
+    if (ptr_12_96 == 0) goto block_3d0c;
 
-    block_3ce0:
-    let ptr_15 = u64[r1 + 104] + 0x60000
-    let ptr_16 = u64[r1 + 64] + 0x60000
-    if (var_262 == 0) goto block_3d0c;
+    while (ptr_12_96 - 1 != 0) {
+        r2 = ptr_15 + 1
+        r3 = ptr_16 + 1
+    }
 
     block_3d0c:
     goto block_3d16;
 
-    r2 = ptr_15 + 1
-    r3 = ptr_16 + 1
+    block_3d11:
+    goto block_3d16;
 
-    block_3d8f:
-    u64[r1 + 1152] = r7
-    let ptr_24 = r7 + 0x60000
-    let ptr_25 = u64[r1 + 552] + 0x60000
-    if (var_623 == 0) goto block_4598;
+    block_3d16:
+    func_16(r1, r7)
 
-    block_4598:
-    goto block_3d8f;
+    block_3aa2:
+    while (0xFEFD0000 <u ptr_12 - 256) {
+        ptr_12_40 = r7
+        ptr_12_48 = r7
+        let cond_56 = !(r7)
+        ptr_12_56 = cond_56
+        let ptr_12_64 = cond_56
+        let cond_57 = cond_56 <u 0
+        let ptr_12_80 = cond_57
 
-    r2 = ptr_24 + 1
-    r3 = ptr_25 + 1
+        break
+    }
 
-    block_49bd:
-    let var_878 = 12 + u64[r1 + 40]
-    u64[r1 + 288] = var_878
-    u32[var_878 + 0x60000] = u64[r1 + 272]
-    goto block_49bd;
+    ptr_12_80 = var_13441
+    r10 = 1
+    r0 = 924
+    goto block_27170;
 
-    u64[r1 + 40] = r7
-    RESULT_LEN = r7
+    ptr_12_64 = ptr_12_40->field_393216
+    let var_7737 = u32[4 + ptr_12_40 + 0x60000]
+    ptr_12_80 = var_7737
+    let ptr_12_88 = ptr_12_48
+    let ptr_12_96 = var_7737
+    let var_7744 = var_7737 + ptr_12_48
+    ptr_12_104 = var_7744
+    ptr_12_112 = 32 >>u (32 << var_7744)
+    func_183(r1, r7)
+
+    let var_4913 = 32 >>u (32 << 12 * (32 >>u (32 << 3 /s (32 >>u (32 << (3 << ptr_12_1352))))))
+    r0 = 830
+    goto block_1a42c;
+
+    block_1a42c:
+    ptr_12_40 = var_13441
+    RESULT_LEN = var_13441
     r9 = 2032
     r10 = 8
     r11 = 0
     r0 = 20
     goto block_399c;
 
+    let var_13439 = 32 >>u (32 << 1 + ptr_12_2624)
+    goto block_30d71;
+
+    block_30d71:
+    if (u32[12 + ptr_12_760 + 0x60000] <s ptr_12_2624 <u 0) goto block_26829;
+
+    let var_13427 = u32[4 + u32[32 >>u (32 << (32 >>u (32 << (2 << ptr_12_2624))) + u32[4 + ptr_12_760 + 0x60000]) + 0x60000] + 0x60000]
+    r0 = 1144
+    goto block_2ee72;
+
+    block_2ee72:
+    if (0xFEFD0000 >=u ptr_12 - 200) goto block_2ee87;
+
+    return
+
+    block_2ee87:
+    let ptr_882 = ptr_12 - 200
+    let var_12158 = 32 >>u (32 << 1 + u32[12 + var_12581 + 0x60000])
+    func_207(ptr_882)
+
+    block_3d8f:
+    r9 = 16
+    r10 = 53
+    r0 = 1068
+    goto block_3aa2;
+
+    if (ptr_40_160 <u 0) {
+        goto block_26829;
+    } else {
+        goto block_26813;
+    }
+
+    block_26813:
+    goto block_26829;
+
+    block_26829:
+    r9 = 16
+    r0 = 1140
+    goto block_1a42c;
+
+    func_116(r1, r7)
+
+    let ptr_12_264 = r7
+    let ptr_601 = r7 + 0x60000
+    let ptr_602 = ptr_12_40 + 0x60000
+
+    if (ptr_12_112 == 0) {
+        let ptr_603 = (32 >>u (32 << ptr_12_264 + ptr_12_112)) + 0x60000
+        let ptr_604 = ptr_12_48 + 0x60000
+    } else {
+        r2 = ptr_601 + 1
+        r3 = ptr_602 + 1
+    }
+
+    while (ptr_12_176 - 1 != 0) {
+        r2 = ptr_603 + 1
+        r3 = ptr_604 + 1
+    }
+
+    let ptr_24 = r7 + 0x60000
+    let ptr_25 = ptr_12_552 + 0x60000
+
+    if (ptr_12_584 == 0) {
+        goto block_459d;
+    } else {
+        r2 = ptr_24 + 1
+        r3 = ptr_25 + 1
+    }
+
+    block_459d:
+    goto block_bd2f;
+
+    block_bd2f:
+    u8[1 + ptr_12_104 + 0x60000] = 0
+    u32[4 + ptr_12_104 + 0x60000] = 0
+
+    return
+
+    let var_7870 = 12 + ptr_12_40
+    ptr_12_264 = var_7870
+    u32[var_7870 + 0x60000] = ptr_12_248
+    goto block_28398;
+
+    block_28398:
+    let var_7840 = 4 + ptr_12_40
+    let ptr_12_168 = var_7840
+    let var_7841 = u32[var_7840 + 0x60000]
+    let ptr_12_176 = var_7841
+    let var_7852 = 32 >>u (32 << ptr_12_48 + var_7841)
+    let ptr_12_208 = var_7852
+    u8[var_7852 + 0x60000] = ptr_12_56
+
+    return
+
+    let var_7498 = ptr_12_40->field_393216
+    ptr_12_56 = var_7498
+    let var_7501 = 4 + ptr_12_40
+    ptr_12_64 = var_7501
+    u32[28] = 1
+    func_179(r1, r7)
+
+    block_2779a:
+    u32[0x343A4] = ptr_12_416
+    u32[0x343AC] = r7
+    let var_7570 = 2 >>u u32[0x3439C]
+    let var_7574 = 32 >>u (32 << var_7570)
+    func_181(r1, r7)
+
+    u32[r7 + 0x60000] = ptr_12_40
+    u32[4 + r7 + 0x60000] = 0
+    goto block_2a868;
+
+    block_2a868:
+    if (0xFEFD0000 >=u ptr_12 - 424) goto block_2a87d;
+
+    return
+
+    block_2a87d:
+    let ptr_629 = ptr_12 - 424
+    func_195(ptr_629)
+
+    ptr_12_48 = r7
+    u32[r7 + 0x60000] = ptr_12_40
+    let var_7906 = 4 + r7
+    ptr_12_64 = var_7906
+    u32[var_7906 + 0x60000] = 0
+    goto block_27836;
+
+    block_27836:
+    if (0xFEFD0000 >=u ptr_12 - 1048) goto block_2784b;
+
+    return
+
+    block_2784b:
+    goto block_27170;
+
+    block_27170:
+    let var_9423 = 0x1000 + ptr_12_96
+    ptr_12_168 = var_9423
+    ptr_12_176 = 32 >>u (32 << var_9423)
+    goto block_2ab77;
+
+    block_2ab77:
+    ptr_12_104 = ptr_12_96
+    ptr_12_112 = ptr_12_88
+    let cond_349 = ptr_12_88 <u ptr_12_96 <u 0
+    let ptr_12_144 = cond_349
+    if (ptr_12_88 <u ptr_12_96 <u 0) goto block_c074;
+
+    r10 = 2
+    r0 = 976
+    goto block_29e3d;
+
+    block_29e3d:
+    if (0xFEFD0000 >=u ptr_12 - 904) goto block_29e52;
+
+    return
+
+    block_29e52:
+    let ptr_605_40 = ptr_617_40
+    let var_8960 = 32 >>u (32 << (12 >>u ptr_617_80))
+    let ptr_605_80 = var_8960
+    if (var_8960 >u 16 <u 0) goto block_29f1e;
+
+    r0 = 954
+    goto block_27185;
+
+    block_29f1e:
+    let var_9001 = 32 >>u (32 << 0x165667B5 + (32 >>u (32 << 0xC2B2AE3D * ptr_605_80)))
+    let var_9026 = 32 >>u (32 << 0x27D4EB2F * (32 >>u (32 << ((31 & 17) - 32 >>u var_9001 | (31 & 17) << var_9001))))
+    let var_9055 = 32 >>u (32 << 0x85EBCA77 * (32 >>u (32 << (32 >>u (32 << (15 >>u var_9026)) ^ var_9026))))
+    let var_9084 = 32 >>u (32 << 0xC2B2AE3D * (32 >>u (32 << (32 >>u (32 << (13 >>u var_9055)) ^ var_9055))))
+    let var_9136 = u32[32 >>u (32 << (32 >>u (32 << (2 << (32 >>u (32 << (32 >>u (32 << (32 >>u (32 << (16 >>u var_9084)) ^ var_9084)) & u32[4 + ptr_605_40->field_393216 + 0x60000])))))) + u32[ptr_605_40->field_393216 + 0x60000]) + 0x60000]
+
+    for (let ptr_609 = var_9135; ptr_605_648 >=u 0; ptr_609 = 32 >>u (32 << (0xFFFFFFFE & ptr_605_680))) {
+        let ptr_605_680 = u32[8 + ptr_605_648 + 0x60000]
+        let var_9167 = 32
+        if (var_9167 >>u (var_9167 << (1 & u32[8 + ptr_605_648 + 0x60000])) <u 0) goto block_2a332;
+
+        goto block_2a371;
+
+        break
+    }
+
+    goto block_2a237;
+
+    goto block_2a237;
+
+    block_2a237:
+    if (!(ptr_605_600) <u 0) goto block_2a470;
+
+    r0 = 958
+    goto block_1a07a;
+
+    block_1a07a:
+    if (0xFEFD0000 >=u ptr_346 - 560) goto block_1a08f;
+
+    return
+
+    block_1a08f:
+    let ptr_292_40 = var_5387
+    let var_4282 = u32[var_5387 + 0x60000]
+    let ptr_292_48 = var_4282
+    let ptr_292_64 = u32[12 + var_4282 + 0x60000]
+    if (u32[12 + var_4282 + 0x60000] <s 0 <u 0) goto block_1a167;
+
+    if (ptr_292_64 >=s 0 <u 0) {
+        goto block_1a229;
+    } else {
+        goto block_1a222;
+    }
+
+    block_1a222:
+    return
+
+    block_1a229:
+    let var_4362 = 32 >>u (32 << 1 - ptr_292_64)
+    let var_4383 = u32[32 >>u (32 << (32 >>u (32 << (2 << var_4362))) + u32[4 + ptr_292_48 + 0x60000]) + 0x60000]
+    u32[12 + ptr_292_48 + 0x60000] = var_4362
+
+    block_1a106:
+    return
+
+    block_1a167:
+    let var_4330 = 32 >>u (32 << (12 << u32[8 + ptr_292_40 + 0x60000]))
+    let ptr_292_192 = var_4330
+    if (!(u32[4 + ptr_292_40 + 0x60000] ^ var_4330) <u 0) goto block_1a2fa;
+
+    return
+
+    block_1a2fa:
+    goto block_1a2ff;
+
+    block_1a2ff:
+    if (ptr_292_192 >u 0x200000 <u 0) goto block_1a369;
+
+    r9 = 0x1000
+    r0 = 822
+
+    block_1a369:
+    goto block_1a36e;
+
+    block_1a36e:
+    u32[8 + ptr_247_40 + 0x60000] = 32 >>u (32 << 1 + u32[8 + ptr_247_40 + 0x60000])
+    r9 = 8
+    r10 = 12
+    r0 = 824
+    goto block_3aa2;
+
+    block_2a470:
+    goto block_2a475;
+
+    block_2a475:
+    func_193(r1, r7)
+
+    block_c05f:
+    let var_9259 = 32
+    let var_9268 = 32
+    if (var_9268 >>u (var_9268 << (var_9259 >>u (var_9259 << (4095 & ptr_157_80))) - 0x1000) <u u32[8 + ptr_157_72 + 0x60000] <u 0) goto block_2a656;
+
+    goto block_2a65b;
+
+    block_2a656:
+    goto block_2a65b;
+
+    block_2a65b:
+    r0 = 968
+    goto block_cd08;
+
+    block_cd08:
+    if (0xFEFD0000 >=u ptr_157 - 352) goto block_cd1d;
+
+    return
+
+    block_cd1d:
+    let ptr_181 = ptr_157 - 352
+    let ptr_181_40 = var_3331
+    let cond_75 = !(u32[4 + var_3331 + 0x60000])
+    if (cond_75 <u 0) goto block_7802;
+
+    block_77ed:
+    while (0xFEFD0000 <u ptr_181 - 264) {
+        r9 = 0
+        r0 = 1164
+    }
+
+    ptr_181_40 = var_13441
+    if (!(var_13441) <u 0) goto block_2c971;
+
+    r9 = 0
+    r10 = 0
+    r0 = 1058
+    goto block_3aa2;
+
+    block_2c971:
+    goto block_2c976;
+
+    block_2c976:
+    u32[4 + ptr_181_104 + 0x60000] = 0
+    u32[8 + ptr_181_104 + 0x60000] = 0
+    u32[12 + ptr_181_104 + 0x60000] = 0
+
+    return
+
+    block_7802:
+    goto block_cea8;
+
+    block_cea8:
+
+    return
+
+    block_c074:
+    return
+
+    block_27185:
+    let var_6656 = 32 >>u (32 << (1 << ptr_486_216))
+    func_174(r1, r7, r12)
+
+    let var_7515 = 32 >>u (32 << (255 & r7))
+    ptr_12_144 = var_7515
+    ptr_12_168 = u8[u32[4 + ptr_12_80 + 0x60000] + 0x60000]
+    ptr_12_176 = var_7515
+    let cond_268 = !(var_7515) <u 0
+    ptr_12_208 = cond_268
+    if (!(var_7515) <u 0) goto block_27abb;
+
+    func_180(r1, r7)
+
+    block_27abb:
+    if (ptr_12_144 <s u32[8 + ptr_12_80 + 0x60000] <u 0) goto block_27be8;
+
+    r0 = 900
+    goto block_26300;
+
+    block_27be8:
+    let var_7586 = 32 >>u (32 << ptr_12_144 - 8)
+    let ptr_12_552 = 32 >>u (32 << (var_7586 << 1))
+    let ptr_12_584 = var_7586 >u 32
+    let ptr_12_600 = 0
+    if (var_7586 >u 32 >=u 0) goto block_27c94;
+
+    ptr_12_600 = ptr_12_552
+
+    block_27c94:
+    let var_7645 = 32 >>u (32 << (3 << ptr_12_144)) << (32 >>u (32 << 256 - (32 >>u (32 << ptr_12_600 + ptr_12_168))))
+    let var_7649 = 32 >>u (32 << var_7645)
+
+    for (let var_7658 = 32 >>u (32 << 1 - ptr_12_144); ptr_12_752 <=s 0 >=u 0; var_7658 = 32 >>u (32 << 1 - ptr_12_752)) {
+        let ptr_12_760 = ptr_12_752
+
+        let var_7718 = 32 >>u (32 << (32 >>u (32 << (8 << ptr_12_744))) + u8[32 >>u (32 << (32 >>u (32 << 1 + ptr_12_752)) + u32[4 + ptr_12_80 + 0x60000]) + 0x60000])
+    }
+
+    r9 = 8
+    r10 = 45
+    r0 = 906
+    goto block_3aa2;
+
+    block_26843:
+    func_178(r1, r7)
+
+    block_27386:
+    let ptr_12_416 = var_13441
+    r0 = 902
+    goto block_26300;
+
+    block_26300:
+    if (0xFEFD0000 >=u ptr_12 - 768) goto block_26315;
+
+    return
+
+    block_26315:
+    let ptr_487_40 = var_7456
+    if (!(var_7456) <u 0) goto block_26389;
+
+    return
+
+    block_26389:
+    let ptr_487_112 = 32 >>u (32 << ptr_487_40)
+    let var_6796 = 32 >>u (32 << (1 << (32 >>u (32 << (31 >>u ptr_487_40)))))
+    let ptr_487_160 = var_6796
+    let ptr_487_184 = ptr_487_40
+    if (var_6796 >=u 0) goto block_26434;
+
+    ptr_487_184 = ptr_487_112
+
+    block_26434:
+    if (ptr_487_184 >u 0x186A0 <u 0) goto block_264cc;
+
+    if (ptr_487_184 >u 100 <u 0) goto block_2665e;
+
+    let var_6885 = 32 >>u (32 << 1 + (ptr_487_184 <=u 10))
+    goto block_26708;
+
+    block_2665e:
+    let var_6915 = 32 >>u (32 << (ptr_487_184 <=u 1000) + (32 >>u (32 << 3 + (ptr_487_184 <=u 0x2710))))
+    goto block_26708;
+
+    block_26708:
+    goto block_2651a;
+
+    block_264cc:
+    if (ptr_487_184 >u 0x989680 <u 0) goto block_26760;
+
+    let var_6929 = 32 >>u (32 << 6 + (ptr_487_184 <=u 0xF4240))
+    goto block_2680e;
+
+    block_26760:
+    let var_6959 = 32 >>u (32 << (ptr_487_184 <=u 0x5F5E100) + (32 >>u (32 << 8 + (ptr_487_184 <=u 0x3B9ACA00))))
+    goto block_2680e;
+
+    block_2680e:
+    goto block_2651a;
+
+    block_2651a:
+    let var_6861 = 32 >>u (32 << ptr_487_160 + (32 >>u (32 << (1 << ptr_487_312))))
+    r10 = 2
+    r0 = 878
+    goto block_3aa2;
+
+    ptr_12_48 = var_13441
+    u32[var_13441 + 0x60000] = 0
+    let var_7761 = 4 + var_13441
+    ptr_12_64 = var_7761
+    u32[var_7761 + 0x60000] = 0
+    let var_7765 = 8 + var_13441
+    ptr_12_80 = var_7765
+    u32[var_7765 + 0x60000] = 0
+    let var_7769 = 12 + var_13441
+    ptr_12_96 = var_7769
+    u32[var_7769 + 0x60000] = 0
+    ptr_12_112 = ptr_12_40
+    let cond_277 = ptr_12_40 <u 0x3FFFFFFC <u 0
+    ptr_12_144 = cond_277
+    if (ptr_12_40 <u 0x3FFFFFFC <u 0) goto block_281ab;
+
+    return
+
+    block_281ab:
+    ptr_12_168 = ptr_12_40
+    ptr_12_176 = ptr_12_40 >=u 8
+    ptr_12_208 = ptr_12_40
+    if (ptr_12_40 >=u 8 >=u 0) goto block_28207;
+
+    ptr_12_208 = 8
+
+    block_28207:
+    func_185(r1, r7)
+
+    let ptr_514 = ptr_12 - 648
+    func_177(ptr_514, r7)
+
+    let var_234 = 32 >>u (32 << 16 + ptr_13_40)
+    func_15(r1, r7)
+
+    block_3501:
+    if (0xFEFD0000 >=u ptr_884 - 208) goto block_3c3f;
+
+    block_3c3f:
+    let var_249 = 32 >>u (32 << (var_894 << var_893))
+    goto block_3aa2;
+
+    return
+
+    block_49bd:
+    u64[r1 + 48] = r7
+    u64[r1 + 56] = r7
+    let cond_52 = !(r7)
+    u64[r1 + 64] = cond_52
+    u64[r1 + 72] = cond_52
+    u64[r1 + 80] = cond_52
+    let cond_53 = cond_52 <u 0
+    u64[r1 + 88] = cond_53
+    if (cond_52 <u 0) goto block_4aad;
+
+    block_4aad:
+    goto block_4a64;
+
+    goto block_788a;
+
+    block_4a64:
+    let var_2491 = 4 + u64[r1 + 112]
+    u64[r1 + 128] = var_2491
+    u32[var_2491 + 0x60000] = 0
+    let var_2495 = 8 + u64[r1 + 112]
+    u64[r1 + 144] = var_2495
+    u32[var_2495 + 0x60000] = 0
+    let var_2497 = u64[r1 + 40]
+    u64[r1 + 160] = var_2497
+    let cond_54 = var_2497 <u 0x3FFFFFFC
+    u64[r1 + 168] = cond_54
+    u64[r1 + 176] = cond_54
+    u64[r1 + 184] = cond_54
+    let cond_55 = cond_54 <u 0
+    u64[r1 + 192] = cond_55
+    if (cond_54 <u 0) goto block_4b3b;
+
+    block_788a:
+    r9 = 12
+    r10 = 3
+    r0 = 764
+    goto block_3aa2;
+
+    block_4b3b:
+    goto block_4b40;
+
+    goto block_7934;
+
+    block_4b40:
+    r9 = u64[r1 + 40]
+    func_23(r1, r7)
+
+    block_7934:
+    return
+
     u64[r1 + 48] = r7
     HEAP_PTR = r7
     let var_893 = 231
     let var_894 = 2
-    goto block_3b2a;
+    goto block_3501;
 
     u64[r1 + 56] = r7
     r9 = 2064
@@ -2299,59 +2823,8 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = u64[r1 + 56]
     func_21(r1)
 
-    block_77ed:
-    u64[r1 + 48] = r7
-    u64[r1 + 56] = r7
-    let cond_52 = !(r7)
-    u64[r1 + 64] = cond_52
-    u64[r1 + 72] = cond_52
-    u64[r1 + 80] = cond_52
-    let cond_53 = cond_52 <u 0
-    u64[r1 + 88] = cond_53
-    if (cond_52 <u 0) goto block_78a8;
-
-    block_78a8:
-    goto block_78ad;
-
-    goto block_788a;
-
-    block_78ad:
-    let var_2491 = 4 + u64[r1 + 112]
-    u64[r1 + 128] = var_2491
-    u32[var_2491 + 0x60000] = 0
-    let var_2495 = 8 + u64[r1 + 112]
-    u64[r1 + 144] = var_2495
-    u32[var_2495 + 0x60000] = 0
-    let var_2497 = u64[r1 + 40]
-    u64[r1 + 160] = var_2497
-    let cond_54 = var_2497 <u 0x3FFFFFFC
-    u64[r1 + 168] = cond_54
-    u64[r1 + 176] = cond_54
-    u64[r1 + 184] = cond_54
-    let cond_55 = cond_54 <u 0
-    u64[r1 + 192] = cond_55
-    if (cond_54 <u 0) goto block_7936;
-
-    block_788a:
-    r9 = 12
-    r10 = 3
-    r0 = 764
-    goto block_34ec;
-
-    block_7936:
-    goto block_793b;
-
-    goto block_7934;
-
-    block_793b:
-    r9 = u64[r1 + 40]
-    func_23(r1, r7)
-
-    block_7934:
-    return
-
     u64[r1 + 104] = r7
-    goto block_78ad;
+    goto block_4a64;
 
     block_bc74:
     if (0xFEFD0000 >=u r1 - 152) goto block_bc89;
@@ -2360,48 +2833,14 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 8
     r10 = 22
     r0 = 768
-    goto block_34ec;
+    goto block_3aa2;
 
-    return
-
-    u64[r1 + 40] = r7
-    u64[r1 + 48] = r7
-    let cond_56 = !(r7)
-    u64[r1 + 56] = cond_56
-    u64[r1 + 64] = cond_56
-    u64[r1 + 72] = cond_56
-    let cond_57 = cond_56 <u 0
-    u64[r1 + 80] = cond_57
-    if (cond_56 <u 0) goto block_bd2a;
-
-    block_bd2a:
-    goto block_bd2f;
-
-    goto block_bd0e;
-
-    block_bd2f:
-    let var_2543 = 1 + u64[r1 + 104]
-    u64[r1 + 120] = var_2543
-    u8[var_2543 + 0x60000] = 0
-    let var_2547 = 4 + u64[r1 + 104]
-    u64[r1 + 136] = var_2547
-    u32[var_2547 + 0x60000] = 0
-    goto block_bcf7;
-
-    block_bd0e:
-    r9 = 0
-    r10 = 0
-    r0 = 770
-    goto block_34ec;
-
-    block_bcf7:
-    r7 = u64[r1 + 88]
     return
 
     u64[r1 + 96] = r7
     goto block_bd2f;
 
-    block_c05f:
+    block_c55a:
     u64[r1 + 904] = r7
     let var_3070 = u32[r7 + 0x60000]
     u64[r1 + 912] = var_3070
@@ -2450,7 +2889,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_3123 = 4 + u64[r1 + 56]
     u64[r1 + 1120] = var_3123
     u32[var_3123 + 0x60000] = u64[r1 + 96]
-    goto block_c05f;
+    goto block_c55a;
 
     block_cc74:
     let var_3109 = 1 + u64[r1 + 48]
@@ -2462,29 +2901,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_3117 = 1 + u64[r1 + 48]
     u64[r1 + 1088] = var_3117
     u8[var_3117 + 0x60000] = 1
-    goto block_c05f;
-
-    block_cd08:
-    if (0xFEFD0000 >=u r1 - 352) goto block_cd1d;
-
-    block_cd1d:
-    if (!(u32[4 + var_3331 + 0x60000]) <u 0) goto block_cea3;
-
-    return
-
-    block_cea3:
-    goto block_cea8;
-
-    goto block_cda3;
-
-    block_cea8:
-    goto block_cd8c;
-
-    block_cda3:
-    goto block_77ed;
-
-    block_cd8c:
-    return
+    goto block_c55a;
 
     u64[r1 + 112] = r7
     u32[28] = 1
@@ -2556,7 +2973,759 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     r2 = ptr_187 + 1
 
-    block_cf7a:
+    if (0xFEFD0000 >=u ptr_229 - 288) goto block_d0bd;
+
+    if (0xFEFD0000 >=u ptr_229 - 480) goto block_dfa7;
+
+    block_d0bd:
+    let ptr_380 = ptr_229 - 288
+    let ptr_380_40 = var_3747
+    let var_5514 = u32[36]
+    let ptr_380_72 = var_5514
+    let var_5515 = u32[var_3753 + 0x60000]
+    let var_5528 = 32 >>u (32 << (255 & u32[4 + var_3753 + 0x60000]))
+    let var_5534 = 32 >>u (32 << var_5528)
+    u64[0xFF00] = 1
+    func_155(ptr_380)
+
+    return
+
+    block_dfa7:
+    let ptr_233 = ptr_229 - 480
+    let var_3753 = u32[24]
+    let var_3757 = u32[4 + var_3753 + 0x60000]
+    func_58(ptr_233, r7)
+
+    return
+
+    block_d0c2:
+    let ptr_375 = ptr_380 - 592
+    u64[0xFF00] = var_5515
+    u64[0xFF08] = u64[0xFF00]
+    func_154(ptr_375)
+
+    if (0xFEFD0000 >=u ptr_380 - 376) goto block_2314e;
+
+    if (0xFEFD0000 >=u ptr_380 - 248) goto block_22fb8;
+
+    if (0xFEFD0000 >=u ptr_380 - 448) goto block_23e2c;
+
+    if (0xFEFD0000 >=u ptr_380 - 368) goto block_238d5;
+
+    if (0xFEFD0000 >=u ptr_380 - 376) goto block_233c3;
+
+    if (0xFEFD0000 >=u ptr_380 - 560) goto block_24d95;
+
+    if (0xFEFD0000 >=u ptr_380 - 536) goto block_24a06;
+
+    if (0xFEFD0000 >=u ptr_380 - 288) goto block_22c4a;
+
+    if (0xFEFD0000 >=u ptr_380 - 408) goto block_2411e;
+
+    if (0xFEFD0000 >=u ptr_380 - 408) goto block_243ca;
+
+    if (0xFEFD0000 >=u ptr_380 - 448) goto block_23b3b;
+
+    if (0xFEFD0000 >=u ptr_380 - 400) goto block_23639;
+
+    let ptr_380_384 = r7
+    goto block_26c2f;
+
+    if (0xFEFD0000 >=u ptr_380 - 528) goto block_2514a;
+
+    if (0xFEFD0000 >=u ptr_380 - 536) goto block_24678;
+
+    if (0xFEFD0000 >=u ptr_380 - 248) goto block_22e24;
+
+    let ptr_229 = ptr_233 - 656
+    u64[0xFF00] = r11
+    u64[0xFF08] = r12
+    func_57(ptr_229)
+
+    if (0xFEFD0000 >=u ptr_233 - 512) goto block_e2d6;
+
+    if (0xFEFD0000 >=u ptr_233 - 424) goto block_e79c;
+
+    if (0xFEFD0000 >=u ptr_233 - 424) goto block_ef32;
+
+    if (0xFEFD0000 >=u ptr_233 - 672) goto block_fd1b;
+
+    if (0xFEFD0000 >=u ptr_233 - 584) goto block_109b0;
+
+    if (0xFEFD0000 >=u ptr_233 - 584) goto block_1118c;
+
+    if (0xFEFD0000 >=u ptr_233 - 1080) goto block_1b4dc;
+
+    block_2314e:
+    let ptr_400_56 = var_5515
+    let ptr_400_152 = 32 >>u (32 << u32[var_5514 + 0x60000])
+    if (u32[var_5514 + 0x60000] <=u 13 >=u 0) goto block_231fb;
+
+    return
+
+    block_22fb8:
+    let ptr_395 = ptr_380 - 248
+    u64[0xFF00] = 8
+    func_158(ptr_395)
+
+    return
+
+    block_23e2c:
+    let ptr_431_48 = var_5514
+    let ptr_431_56 = var_5515
+    let ptr_431_136 = 32 >>u (32 << u32[var_5514 + 0x60000])
+    if (u32[var_5514 + 0x60000] <=u 13 >=u 0) goto block_23ebe;
+
+    return
+
+    block_238d5:
+    let ptr_418_56 = var_5515
+    let ptr_418_152 = 32 >>u (32 << u32[var_5514 + 0x60000])
+    if (u32[var_5514 + 0x60000] <=u 13 >=u 0) goto block_23982;
+
+    return
+
+    block_233c3:
+    let ptr_406_56 = var_5515
+    let ptr_406_152 = 32 >>u (32 << u32[var_5514 + 0x60000])
+    if (u32[var_5514 + 0x60000] <=u 13 >=u 0) goto block_23470;
+
+    return
+
+    block_24d95:
+    let ptr_468_48 = var_5514
+    let ptr_468_56 = var_5515
+    let ptr_468_136 = 32 >>u (32 << u32[var_5514 + 0x60000])
+    if (u32[var_5514 + 0x60000] <=u 13 >=u 0) goto block_24e27;
+
+    return
+
+    block_24a06:
+    let ptr_460_48 = var_5514
+    let ptr_460_56 = var_5515
+    let ptr_460_136 = 32 >>u (32 << u32[var_5514 + 0x60000])
+    if (u32[var_5514 + 0x60000] <=u 13 >=u 0) goto block_24a98;
+
+    return
+
+    block_22c4a:
+    let ptr_385 = ptr_380 - 288
+    let var_5563 = 32 >>u (32 << (32 >>u (32 << (0xFFFF & u32[4 + var_5514 + 0x60000]))))
+    u64[0xFF00] = 2
+    func_156(ptr_385)
+
+    return
+
+    block_2411e:
+    let ptr_438_48 = var_5514
+    let ptr_438_56 = var_5515
+    let ptr_438_136 = 32 >>u (32 << u32[var_5514 + 0x60000])
+    if (u32[var_5514 + 0x60000] <=u 13 >=u 0) goto block_241b0;
+
+    return
+
+    block_243ca:
+    let ptr_445_48 = var_5514
+    let ptr_445_56 = var_5515
+    let ptr_445_136 = 32 >>u (32 << u32[var_5514 + 0x60000])
+    if (u32[var_5514 + 0x60000] <=u 13 >=u 0) goto block_2445c;
+
+    return
+
+    block_23b3b:
+    let ptr_424_48 = var_5514
+    let ptr_424_56 = var_5515
+    let ptr_424_136 = 32 >>u (32 << u32[var_5514 + 0x60000])
+    if (u32[var_5514 + 0x60000] <=u 13 >=u 0) goto block_23bcd;
+
+    return
+
+    block_23639:
+    let ptr_412_56 = var_5515
+    let ptr_412_152 = 32 >>u (32 << u32[var_5514 + 0x60000])
+    if (u32[var_5514 + 0x60000] <=u 13 >=u 0) goto block_236e6;
+
+    return
+
+    block_26c2f:
+    if (ptr_380_72 <s ptr_380_600 <u 0) goto block_26dab;
+
+    block_2514a:
+    let ptr_476_48 = var_5514
+    let ptr_476_56 = var_5515
+    let ptr_476_136 = 32 >>u (32 << u32[var_5514 + 0x60000])
+    if (u32[var_5514 + 0x60000] <=u 13 >=u 0) goto block_251dc;
+
+    return
+
+    block_24678:
+    let ptr_452_48 = var_5514
+    let ptr_452_56 = var_5515
+    let ptr_452_136 = 32 >>u (32 << u32[var_5514 + 0x60000])
+    if (u32[var_5514 + 0x60000] <=u 13 >=u 0) goto block_2470a;
+
+    return
+
+    block_22e24:
+    let ptr_390 = ptr_380 - 248
+    u64[0xFF00] = 4
+    func_157(ptr_390)
+
+    return
+
+    block_e2d6:
+    let ptr_236 = ptr_233 - 512
+    func_59(ptr_236, r7)
+
+    return
+
+    block_e79c:
+    let ptr_240 = ptr_233 - 424
+    let var_3784 = u32[24]
+    let var_3788 = u32[4 + var_3753 + 0x60000]
+    func_61(ptr_240, r7)
+
+    return
+
+    block_ef32:
+    let ptr_247 = ptr_233 - 424
+    let ptr_247_40 = var_3747
+    let ptr_247_48 = var_3753
+    let ptr_247_56 = r11
+    let var_3813 = u32[24]
+    func_64(ptr_247, r7)
+
+    return
+
+    block_fd1b:
+    let ptr_262_48 = var_3753
+    let ptr_262_56 = r11
+    let ptr_262_136 = 32 >>u (32 << u32[var_3753 + 0x60000])
+    if (u32[var_3753 + 0x60000] <=u 13 >=u 0) goto block_e618;
+
+    return
+
+    block_109b0:
+    let ptr_277_48 = var_3753
+    let ptr_277_56 = r11
+    let ptr_277_136 = 32 >>u (32 << u32[var_3753 + 0x60000])
+    if (u32[var_3753 + 0x60000] <=u 13 >=u 0) goto block_10a42;
+
+    return
+
+    block_1118c:
+    let ptr_287_48 = var_3753
+    let ptr_287_56 = r11
+    let ptr_287_136 = 32 >>u (32 << u32[var_3753 + 0x60000])
+    if (u32[var_3753 + 0x60000] <=u 13 >=u 0) goto block_1121e;
+
+    return
+
+    block_1b4dc:
+    let ptr_346 = ptr_233 - 1080
+    let ptr_346_40 = var_3747
+    let ptr_346_48 = var_3753
+    let ptr_346_56 = var_3757
+    let ptr_346_64 = var_3761
+    let ptr_346_88 = u32[32 + var_3761 + 0x60000]
+    let ptr_346_152 = 32 >>u (32 << u32[var_3753 + 0x60000])
+    if (u32[var_3753 + 0x60000] <=u 13 >=u 0) goto block_1b589;
+
+    return
+
+    block_231fb:
+    let var_5648 = 255 & u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_400_152))) + ptr_400_56) + 0x60000]
+    u64[0xFF00] = 1
+    func_159(r1)
+
+    ptr_400_152 = 12
+
+    block_23ebe:
+    let var_5967 = 32 >>u (32 << u32[4 + ptr_431_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_431_136))) + ptr_431_56) + 0x60000])
+    let var_5986 = 32 >>u (32 << (32 >>u (32 << (0xFFFF & u32[8 + ptr_431_48 + 0x60000]))))
+    u64[0xFF00] = 2
+    func_164(r1)
+
+    ptr_431_136 = 12
+
+    block_23982:
+    let var_5822 = u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_418_152))) + ptr_418_56) + 0x60000]
+    u64[0xFF00] = 8
+    func_162(r1)
+
+    ptr_418_152 = 12
+
+    block_23470:
+    let var_5704 = 0xFFFF & u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_406_152))) + ptr_406_56) + 0x60000]
+    u64[0xFF00] = 2
+    func_160(r1)
+
+    ptr_406_152 = 12
+
+    block_24e27:
+    let ptr_468_240 = 32 >>u (32 << u32[8 + ptr_468_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_468_136))) + ptr_468_56) + 0x60000])
+    let ptr_468_312 = 32 >>u (32 << u32[4 + ptr_468_48 + 0x60000])
+    if (u32[4 + ptr_468_48 + 0x60000] <=u 13 >=u 0) goto block_24f5a;
+
+    ptr_468_136 = 12
+
+    block_24a98:
+    let ptr_460_240 = 32 >>u (32 << u32[8 + ptr_460_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_460_136))) + ptr_460_56) + 0x60000])
+    let ptr_460_312 = 32 >>u (32 << u32[4 + ptr_460_48 + 0x60000])
+    if (u32[4 + ptr_460_48 + 0x60000] <=u 13 >=u 0) goto block_24bcb;
+
+    ptr_460_136 = 12
+
+    block_241b0:
+    let var_6049 = 32 >>u (32 << u32[4 + ptr_438_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_438_136))) + ptr_438_56) + 0x60000])
+    u64[0xFF00] = 4
+    func_165(r1)
+
+    ptr_438_136 = 12
+
+    block_2445c:
+    let var_6116 = 32 >>u (32 << u32[4 + ptr_445_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_445_136))) + ptr_445_56) + 0x60000])
+    u64[0xFF00] = 8
+    func_166(r1)
+
+    ptr_445_136 = 12
+
+    block_23bcd:
+    let var_5885 = 32 >>u (32 << u32[4 + ptr_424_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_424_136))) + ptr_424_56) + 0x60000])
+    let var_5904 = 32 >>u (32 << (32 >>u (32 << (255 & u32[8 + ptr_424_48 + 0x60000]))))
+    u64[0xFF00] = 1
+    func_163(r1)
+
+    ptr_424_136 = 12
+
+    block_236e6:
+    let var_5769 = 32 >>u (32 << (32 >>u (32 << u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_412_152))) + ptr_412_56) + 0x60000])))
+    u64[0xFF00] = 4
+    func_161(r1)
+
+    ptr_412_152 = 12
+
+    block_26dab:
+    goto block_26db0;
+
+    goto block_26d17;
+
+    block_251dc:
+    let ptr_476_240 = 32 >>u (32 << u32[8 + ptr_476_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_476_136))) + ptr_476_56) + 0x60000])
+    let ptr_476_312 = 32 >>u (32 << u32[4 + ptr_476_48 + 0x60000])
+    if (u32[4 + ptr_476_48 + 0x60000] <=u 13 >=u 0) goto block_2530f;
+
+    ptr_476_136 = 12
+
+    block_2470a:
+    let ptr_452_240 = 32 >>u (32 << u32[8 + ptr_452_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_452_136))) + ptr_452_56) + 0x60000])
+    let ptr_452_312 = 32 >>u (32 << u32[4 + ptr_452_48 + 0x60000])
+    if (u32[4 + ptr_452_48 + 0x60000] <=u 13 >=u 0) goto block_2483d;
+
+    ptr_452_136 = 12
+
+    block_e618:
+    let var_3969 = 32 >>u (32 << u32[8 + ptr_262_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_262_136))) + ptr_262_56) + 0x60000])
+    func_69(r1, r7)
+
+    ptr_262_136 = 12
+
+    block_10a42:
+    let var_4153 = 32 >>u (32 << u32[8 + ptr_277_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_277_136))) + ptr_277_56) + 0x60000])
+    func_72(r1, r7)
+
+    ptr_277_136 = 12
+
+    block_1121e:
+    let var_4275 = 32 >>u (32 << u32[8 + ptr_287_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_287_136))) + ptr_287_56) + 0x60000])
+    func_74(r1, r7)
+
+    ptr_287_136 = 12
+
+    block_1b589:
+    let var_5245 = 32 >>u (32 << u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_346_152))) + ptr_346_56) + 0x60000])
+    let ptr_346_232 = var_5245
+    if (!(var_5245) <u 0) goto block_f4c9;
+
+    ptr_346_152 = 12
+
+    block_24f5a:
+    let var_6457 = 32 >>u (32 << (32 >>u (32 << u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_468_312))) + ptr_468_56) + 0x60000])))
+    u64[0xFF00] = 4
+    func_169(r1)
+
+    ptr_468_312 = 12
+
+    block_24bcb:
+    let var_6339 = 0xFFFF & u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_460_312))) + ptr_460_56) + 0x60000]
+    u64[0xFF00] = 2
+    func_168(r1)
+
+    ptr_460_312 = 12
+
+    block_26db0:
+    goto block_26c84;
+
+    block_26d17:
+    let var_7204 = u32[32 >>u (32 << (32 >>u (32 << (2 << ptr_380_600))) + ptr_380_40) + 0x60000]
+    let ptr_380_800 = var_7204
+    if (var_7204 <u 0) goto block_26f10;
+
+    block_2530f:
+    let var_6563 = u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_476_312))) + ptr_476_56) + 0x60000]
+    u64[0xFF00] = 8
+    func_170(r1)
+
+    ptr_476_312 = 12
+
+    block_2483d:
+    let var_6230 = 255 & u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_452_312))) + ptr_452_56) + 0x60000]
+    u64[0xFF00] = 1
+    func_167(r1)
+
+    ptr_452_312 = 12
+
+    let ptr_239 = ptr_240 - 240
+    func_60(ptr_239, r7)
+
+    if (0xFEFD0000 >=u ptr_240 - 648) goto block_1056e;
+
+    if (0xFEFD0000 >=u ptr_240 - 488) goto block_ea68;
+
+    if (0xFEFD0000 >=u ptr_240 - 584) goto block_1018a;
+
+    if (0xFEFD0000 >=u ptr_240 - 600) goto block_10d94;
+
+    let ptr_246 = ptr_247 - 240
+    func_63(ptr_246, r7)
+
+    if (0xFEFD0000 >=u ptr_247 - 424) goto block_f608;
+
+    if (0xFEFD0000 >=u ptr_247 - 440) goto block_f1fe;
+
+    goto block_1a36e;
+
+    let ptr_247_1464 = r7
+    let ptr_247_1552 = 32 >>u (32 << (32 >>u (32 << 12 * u32[16 + ptr_247_40 + 0x60000])) + u32[8 + ptr_247_40 + 0x60000])
+    goto block_1af89;
+
+    block_f4c9:
+    goto block_1b6e3;
+
+    goto block_1b6b5;
+
+    block_26c84:
+    let var_7176 = u32[32 >>u (32 << (32 >>u (32 << (2 << ptr_380_72))) + ptr_380_40) + 0x60000]
+    let ptr_380_720 = var_7176
+    if (var_7176 <u 0) goto block_27166;
+
+    block_26f10:
+    goto block_26f15;
+
+    goto block_26db5;
+
+    block_1056e:
+    let ptr_272_48 = var_3784
+    let ptr_272_56 = var_3788
+    let ptr_272_136 = 32 >>u (32 << u32[var_3784 + 0x60000])
+    if (u32[var_3784 + 0x60000] <=u 13 >=u 0) goto block_10600;
+
+    return
+
+    block_ea68:
+    let ptr_243 = ptr_240 - 488
+    func_62(ptr_243, r7)
+
+    return
+
+    block_1018a:
+    let ptr_267_48 = var_3784
+    let ptr_267_56 = var_3788
+    let ptr_267_136 = 32 >>u (32 << u32[var_3784 + 0x60000])
+    if (u32[var_3784 + 0x60000] <=u 13 >=u 0) goto block_1021c;
+
+    return
+
+    block_10d94:
+    let ptr_282_48 = var_3784
+    let ptr_282_56 = var_3788
+    let ptr_282_136 = 32 >>u (32 << u32[var_3784 + 0x60000])
+    if (u32[var_3784 + 0x60000] <=u 13 >=u 0) goto block_10e26;
+
+    return
+
+    block_f608:
+    let ptr_254 = ptr_247 - 424
+    let var_3842 = u32[24]
+    let var_3846 = u32[4 + var_3813 + 0x60000]
+    func_67(ptr_254, r7)
+
+    return
+
+    block_f1fe:
+    let ptr_250 = ptr_247 - 440
+    func_65(ptr_250, r7)
+
+    return
+
+    block_1af89:
+    if ((ptr_247_1552 ^ ptr_247_1560) <u 0 <u 0) goto block_1b108;
+
+    let ptr_253 = ptr_254 - 168
+    func_66(ptr_253, r7)
+
+    if (0xFEFD0000 >=u ptr_254 - 640) goto block_f8d4;
+
+    u32[r7 + 0x60000] = ptr_254_520
+    u32[4 + r7 + 0x60000] = ptr_254_448
+    goto block_1a106;
+
+    block_1b6e3:
+    let var_5294 = (32 >>u (32 << ptr_346_232)) + u32[32 + ptr_346_64 + 0x60000]
+    let ptr_346_384 = var_5294
+    if (var_5294 <s u64[16 + ptr_346_64 + 0x60000] <u 0) goto block_1b7ad;
+
+    block_1b6b5:
+    let var_5281 = 32 >>u (32 << ptr_346_88)
+    goto block_1b672;
+
+    block_27166:
+    goto block_2716b;
+
+    goto block_27061;
+
+    block_26f15:
+    if (ptr_380_288 <u 0) goto block_2702e;
+
+    block_26db5:
+    let var_7253 = 32 >>u (32 << (1 >>u u32[16 + (32 >>u (32 << 20 - ptr_380_800)) + 0x60000]))
+    let ptr_380_936 = var_7253
+    let var_7262 = 32 >>u (32 << (1 << var_7253))
+    let ptr_497 = (32 >>u (32 << (32 >>u (32 << (1 << ptr_380_608))) + ptr_380_384)) + 0x60000
+    let ptr_498 = ptr_380_800 + 0x60000
+    if (var_7262 == 0) goto block_26ed7;
+
+    block_10600:
+    let var_4092 = 32 >>u (32 << u32[8 + ptr_272_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_272_136))) + ptr_272_56) + 0x60000])
+    func_71(r1, r7)
+
+    ptr_272_136 = 12
+
+    block_1021c:
+    let var_4031 = 32 >>u (32 << u32[8 + ptr_267_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_267_136))) + ptr_267_56) + 0x60000])
+    func_70(r1, r7)
+
+    ptr_267_136 = 12
+
+    block_10e26:
+    let var_4214 = 32 >>u (32 << u32[8 + ptr_282_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_282_136))) + ptr_282_56) + 0x60000])
+    func_73(r1, r7)
+
+    ptr_282_136 = 12
+
+    block_1b108:
+    goto block_1b10d;
+
+    goto block_1b077;
+
+    block_f8d4:
+    let ptr_257_48 = var_3842
+    let ptr_257_56 = var_3846
+    let ptr_257_136 = 32 >>u (32 << u32[var_3842 + 0x60000])
+    if (u32[var_3842 + 0x60000] <=u 13 >=u 0) goto block_f966;
+
+    return
+
+    block_1b7ad:
+    goto block_1b7b2;
+
+    goto block_1b783;
+
+    block_1b672:
+    if (u8[u32[32] + 0x60000] <u 0) goto block_1ba58;
+
+    block_2716b:
+    goto block_26843;
+
+    block_27061:
+    let var_7385 = 32 >>u (32 << (0xFFFFFFFE & u32[16 + (32 >>u (32 << 20 - ptr_380_720)) + 0x60000]))
+    let ptr_502 = (32 >>u (32 << (32 >>u (32 << (1 << ptr_380_608))) + ptr_380_384)) + 0x60000
+    let ptr_503 = ptr_380_720 + 0x60000
+    if (var_7385 == 0) goto block_27161;
+
+    block_2702e:
+    goto block_27033;
+
+    goto block_26f40;
+
+    block_26ed7:
+    let var_7280 = 32 >>u (32 << ptr_380_936 + ptr_380_608)
+    goto block_26f15;
+
+    r2 = ptr_497 + 1
+    r3 = ptr_498 + 1
+
+    block_1b10d:
+    goto block_1afe4;
+
+    block_1b077:
+    let var_4991 = 32
+    if (!(var_4991 >>u (var_4991 << (1 & u32[8 + ptr_247_1560 + 0x60000]))) <u 0) goto block_1b494;
+
+    block_f966:
+    let var_3907 = 32 >>u (32 << u32[8 + ptr_257_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_257_136))) + ptr_257_56) + 0x60000])
+    func_68(r1, r7)
+
+    ptr_257_136 = 12
+
+    block_1b7b2:
+    u32[32 + ptr_346_64 + 0x60000] = ptr_346_384
+    let var_5325 = 32 >>u (32 << ptr_346_88)
+    let ptr_346_496 = ptr_346_64->field_393216
+    let var_5338 = 32 >>u (32 << (12 >>s 1 - ptr_346_384))
+    let ptr_346_528 = var_5338
+    if (!(var_5338 ^ ptr_346_64->field_393216) <u 0) goto block_1b882;
+
+    block_1b783:
+    let var_5315 = 32 >>u (32 << ptr_346_88)
+    goto block_1b672;
+
+    block_1ba58:
+    goto block_1ba5d;
+
+    goto block_1ba15;
+
+    block_27161:
+    goto block_2716b;
+
+    r2 = ptr_502 + 1
+    r3 = ptr_503 + 1
+
+    block_27033:
+    let var_7343 = 32 >>u (32 << 1 + ptr_380_600)
+    goto block_26c2f;
+
+    block_26f40:
+    let var_7316 = 32 >>u (32 << (1 << ptr_380_288))
+    let ptr_499 = (32 >>u (32 << (32 >>u (32 << (1 << ptr_380_1008))) + ptr_380_384)) + 0x60000
+    let ptr_500 = 0x642A0
+    if (var_7316 == 0) goto block_26ff5;
+
+    block_1afe4:
+    u32[4 + ptr_247_40 + 0x60000] = ptr_247_1328
+    u32[8 + ptr_247_40 + 0x60000] = ptr_247_1464
+    u32[12 + ptr_247_40 + 0x60000] = ptr_247_1432
+    u32[16 + ptr_247_40 + 0x60000] = u32[20 + ptr_247_40 + 0x60000]
+    goto block_1ab1e;
+
+    block_1b494:
+    goto block_1b499;
+
+    goto block_1b112;
+
+    block_1b882:
+    let var_5362 = 32 >>u (32 << 1 + ptr_346_496)
+    goto block_1b8b0;
+
+    goto block_1b672;
+
+    block_1ba5d:
+    let ptr_346_888 = 32 >>u (32 << u32[4 + ptr_346_48 + 0x60000])
+    if (u32[4 + ptr_346_48 + 0x60000] <=u 13 >=u 0) goto block_1bae1;
+
+    block_1ba15:
+    let ptr_346_792 = u32[32]
+    if (u8[u32[32] + 0x60000] <u 0) goto block_1bc20;
+
+    block_26ff5:
+    let var_7334 = 32 >>u (32 << ptr_380_1008 + ptr_380_288)
+    goto block_27033;
+
+    r2 = ptr_499 + 1
+    r3 = ptr_500 + 1
+
+    block_1ab1e:
+    let var_4743 = u32[16 + ptr_247_40 + 0x60000]
+    u32[16 + ptr_247_40 + 0x60000] = 32 >>u (32 << 1 + var_4743)
+    let var_4776 = 32 >>u (32 << (32 >>u (32 << 12 * var_4743)) + u32[8 + ptr_247_40 + 0x60000])
+    u32[var_4776 + 0x60000] = ptr_247_48
+    u32[4 + var_4776 + 0x60000] = ptr_247_56
+    u32[20 + ptr_247_40 + 0x60000] = 32 >>u (32 << 1 + u32[20 + ptr_247_40 + 0x60000])
+    let var_4834 = 32 >>u (32 << (32 >>u (32 << (2 << (32 >>u (32 << (u32[4 + ptr_247_40 + 0x60000] & ptr_247_376)))))) + ptr_247_40->field_393216)
+    u32[8 + var_4776 + 0x60000] = u32[var_4834 + 0x60000]
+    u32[var_4834 + 0x60000] = var_4776
+    goto block_1aa52;
+
+    block_1b499:
+    let var_5192 = 32 >>u (32 << 12 + ptr_247_1560)
+    goto block_1af89;
+
+    block_1b112:
+    u32[4 + ptr_247_1568 + 0x60000] = u32[4 + ptr_247_1560 + 0x60000]
+    let var_5034 = 32 >>u (32 << 0x165667B5 + (32 >>u (32 << 0xC2B2AE3D * ptr_247_1560->field_393216)))
+    let var_5059 = 32 >>u (32 << 0x27D4EB2F * (32 >>u (32 << ((31 & 17) - 32 >>u var_5034 | (31 & 17) << var_5034))))
+    let var_5088 = 32 >>u (32 << 0x85EBCA77 * (32 >>u (32 << (var_5059 ^ 32 >>u (32 << (15 >>u var_5059))))))
+    let var_5117 = 32 >>u (32 << 0xC2B2AE3D * (32 >>u (32 << (var_5088 ^ 32 >>u (32 << (13 >>u var_5088))))))
+    let var_5168 = 32 >>u (32 << (32 >>u (32 << (2 << (32 >>u (32 << (ptr_247_1328 & 32 >>u (32 << (var_5117 ^ 32 >>u (32 << (16 >>u var_5117)))))))))) + ptr_247_1384)
+    u32[8 + ptr_247_1568 + 0x60000] = u32[var_5168 + 0x60000]
+    u32[var_5168 + 0x60000] = ptr_247_1568
+    let var_5183 = 32 >>u (32 << 12 + ptr_247_1568)
+    goto block_1b499;
+
+    block_1b8b0:
+    if (ptr_346_608 >=s ptr_346_528 <u 0) goto block_1ba0b;
+
+    block_1bae1:
+    u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_346_888))) + ptr_346_56) + 0x60000] = ptr_346_288
+    u32[8 + ptr_346_40 + 0x60000] = 0
+    goto block_1b65a;
+
+    ptr_346_888 = 12
+
+    block_1bc20:
+    goto block_1bc25;
+
+    goto block_1bb71;
+
+    block_1aa52:
+    goto block_1a81a;
+
+    block_1ba0b:
+    goto block_1ba10;
+
+    goto block_1b934;
+
+    block_1b65a:
+    return
+
+    block_1bc25:
+    goto block_1b65a;
+
+    block_1bb71:
+    let ptr_346_1024 = 1
+    if (u8[1 + ptr_346_792 + 0x60000] >=u 0) goto block_1bbcc;
+
+    block_1a81a:
+    return
+
+    block_1ba10:
+    goto block_1b909;
+
+    block_1b934:
+    let var_5387 = u32[24 + ptr_346_64 + 0x60000]
+    goto block_1a07a;
+
+    block_1bbcc:
+    u32[12 + ptr_346_40 + 0x60000] = ptr_346_1024
+    u32[16 + ptr_346_40 + 0x60000] = u32[4 + ptr_346_792 + 0x60000]
+    goto block_1bc25;
+
+    ptr_346_1024 = 2
+
+    block_1b909:
+    let var_5383 = 32 >>u (32 << ptr_346_88)
+    goto block_1b672;
+
     let var_3283 = u8[u64[r1 + 48] + 0x60000]
     u64[r1 + 256] = var_3283
     u64[r1 + 264] = var_3283
@@ -2597,7 +3766,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     if (cond_86 <u 0) goto block_d276;
 
     block_d13a:
-    goto block_cf7a;
+    goto block_d0c2;
 
     block_d276:
     goto block_d27b;
@@ -2832,13 +4001,13 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_3626 = 4 + u64[r1 + 48]
     u64[r1 + 1280] = var_3626
     u32[var_3626 + 0x60000] = u64[r1 + 584]
-    goto block_cf7a;
+    goto block_d0c2;
 
     u64[r1 + 416] = r7
     let var_3337 = 4 + u64[r1 + 56]
     u64[r1 + 432] = var_3337
     u32[var_3337 + 0x60000] = u64[r1 + 296]
-    goto block_cf7a;
+    goto block_d0c2;
 
     u64[r1 + 1312] = r7
     let var_3635 = u32[r7 + 0x60000]
@@ -2901,7 +4070,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_3682 = 1 + u64[r1 + 48]
     u64[r1 + 1496] = var_3682
     u8[var_3682 + 0x60000] = 1
-    goto block_cf7a;
+    goto block_d0c2;
 
     u64[r1 + 1528] = r7
     let var_3693 = 4 + u64[r1 + 56]
@@ -2938,288 +4107,19 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_3736 = 12 + u64[r1 + 56]
     u64[r1 + 1680] = var_3736
     u32[var_3736 + 0x60000] = var_3733
-    goto block_cf7a;
+    goto block_d0c2;
 
-    let ptr_229 = ptr_233 - 656
-    u64[0xFF00] = var_3757
-    u64[0xFF08] = var_3761
-    func_57(ptr_229)
-
-    if (0xFEFD0000 >=u r1 - 480) goto block_dfa7;
-
-    block_dfa7:
-    let ptr_233 = r1 - 480
-    let var_3757 = u32[4 + r10 + 0x60000]
-    func_58(ptr_233, r7)
-
-    return
-
-    if (0xFEFD0000 >=u r1 - 512) goto block_e2d6;
-
-    block_e2d6:
-    let ptr_236 = r1 - 512
-    func_59(ptr_236, r7)
-
-    return
-
-    let ptr_239 = ptr_240 - 240
-    func_60(ptr_239, r7)
-
-    if (0xFEFD0000 >=u r1 - 424) goto block_e79c;
-
-    block_e79c:
-    let ptr_240 = r1 - 424
-    func_61(ptr_240, r7)
-
-    return
-
-    if (0xFEFD0000 >=u r1 - 488) goto block_ea68;
-
-    block_ea68:
-    let ptr_243 = r1 - 488
-    func_62(ptr_243, r7)
-
-    return
-
-    let ptr_246 = ptr_247 - 240
-    func_63(ptr_246, r7)
-
-    if (0xFEFD0000 >=u r1 - 424) goto block_ef32;
-
-    block_ef32:
-    let ptr_247 = r1 - 424
-    func_64(ptr_247, r7)
-
-    return
-
-    if (0xFEFD0000 >=u r1 - 440) goto block_f1fe;
-
-    block_f1fe:
-    let ptr_250 = r1 - 440
-    func_65(ptr_250, r7)
-
-    return
-
-    let ptr_253 = ptr_254 - 168
-    func_66(ptr_253, r7)
-
-    if (0xFEFD0000 >=u r1 - 424) goto block_f608;
-
-    block_f608:
-    let ptr_254 = r1 - 424
-    func_67(ptr_254, r7)
-
-    return
-
-    if (0xFEFD0000 >=u r1 - 640) goto block_f8d4;
-
-    block_f8d4:
-    let ptr_257_48 = r10
-    let ptr_257_56 = r11
-    let ptr_257_136 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_f966;
-
-    return
-
-    block_f966:
-    let var_3907 = 32 >>u (32 << u32[8 + ptr_257_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_257_136))) + ptr_257_56) + 0x60000])
-    func_68(r1, r7)
-
-    ptr_257_136 = 12
-
-    if (0xFEFD0000 >=u r1 - 672) goto block_fd1b;
-
-    block_fd1b:
-    let ptr_262_48 = r10
-    let ptr_262_56 = r11
-    let ptr_262_136 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_fdad;
-
-    return
-
-    block_fdad:
-    let var_3969 = 32 >>u (32 << u32[8 + ptr_262_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_262_136))) + ptr_262_56) + 0x60000])
-    func_69(r1, r7)
-
-    ptr_262_136 = 12
-
-    if (0xFEFD0000 >=u r1 - 584) goto block_1018a;
-
-    block_1018a:
-    let ptr_267_48 = r10
-    let ptr_267_56 = r11
-    let ptr_267_136 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_1021c;
-
-    return
-
-    block_1021c:
-    let var_4031 = 32 >>u (32 << u32[8 + ptr_267_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_267_136))) + ptr_267_56) + 0x60000])
-    func_70(r1, r7)
-
-    ptr_267_136 = 12
-
-    if (0xFEFD0000 >=u r1 - 648) goto block_1056e;
-
-    block_1056e:
-    let ptr_272_48 = r10
-    let ptr_272_56 = r11
-    let ptr_272_136 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_10600;
-
-    return
-
-    block_10600:
-    let var_4092 = 32 >>u (32 << u32[8 + ptr_272_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_272_136))) + ptr_272_56) + 0x60000])
-    func_71(r1, r7)
-
-    ptr_272_136 = 12
-
-    if (0xFEFD0000 >=u r1 - 584) goto block_109b0;
-
-    block_109b0:
-    let ptr_277_48 = r10
-    let ptr_277_56 = r11
-    let ptr_277_136 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_10a42;
-
-    return
-
-    block_10a42:
-    let var_4153 = 32 >>u (32 << u32[8 + ptr_277_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_277_136))) + ptr_277_56) + 0x60000])
-    func_72(r1, r7)
-
-    ptr_277_136 = 12
-
-    if (0xFEFD0000 >=u r1 - 600) goto block_10d94;
-
-    block_10d94:
-    let ptr_282_48 = r10
-    let ptr_282_56 = r11
-    let ptr_282_136 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_10e26;
-
-    return
-
-    block_10e26:
-    let var_4214 = 32 >>u (32 << u32[8 + ptr_282_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_282_136))) + ptr_282_56) + 0x60000])
-    func_73(r1, r7)
-
-    ptr_282_136 = 12
-
-    if (0xFEFD0000 >=u r1 - 584) goto block_1118c;
-
-    block_1118c:
-    let ptr_287_48 = r10
-    let ptr_287_56 = r11
-    let ptr_287_136 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_1121e;
-
-    return
-
-    block_1121e:
-    let var_4275 = 32 >>u (32 << u32[8 + ptr_287_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_287_136))) + ptr_287_56) + 0x60000])
-    func_74(r1, r7)
-
-    ptr_287_136 = 12
-
-    block_1a07a:
-    if (0xFEFD0000 >=u ptr_346 - 560) goto block_1a08f;
-
-    block_1a08f:
-    let ptr_292_40 = var_5387
-    let var_4282 = u32[var_5387 + 0x60000]
-    let ptr_292_48 = var_4282
-    let ptr_292_64 = u32[12 + var_4282 + 0x60000]
-    if (u32[12 + var_4282 + 0x60000] <s 0 <u 0) goto block_1a167;
-
-    return
-
-    block_1a167:
-    goto block_1a16c;
-
-    goto block_1a11d;
-
-    block_1a16c:
-    let var_4330 = 32 >>u (32 << (12 << u32[8 + ptr_292_40 + 0x60000]))
-    let ptr_292_192 = var_4330
-    if (!(u32[4 + ptr_292_40 + 0x60000] ^ var_4330) <u 0) goto block_1a2fa;
-
-    block_1a11d:
-    if (ptr_292_64 >=s 0 <u 0) goto block_1a224;
-
-    block_1a2fa:
-    goto block_1a2ff;
-
-    goto block_1a2f4;
-
-    block_1a224:
-    goto block_1a229;
-
-    goto block_1a222;
-
-    block_1a2ff:
-    if (ptr_292_192 >u 0x200000 <u 0) goto block_1a369;
-
-    block_1a2f4:
-    return
-
-    block_1a229:
-    let var_4362 = 32 >>u (32 << 1 - ptr_292_64)
-    let var_4383 = u32[32 >>u (32 << (32 >>u (32 << (2 << var_4362))) + u32[4 + ptr_292_48 + 0x60000]) + 0x60000]
-    u32[12 + ptr_292_48 + 0x60000] = var_4362
-    goto block_1a106;
-
-    block_1a222:
-    return
-
-    block_1a369:
-    goto block_1a36e;
-
-    goto block_1a34c;
-
-    block_1a106:
-    return
-
-    block_1a36e:
-    u32[8 + ptr_292_40 + 0x60000] = 32 >>u (32 << 1 + u32[8 + ptr_292_40 + 0x60000])
-    r9 = 8
-    r10 = 12
-    r0 = 824
-    goto block_34ec;
-
-    block_1a34c:
-    r9 = 0x1000
-    r0 = 822
-    goto block_77ed;
-
-    u64[r1 + 440] = r7
-    goto block_1a36e;
-
-    u64[r1 + 528] = r7
-    u32[r7 + 0x60000] = u64[r1 + 520]
-    let var_4429 = 4 + r7
-    u64[r1 + 544] = var_4429
-    u32[var_4429 + 0x60000] = u64[r1 + 448]
-    goto block_1a106;
-
-    block_1a42c:
-    func_116(r1, r7)
-
-    block_1a4ae:
+    block_1a4f4:
     if (0xFEFD0000 >=u r1 - 2328) goto block_1a509;
 
     block_1a509:
     let ptr_306_40 = var_5402
-    let ptr_306_48 = var_5403
     let ptr_306_56 = r7
     let var_4468 = 32 >>u (32 << 0x165667B5 + (32 >>u (32 << 0xC2B2AE3D * var_5403)))
     let var_4493 = 32 >>u (32 << 0x27D4EB2F * (32 >>u (32 << ((31 & 17) - 32 >>u var_4468 | (31 & 17) << var_4468))))
     let var_4522 = 32 >>u (32 << 0x85EBCA77 * (32 >>u (32 << (32 >>u (32 << (15 >>u var_4493)) ^ var_4493))))
     let var_4551 = 32 >>u (32 << 0xC2B2AE3D * (32 >>u (32 << (32 >>u (32 << (13 >>u var_4522)) ^ var_4522))))
-    let var_4571 = 32 >>u (32 << (32 >>u (32 << (16 >>u var_4551)) ^ var_4551))
-    let ptr_306_376 = var_4571
-    let var_4607 = u32[32 >>u (32 << (32 >>u (32 << (2 << (32 >>u (32 << (u32[4 + var_5402 + 0x60000] & var_4571)))))) + u32[var_5402 + 0x60000]) + 0x60000]
+    let var_4607 = u32[32 >>u (32 << (32 >>u (32 << (2 << (32 >>u (32 << (u32[4 + var_5402 + 0x60000] & 32 >>u (32 << (32 >>u (32 << (16 >>u var_4551)) ^ var_4551)))))))) + u32[var_5402 + 0x60000]) + 0x60000]
     goto block_1a859;
 
     return
@@ -3278,34 +4178,16 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[4 + ptr_306_496 + 0x60000] = ptr_306_56
     goto block_1aa52;
 
-    block_1ab1e:
-    let var_4743 = u32[16 + ptr_306_40 + 0x60000]
-    u32[16 + ptr_306_40 + 0x60000] = 32 >>u (32 << 1 + var_4743)
-    let var_4776 = 32 >>u (32 << (32 >>u (32 << 12 * var_4743)) + u32[8 + ptr_306_40 + 0x60000])
-    u32[var_4776 + 0x60000] = ptr_306_48
-    u32[4 + var_4776 + 0x60000] = ptr_306_56
-    u32[20 + ptr_306_40 + 0x60000] = 32 >>u (32 << 1 + u32[20 + ptr_306_40 + 0x60000])
-    let var_4834 = 32 >>u (32 << (32 >>u (32 << (2 << (32 >>u (32 << (u32[4 + ptr_306_40 + 0x60000] & ptr_306_376)))))) + ptr_306_40->field_393216)
-    u32[8 + var_4776 + 0x60000] = u32[var_4834 + 0x60000]
-    u32[var_4834 + 0x60000] = var_4776
-    goto block_1aa52;
-
     block_1aa57:
     let var_4710 = 32
     let var_4719 = 32
     if (var_4719 >>u (var_4719 << 4 /s (var_4710 >>u (var_4710 << 3 * ptr_306_712))) <s u32[20 + ptr_306_40 + 0x60000] <u 0) goto block_1ad85;
-
-    block_1aa52:
-    goto block_1a81a;
 
     block_1ad85:
     let var_4866 = 32 >>u (32 << (1 | 32 >>u (32 << (1 << u32[4 + ptr_306_40 + 0x60000]))))
     goto block_1adf6;
 
     goto block_1ad66;
-
-    block_1a81a:
-    return
 
     block_1adf6:
     let var_4884 = 32 >>u (32 << (2 << (32 >>u (32 << 1 + ptr_306_1328))))
@@ -3314,345 +4196,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_1ad66:
     goto block_1adf6;
 
-    u64[r1 + 1384] = r7
-    let var_4887 = u64[r1 + 1352]
-    u64[r1 + 1392] = var_4887
-    let var_4891 = 3 << var_4887
-    u64[r1 + 1400] = var_4891
-    let var_4895 = 32 >>u (32 << var_4891)
-    u64[r1 + 1408] = var_4895
-    u64[r1 + 1416] = var_4895
-    let var_4900 = 3 /s var_4895
-    u64[r1 + 1424] = var_4900
-    let var_4904 = 32 >>u (32 << var_4900)
-    u64[r1 + 1432] = var_4904
-    u64[r1 + 1440] = var_4904
-    let var_4909 = 12 * var_4904
-    u64[r1 + 1448] = var_4909
-    u64[r1 + 1456] = 32 >>u (32 << var_4909)
-    r0 = 830
-    goto block_1a42c;
-
-    u64[r1 + 1464] = r7
-    let var_4918 = 8 + u64[r1 + 40]
-    u64[r1 + 1472] = var_4918
-    let var_4919 = u32[var_4918 + 0x60000]
-    u64[r1 + 1480] = var_4919
-    let var_4922 = 16 + u64[r1 + 40]
-    u64[r1 + 1488] = var_4922
-    let var_4923 = u32[var_4922 + 0x60000]
-    u64[r1 + 1496] = var_4923
-    u64[r1 + 1504] = var_4923
-    let var_4928 = 12 * var_4923
-    u64[r1 + 1512] = var_4928
-    let var_4932 = 32 >>u (32 << var_4928)
-    u64[r1 + 1520] = var_4932
-    u64[r1 + 1528] = var_4919
-    u64[r1 + 1536] = var_4932
-    let var_4939 = var_4932 + var_4919
-    u64[r1 + 1544] = var_4939
-    u64[r1 + 1552] = 32 >>u (32 << var_4939)
-    goto block_1af89;
-
-    block_1af89:
-    let var_4944 = u64[r1 + 1560]
-    u64[r1 + 1576] = var_4944
-    let var_4946 = u64[r1 + 1552]
-    u64[r1 + 1584] = var_4946
-    let cond_140 = (var_4946 ^ var_4944) <u 0
-    u64[r1 + 1592] = cond_140
-    u64[r1 + 1600] = cond_140
-    u64[r1 + 1608] = cond_140
-    let cond_141 = cond_140 <u 0
-    u64[r1 + 1616] = cond_141
-    if (cond_140 <u 0) goto block_1b108;
-
-    block_1b108:
-    goto block_1b10d;
-
-    goto block_1b077;
-
-    block_1b10d:
-    goto block_1afe4;
-
-    block_1b077:
-    let var_4983 = 8 + u64[r1 + 1560]
-    u64[r1 + 1712] = var_4983
-    let var_4984 = u32[var_4983 + 0x60000]
-    u64[r1 + 1720] = var_4984
-    u64[r1 + 1728] = var_4984
-    let var_4989 = 1 & var_4984
-    u64[r1 + 1736] = var_4989
-    let var_4993 = 32 >>u (32 << var_4989)
-    u64[r1 + 1744] = var_4993
-    u64[r1 + 1752] = var_4993
-    let cond_142 = !(var_4993)
-    u64[r1 + 1760] = cond_142
-    u64[r1 + 1768] = cond_142
-    u64[r1 + 1776] = cond_142
-    let cond_143 = cond_142 <u 0
-    u64[r1 + 1784] = cond_143
-    if (cond_142 <u 0) goto block_1b494;
-
-    block_1afe4:
-    let var_4963 = 4 + u64[r1 + 40]
-    u64[r1 + 1632] = var_4963
-    u32[var_4963 + 0x60000] = u64[r1 + 1328]
-    let var_4967 = 8 + u64[r1 + 40]
-    u64[r1 + 1648] = var_4967
-    u32[var_4967 + 0x60000] = u64[r1 + 1464]
-    let var_4971 = 12 + u64[r1 + 40]
-    u64[r1 + 1664] = var_4971
-    u32[var_4971 + 0x60000] = u64[r1 + 1432]
-    let var_4975 = 20 + u64[r1 + 40]
-    u64[r1 + 1680] = var_4975
-    let var_4976 = u32[var_4975 + 0x60000]
-    u64[r1 + 1688] = var_4976
-    let var_4979 = 16 + u64[r1 + 40]
-    u64[r1 + 1696] = var_4979
-    u32[var_4979 + 0x60000] = var_4976
-    goto block_1ab1e;
-
-    block_1b494:
-    goto block_1b499;
-
-    goto block_1b112;
-
-    block_1b499:
-    let var_5184 = u64[r1 + 1560]
-    u64[r1 + 2304] = var_5184
-    let var_5188 = 12 + var_5184
-    u64[r1 + 2312] = var_5188
-    u64[r1 + 2320] = 32 >>u (32 << var_5188)
-    goto block_1af89;
-
-    block_1b112:
-    let var_5007 = u32[u64[r1 + 1560] + 0x60000]
-    u64[r1 + 1792] = var_5007
-    let var_5011 = 4 + u64[r1 + 1560]
-    u64[r1 + 1808] = var_5011
-    let var_5012 = u32[var_5011 + 0x60000]
-    u64[r1 + 1816] = var_5012
-    let var_5015 = 4 + u64[r1 + 1568]
-    u64[r1 + 1824] = var_5015
-    u32[var_5015 + 0x60000] = var_5012
-    u64[r1 + 1840] = var_5007
-    let var_5021 = 0xC2B2AE3D * var_5007
-    u64[r1 + 1848] = var_5021
-    let var_5025 = 32 >>u (32 << var_5021)
-    u64[r1 + 1856] = var_5025
-    u64[r1 + 1864] = var_5025
-    let var_5030 = 0x165667B5 + var_5025
-    u64[r1 + 1872] = var_5030
-    let var_5034 = 32 >>u (32 << var_5030)
-    u64[r1 + 1880] = var_5034
-    u64[r1 + 1888] = var_5034
-    let var_5046 = (31 & 17) - 32 >>u var_5034 | (31 & 17) << var_5034
-    u64[r1 + 1896] = var_5046
-    let var_5050 = 32 >>u (32 << var_5046)
-    u64[r1 + 1904] = var_5050
-    u64[r1 + 1912] = var_5050
-    let var_5055 = 0x27D4EB2F * var_5050
-    u64[r1 + 1920] = var_5055
-    let var_5059 = 32 >>u (32 << var_5055)
-    u64[r1 + 1928] = var_5059
-    u64[r1 + 1936] = var_5059
-    let var_5064 = 15 >>u var_5059
-    u64[r1 + 1944] = var_5064
-    let var_5068 = 32 >>u (32 << var_5064)
-    u64[r1 + 1952] = var_5068
-    u64[r1 + 1960] = var_5068
-    u64[r1 + 1968] = var_5059
-    let var_5075 = var_5059 ^ var_5068
-    u64[r1 + 1976] = var_5075
-    let var_5079 = 32 >>u (32 << var_5075)
-    u64[r1 + 1984] = var_5079
-    u64[r1 + 1992] = var_5079
-    let var_5084 = 0x85EBCA77 * var_5079
-    u64[r1 + 2000] = var_5084
-    let var_5088 = 32 >>u (32 << var_5084)
-    u64[r1 + 2008] = var_5088
-    u64[r1 + 2016] = var_5088
-    let var_5093 = 13 >>u var_5088
-    u64[r1 + 2024] = var_5093
-    let var_5097 = 32 >>u (32 << var_5093)
-    u64[r1 + 2032] = var_5097
-    u64[r1 + 2040] = var_5097
-    u64[r1 + 2048] = var_5088
-    let var_5104 = var_5088 ^ var_5097
-    u64[r1 + 2056] = var_5104
-    let var_5108 = 32 >>u (32 << var_5104)
-    u64[r1 + 2064] = var_5108
-    u64[r1 + 2072] = var_5108
-    let var_5113 = 0xC2B2AE3D * var_5108
-    u64[r1 + 2080] = var_5113
-    let var_5117 = 32 >>u (32 << var_5113)
-    u64[r1 + 2088] = var_5117
-    u64[r1 + 2096] = var_5117
-    let var_5122 = 16 >>u var_5117
-    u64[r1 + 2104] = var_5122
-    let var_5126 = 32 >>u (32 << var_5122)
-    u64[r1 + 2112] = var_5126
-    u64[r1 + 2120] = var_5126
-    u64[r1 + 2128] = var_5117
-    let var_5133 = var_5117 ^ var_5126
-    u64[r1 + 2136] = var_5133
-    let var_5137 = 32 >>u (32 << var_5133)
-    u64[r1 + 2144] = var_5137
-    u64[r1 + 2152] = var_5137
-    let var_5140 = u64[r1 + 1328]
-    u64[r1 + 2160] = var_5140
-    let var_5144 = var_5140 & var_5137
-    u64[r1 + 2168] = var_5144
-    let var_5148 = 32 >>u (32 << var_5144)
-    u64[r1 + 2176] = var_5148
-    u64[r1 + 2184] = var_5148
-    let var_5153 = 2 << var_5148
-    u64[r1 + 2192] = var_5153
-    let var_5157 = 32 >>u (32 << var_5153)
-    u64[r1 + 2200] = var_5157
-    let var_5158 = u64[r1 + 1384]
-    u64[r1 + 2208] = var_5158
-    u64[r1 + 2216] = var_5157
-    let var_5164 = var_5157 + var_5158
-    u64[r1 + 2224] = var_5164
-    let var_5168 = 32 >>u (32 << var_5164)
-    u64[r1 + 2232] = var_5168
-    let var_5169 = u32[var_5168 + 0x60000]
-    u64[r1 + 2240] = var_5169
-    let var_5172 = 8 + u64[r1 + 1568]
-    u64[r1 + 2248] = var_5172
-    u32[var_5172 + 0x60000] = var_5169
-    u32[var_5168 + 0x60000] = u64[r1 + 1568]
-    let var_5175 = u64[r1 + 1568]
-    u64[r1 + 2272] = var_5175
-    let var_5179 = 12 + var_5175
-    u64[r1 + 2280] = var_5179
-    u64[r1 + 2288] = 32 >>u (32 << var_5179)
-    goto block_1b499;
-
-    if (0xFEFD0000 >=u r1 - 1080) goto block_1b4dc;
-
-    block_1b4dc:
-    let ptr_346 = r1 - 1080
-    let ptr_346_40 = r9
-    let ptr_346_48 = r10
-    let ptr_346_56 = r11
-    let ptr_346_64 = r12
-    let ptr_346_88 = u32[32 + r12 + 0x60000]
-    let ptr_346_152 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_1b589;
-
-    return
-
-    block_1b589:
-    let var_5245 = 32 >>u (32 << u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_346_152))) + ptr_346_56) + 0x60000])
-    let ptr_346_232 = var_5245
-    if (!(var_5245) <u 0) goto block_1b6de;
-
-    ptr_346_152 = 12
-
-    block_1b6de:
-    goto block_1b6e3;
-
-    goto block_1b6b5;
-
-    block_1b6e3:
-    let var_5294 = (32 >>u (32 << ptr_346_232)) + u32[32 + ptr_346_64 + 0x60000]
-    let ptr_346_384 = var_5294
-    if (var_5294 <s u64[16 + ptr_346_64 + 0x60000] <u 0) goto block_1b7ad;
-
-    block_1b6b5:
-    let var_5281 = 32 >>u (32 << ptr_346_88)
-    goto block_1b672;
-
-    block_1b7ad:
-    goto block_1b7b2;
-
-    goto block_1b783;
-
-    block_1b672:
-    if (u8[u32[32] + 0x60000] <u 0) goto block_1ba58;
-
-    block_1b7b2:
-    u32[32 + ptr_346_64 + 0x60000] = ptr_346_384
-    let var_5325 = 32 >>u (32 << ptr_346_88)
-    let ptr_346_496 = ptr_346_64->field_393216
-    let var_5338 = 32 >>u (32 << (12 >>s 1 - ptr_346_384))
-    let ptr_346_528 = var_5338
-    if (!(var_5338 ^ ptr_346_64->field_393216) <u 0) goto block_1b882;
-
-    block_1b783:
-    let var_5315 = 32 >>u (32 << ptr_346_88)
-    goto block_1b672;
-
-    block_1ba58:
-    goto block_1ba5d;
-
-    goto block_1ba15;
-
-    block_1b882:
-    let var_5362 = 32 >>u (32 << 1 + ptr_346_496)
-    goto block_1b8b0;
-
-    goto block_1b672;
-
-    block_1ba5d:
-    let ptr_346_888 = 32 >>u (32 << u32[4 + ptr_346_48 + 0x60000])
-    if (u32[4 + ptr_346_48 + 0x60000] <=u 13 >=u 0) goto block_1bae1;
-
-    block_1ba15:
-    let ptr_346_792 = u32[32]
-    if (u8[u32[32] + 0x60000] <u 0) goto block_1bc20;
-
-    block_1b8b0:
-    if (ptr_346_608 >=s ptr_346_528 <u 0) goto block_1ba0b;
-
-    block_1bae1:
-    u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_346_888))) + ptr_346_56) + 0x60000] = ptr_346_288
-    u32[8 + ptr_346_40 + 0x60000] = 0
-    goto block_1b65a;
-
-    ptr_346_888 = 12
-
-    block_1bc20:
-    goto block_1bc25;
-
-    goto block_1bb71;
-
-    block_1ba0b:
-    goto block_1ba10;
-
-    goto block_1b934;
-
-    block_1b65a:
-    return
-
-    block_1bc25:
-    goto block_1b65a;
-
-    block_1bb71:
-    let ptr_346_1024 = 1
-    if (u8[1 + ptr_346_792 + 0x60000] >=u 0) goto block_1bbcc;
-
-    block_1ba10:
-    goto block_1b909;
-
-    block_1b934:
-    let var_5387 = u32[24 + ptr_346_64 + 0x60000]
-    goto block_1a07a;
-
-    block_1bbcc:
-    u32[12 + ptr_346_40 + 0x60000] = ptr_346_1024
-    u32[16 + ptr_346_40 + 0x60000] = u32[4 + ptr_346_792 + 0x60000]
-    goto block_1bc25;
-
-    ptr_346_1024 = 2
-
-    block_1b909:
-    let var_5383 = 32 >>u (32 << ptr_346_88)
-    goto block_1b672;
-
     u64[r1 + 704] = r7
     let var_5392 = 28 + u64[r1 + 64]
     u64[r1 + 712] = var_5392
@@ -3660,7 +4203,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 8
     r10 = 11
     r0 = 834
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 728] = r7
     u32[r7 + 0x60000] = 2
@@ -3669,7 +4212,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[var_5400 + 0x60000] = u64[r1 + 704]
     let var_5402 = u64[r1 + 720]
     let var_5403 = u64[r1 + 608]
-    goto block_1a4ae;
+    goto block_1a4f4;
 
     let var_5406 = u64[r1 + 608]
     u64[r1 + 768] = var_5406
@@ -3677,280 +4220,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 776] = var_5410
     u64[r1 + 784] = 32 >>u (32 << var_5410)
     goto block_1b8b0;
-
-    let ptr_375 = ptr_380 - 592
-    u64[0xFF00] = var_5515
-    u64[0xFF08] = u64[0xFF00]
-    func_154(ptr_375)
-
-    if (0xFEFD0000 >=u r1 - 288) goto block_22a71;
-
-    block_22a71:
-    let ptr_380 = r1 - 288
-    let var_5515 = u32[r10 + 0x60000]
-    let var_5534 = 32 >>u (32 << (32 >>u (32 << (255 & u32[4 + r10 + 0x60000]))))
-    u64[0xFF00] = 1
-    func_155(ptr_380)
-
-    return
-
-    if (0xFEFD0000 >=u r1 - 288) goto block_22c4a;
-
-    block_22c4a:
-    let ptr_385 = r1 - 288
-    let var_5563 = 32 >>u (32 << (32 >>u (32 << (0xFFFF & u32[4 + r10 + 0x60000]))))
-    u64[0xFF00] = 2
-    func_156(ptr_385)
-
-    return
-
-    if (0xFEFD0000 >=u r1 - 248) goto block_22e24;
-
-    block_22e24:
-    let ptr_390 = r1 - 248
-    u64[0xFF00] = 4
-    func_157(ptr_390)
-
-    return
-
-    if (0xFEFD0000 >=u r1 - 248) goto block_22fb8;
-
-    block_22fb8:
-    let ptr_395 = r1 - 248
-    u64[0xFF00] = 8
-    func_158(ptr_395)
-
-    return
-
-    if (0xFEFD0000 >=u r1 - 376) goto block_2314e;
-
-    block_2314e:
-    let ptr_400_56 = r11
-    let ptr_400_152 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_231fb;
-
-    return
-
-    block_231fb:
-    let var_5648 = 255 & u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_400_152))) + ptr_400_56) + 0x60000]
-    u64[0xFF00] = 1
-    func_159(r1)
-
-    ptr_400_152 = 12
-
-    if (0xFEFD0000 >=u r1 - 376) goto block_233c3;
-
-    block_233c3:
-    let ptr_406_56 = r11
-    let ptr_406_152 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_23470;
-
-    return
-
-    block_23470:
-    let var_5704 = 0xFFFF & u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_406_152))) + ptr_406_56) + 0x60000]
-    u64[0xFF00] = 2
-    func_160(r1)
-
-    ptr_406_152 = 12
-
-    if (0xFEFD0000 >=u r1 - 400) goto block_23639;
-
-    block_23639:
-    let ptr_412_56 = r11
-    let ptr_412_152 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_236e6;
-
-    return
-
-    block_236e6:
-    let var_5769 = 32 >>u (32 << (32 >>u (32 << u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_412_152))) + ptr_412_56) + 0x60000])))
-    u64[0xFF00] = 4
-    func_161(r1)
-
-    ptr_412_152 = 12
-
-    if (0xFEFD0000 >=u r1 - 368) goto block_238d5;
-
-    block_238d5:
-    let ptr_418_56 = r11
-    let ptr_418_152 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_23982;
-
-    return
-
-    block_23982:
-    let var_5822 = u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_418_152))) + ptr_418_56) + 0x60000]
-    u64[0xFF00] = 8
-    func_162(r1)
-
-    ptr_418_152 = 12
-
-    if (0xFEFD0000 >=u r1 - 448) goto block_23b3b;
-
-    block_23b3b:
-    let ptr_424_48 = r10
-    let ptr_424_56 = r11
-    let ptr_424_136 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_23bcd;
-
-    return
-
-    block_23bcd:
-    let var_5885 = 32 >>u (32 << u32[4 + ptr_424_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_424_136))) + ptr_424_56) + 0x60000])
-    let var_5904 = 32 >>u (32 << (32 >>u (32 << (255 & u32[8 + ptr_424_48 + 0x60000]))))
-    u64[0xFF00] = 1
-    func_163(r1)
-
-    ptr_424_136 = 12
-
-    if (0xFEFD0000 >=u r1 - 448) goto block_23e2c;
-
-    block_23e2c:
-    let ptr_431_48 = r10
-    let ptr_431_56 = r11
-    let ptr_431_136 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_23ebe;
-
-    return
-
-    block_23ebe:
-    let var_5967 = 32 >>u (32 << u32[4 + ptr_431_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_431_136))) + ptr_431_56) + 0x60000])
-    let var_5986 = 32 >>u (32 << (32 >>u (32 << (0xFFFF & u32[8 + ptr_431_48 + 0x60000]))))
-    u64[0xFF00] = 2
-    func_164(r1)
-
-    ptr_431_136 = 12
-
-    if (0xFEFD0000 >=u r1 - 408) goto block_2411e;
-
-    block_2411e:
-    let ptr_438_48 = r10
-    let ptr_438_56 = r11
-    let ptr_438_136 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_241b0;
-
-    return
-
-    block_241b0:
-    let var_6049 = 32 >>u (32 << u32[4 + ptr_438_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_438_136))) + ptr_438_56) + 0x60000])
-    u64[0xFF00] = 4
-    func_165(r1)
-
-    ptr_438_136 = 12
-
-    if (0xFEFD0000 >=u r1 - 408) goto block_243ca;
-
-    block_243ca:
-    let ptr_445_48 = r10
-    let ptr_445_56 = r11
-    let ptr_445_136 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_2445c;
-
-    return
-
-    block_2445c:
-    let var_6116 = 32 >>u (32 << u32[4 + ptr_445_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_445_136))) + ptr_445_56) + 0x60000])
-    u64[0xFF00] = 8
-    func_166(r1)
-
-    ptr_445_136 = 12
-
-    if (0xFEFD0000 >=u r1 - 536) goto block_24678;
-
-    block_24678:
-    let ptr_452_48 = r10
-    let ptr_452_56 = r11
-    let ptr_452_136 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_2470a;
-
-    return
-
-    block_2470a:
-    let ptr_452_240 = 32 >>u (32 << u32[8 + ptr_452_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_452_136))) + ptr_452_56) + 0x60000])
-    let ptr_452_312 = 32 >>u (32 << u32[4 + ptr_452_48 + 0x60000])
-    if (u32[4 + ptr_452_48 + 0x60000] <=u 13 >=u 0) goto block_2483d;
-
-    ptr_452_136 = 12
-
-    block_2483d:
-    let var_6230 = 255 & u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_452_312))) + ptr_452_56) + 0x60000]
-    u64[0xFF00] = 1
-    func_167(r1)
-
-    ptr_452_312 = 12
-
-    if (0xFEFD0000 >=u r1 - 536) goto block_24a06;
-
-    block_24a06:
-    let ptr_460_48 = r10
-    let ptr_460_56 = r11
-    let ptr_460_136 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_24a98;
-
-    return
-
-    block_24a98:
-    let ptr_460_240 = 32 >>u (32 << u32[8 + ptr_460_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_460_136))) + ptr_460_56) + 0x60000])
-    let ptr_460_312 = 32 >>u (32 << u32[4 + ptr_460_48 + 0x60000])
-    if (u32[4 + ptr_460_48 + 0x60000] <=u 13 >=u 0) goto block_24bcb;
-
-    ptr_460_136 = 12
-
-    block_24bcb:
-    let var_6339 = 0xFFFF & u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_460_312))) + ptr_460_56) + 0x60000]
-    u64[0xFF00] = 2
-    func_168(r1)
-
-    ptr_460_312 = 12
-
-    if (0xFEFD0000 >=u r1 - 560) goto block_24d95;
-
-    block_24d95:
-    let ptr_468_48 = r10
-    let ptr_468_56 = r11
-    let ptr_468_136 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_24e27;
-
-    return
-
-    block_24e27:
-    let ptr_468_240 = 32 >>u (32 << u32[8 + ptr_468_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_468_136))) + ptr_468_56) + 0x60000])
-    let ptr_468_312 = 32 >>u (32 << u32[4 + ptr_468_48 + 0x60000])
-    if (u32[4 + ptr_468_48 + 0x60000] <=u 13 >=u 0) goto block_24f5a;
-
-    ptr_468_136 = 12
-
-    block_24f5a:
-    let var_6457 = 32 >>u (32 << (32 >>u (32 << u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_468_312))) + ptr_468_56) + 0x60000])))
-    u64[0xFF00] = 4
-    func_169(r1)
-
-    ptr_468_312 = 12
-
-    if (0xFEFD0000 >=u r1 - 528) goto block_2514a;
-
-    block_2514a:
-    let ptr_476_48 = r10
-    let ptr_476_56 = r11
-    let ptr_476_136 = 32 >>u (32 << u32[r10 + 0x60000])
-    if (u32[r10 + 0x60000] <=u 13 >=u 0) goto block_251dc;
-
-    return
-
-    block_251dc:
-    let ptr_476_240 = 32 >>u (32 << u32[8 + ptr_476_48 + 0x60000] + u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_476_136))) + ptr_476_56) + 0x60000])
-    let ptr_476_312 = 32 >>u (32 << u32[4 + ptr_476_48 + 0x60000])
-    if (u32[4 + ptr_476_48 + 0x60000] <=u 13 >=u 0) goto block_2530f;
-
-    ptr_476_136 = 12
-
-    block_2530f:
-    let var_6563 = u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_476_312))) + ptr_476_56) + 0x60000]
-    u64[0xFF00] = 8
-    func_170(r1)
-
-    ptr_476_312 = 12
 
     block_256b4:
     if (0xFEFD0000 >=u r1 - 176) goto block_256c9;
@@ -3962,329 +4231,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     return
 
-    block_25f33:
-    let var_6656 = 32 >>u (32 << (1 << ptr_486_216))
-    func_174(r1, r7, r12)
-
-    goto block_25f33;
-
-    block_26300:
-    if (0xFEFD0000 >=u r1 - 768) goto block_26315;
-
-    block_26315:
-    let ptr_487_40 = var_7456
-    if (!(var_7456) <u 0) goto block_26389;
-
-    return
-
-    block_26389:
-    goto block_2638e;
-
-    goto block_26384;
-
-    block_2638e:
-    let ptr_487_112 = 32 >>u (32 << ptr_487_40)
-    let var_6796 = 32 >>u (32 << (1 << (32 >>u (32 << (31 >>u ptr_487_40)))))
-    let ptr_487_160 = var_6796
-    let ptr_487_184 = ptr_487_40
-    if (var_6796 >=u 0) goto block_26434;
-
-    block_26384:
-    goto block_2636d;
-
-    block_26434:
-    if (ptr_487_184 >u 0x186A0 <u 0) goto block_264cc;
-
-    ptr_487_184 = ptr_487_112
-
-    block_2636d:
-    return
-
-    block_264cc:
-    if (ptr_487_184 >u 0x989680 <u 0) goto block_26760;
-
-    goto block_26481;
-
-    block_26760:
-    let var_6959 = 32 >>u (32 << (ptr_487_184 <=u 0x5F5E100) + (32 >>u (32 << 8 + (ptr_487_184 <=u 0x3B9ACA00))))
-    goto block_2680e;
-
-    goto block_2670d;
-
-    block_26481:
-    if (ptr_487_184 >u 100 <u 0) goto block_2665e;
-
-    block_2680e:
-    goto block_2651a;
-
-    block_2670d:
-    let var_6929 = 32 >>u (32 << 6 + (ptr_487_184 <=u 0xF4240))
-    goto block_2680e;
-
-    block_2665e:
-    let var_6915 = 32 >>u (32 << (ptr_487_184 <=u 1000) + (32 >>u (32 << 3 + (ptr_487_184 <=u 0x2710))))
-    goto block_26708;
-
-    goto block_2660d;
-
-    block_2651a:
-    let var_6861 = 32 >>u (32 << ptr_487_160 + (32 >>u (32 << (1 << ptr_487_312))))
-    r10 = 2
-    r0 = 878
-    goto block_34ec;
-
-    block_26708:
-    goto block_2651a;
-
-    block_2660d:
-    let var_6885 = 32 >>u (32 << 1 + (ptr_487_184 <=u 10))
-    goto block_26708;
-
-    let var_6865 = u64[r1 + 160]
-    u64[r1 + 424] = var_6865
-    let cond_239 = var_6865 <u 0
-    u64[r1 + 432] = cond_239
-    if (var_6865 <u 0) goto block_26824;
-
-    block_26824:
-    goto block_26829;
-
-    goto block_26813;
-
-    block_26829:
-    goto block_2636d;
-
-    block_26813:
-    goto block_26829;
-
-    block_2682e:
-    u64[r1 + 384] = r7
-    goto block_26c2f;
-
-    block_26c2f:
-    let var_7142 = u64[r1 + 72]
-    u64[r1 + 616] = var_7142
-    let var_7144 = u64[r1 + 600]
-    u64[r1 + 624] = var_7144
-    let cond_260 = var_7142 <s var_7144
-    u64[r1 + 632] = cond_260
-    u64[r1 + 640] = cond_260
-    u64[r1 + 648] = cond_260
-    let cond_261 = cond_260 <u 0
-    u64[r1 + 656] = cond_261
-    if (cond_260 <u 0) goto block_26dab;
-
-    block_26dab:
-    goto block_26db0;
-
-    goto block_26d17;
-
-    block_26db0:
-    goto block_26c84;
-
-    block_26d17:
-    let var_7184 = u64[r1 + 600]
-    u64[r1 + 744] = var_7184
-    let var_7188 = 2 << var_7184
-    u64[r1 + 752] = var_7188
-    let var_7192 = 32 >>u (32 << var_7188)
-    u64[r1 + 760] = var_7192
-    let var_7193 = u64[r1 + 40]
-    u64[r1 + 768] = var_7193
-    u64[r1 + 776] = var_7192
-    let var_7199 = var_7192 + var_7193
-    u64[r1 + 784] = var_7199
-    let var_7203 = 32 >>u (32 << var_7199)
-    u64[r1 + 792] = var_7203
-    let var_7204 = u32[var_7203 + 0x60000]
-    u64[r1 + 800] = var_7204
-    u64[r1 + 808] = var_7204
-    let cond_263 = var_7204 <u 0
-    u64[r1 + 816] = cond_263
-    if (var_7204 <u 0) goto block_26f10;
-
-    block_26c84:
-    let var_7156 = u64[r1 + 72]
-    u64[r1 + 664] = var_7156
-    let var_7160 = 2 << var_7156
-    u64[r1 + 672] = var_7160
-    let var_7164 = 32 >>u (32 << var_7160)
-    u64[r1 + 680] = var_7164
-    let var_7165 = u64[r1 + 40]
-    u64[r1 + 688] = var_7165
-    u64[r1 + 696] = var_7164
-    let var_7171 = var_7164 + var_7165
-    u64[r1 + 704] = var_7171
-    let var_7175 = 32 >>u (32 << var_7171)
-    u64[r1 + 712] = var_7175
-    let var_7176 = u32[var_7175 + 0x60000]
-    u64[r1 + 720] = var_7176
-    u64[r1 + 728] = var_7176
-    let cond_262 = var_7176 <u 0
-    u64[r1 + 736] = cond_262
-    if (var_7176 <u 0) goto block_27166;
-
-    block_26f10:
-    goto block_26f15;
-
-    goto block_26db5;
-
-    block_27166:
-    goto block_2716b;
-
-    goto block_27061;
-
-    block_26f15:
-    let var_7281 = u64[r1 + 288]
-    u64[r1 + 1016] = var_7281
-    let cond_264 = var_7281 <u 0
-    u64[r1 + 1024] = cond_264
-    if (var_7281 <u 0) goto block_2702e;
-
-    block_26db5:
-    let var_7212 = u64[r1 + 608]
-    u64[r1 + 824] = var_7212
-    let var_7216 = 1 << var_7212
-    u64[r1 + 832] = var_7216
-    let var_7220 = 32 >>u (32 << var_7216)
-    u64[r1 + 840] = var_7220
-    let var_7221 = u64[r1 + 384]
-    u64[r1 + 848] = var_7221
-    u64[r1 + 856] = var_7220
-    let var_7227 = var_7220 + var_7221
-    u64[r1 + 864] = var_7227
-    let var_7231 = 32 >>u (32 << var_7227)
-    u64[r1 + 872] = var_7231
-    let var_7232 = u64[r1 + 800]
-    u64[r1 + 880] = var_7232
-    let var_7236 = 20 - var_7232
-    u64[r1 + 888] = var_7236
-    let var_7240 = 32 >>u (32 << var_7236)
-    u64[r1 + 896] = var_7240
-    let var_7243 = 16 + var_7240
-    u64[r1 + 904] = var_7243
-    let var_7244 = u32[var_7243 + 0x60000]
-    u64[r1 + 912] = var_7244
-    u64[r1 + 920] = var_7244
-    let var_7249 = 1 >>u var_7244
-    u64[r1 + 928] = var_7249
-    let var_7253 = 32 >>u (32 << var_7249)
-    u64[r1 + 936] = var_7253
-    u64[r1 + 944] = var_7253
-    let var_7258 = 1 << var_7253
-    u64[r1 + 952] = var_7258
-    let var_7262 = 32 >>u (32 << var_7258)
-    u64[r1 + 960] = var_7262
-    let ptr_497 = var_7231 + 0x60000
-    let ptr_498 = u64[r1 + 800] + 0x60000
-    if (var_7262 == 0) goto block_26ed7;
-
-    block_2716b:
-    goto block_2682e;
-
-    block_27061:
-    let var_7344 = u64[r1 + 608]
-    u64[r1 + 1184] = var_7344
-    let var_7348 = 1 << var_7344
-    u64[r1 + 1192] = var_7348
-    let var_7352 = 32 >>u (32 << var_7348)
-    u64[r1 + 1200] = var_7352
-    let var_7353 = u64[r1 + 384]
-    u64[r1 + 1208] = var_7353
-    u64[r1 + 1216] = var_7352
-    let var_7359 = var_7352 + var_7353
-    u64[r1 + 1224] = var_7359
-    let var_7363 = 32 >>u (32 << var_7359)
-    u64[r1 + 1232] = var_7363
-    let var_7364 = u64[r1 + 720]
-    u64[r1 + 1240] = var_7364
-    let var_7368 = 20 - var_7364
-    u64[r1 + 1248] = var_7368
-    let var_7372 = 32 >>u (32 << var_7368)
-    u64[r1 + 1256] = var_7372
-    let var_7375 = 16 + var_7372
-    u64[r1 + 1264] = var_7375
-    let var_7376 = u32[var_7375 + 0x60000]
-    u64[r1 + 1272] = var_7376
-    u64[r1 + 1280] = var_7376
-    let var_7381 = 0xFFFFFFFE & var_7376
-    u64[r1 + 1288] = var_7381
-    let var_7385 = 32 >>u (32 << var_7381)
-    u64[r1 + 1296] = var_7385
-    let ptr_502 = var_7363 + 0x60000
-    let ptr_503 = u64[r1 + 720] + 0x60000
-    if (var_7385 == 0) goto block_27161;
-
-    block_2702e:
-    goto block_27033;
-
-    goto block_26f40;
-
-    block_26ed7:
-    let var_7270 = u64[r1 + 608]
-    u64[r1 + 976] = var_7270
-    let var_7272 = u64[r1 + 936]
-    u64[r1 + 984] = var_7272
-    let var_7276 = var_7272 + var_7270
-    u64[r1 + 992] = var_7276
-    u64[r1 + 1000] = 32 >>u (32 << var_7276)
-    goto block_26f15;
-
-    r2 = ptr_497 + 1
-    r3 = ptr_498 + 1
-
-    block_27161:
-    goto block_2716b;
-
-    r2 = ptr_502 + 1
-    r3 = ptr_503 + 1
-
-    block_27033:
-    let var_7335 = u64[r1 + 600]
-    u64[r1 + 1160] = var_7335
-    let var_7339 = 1 + var_7335
-    u64[r1 + 1168] = var_7339
-    u64[r1 + 1176] = 32 >>u (32 << var_7339)
-    goto block_26c2f;
-
-    block_26f40:
-    let var_7288 = u64[r1 + 1008]
-    u64[r1 + 1032] = var_7288
-    let var_7292 = 1 << var_7288
-    u64[r1 + 1040] = var_7292
-    let var_7296 = 32 >>u (32 << var_7292)
-    u64[r1 + 1048] = var_7296
-    let var_7297 = u64[r1 + 384]
-    u64[r1 + 1056] = var_7297
-    u64[r1 + 1064] = var_7296
-    let var_7303 = var_7296 + var_7297
-    u64[r1 + 1072] = var_7303
-    let var_7307 = 32 >>u (32 << var_7303)
-    u64[r1 + 1080] = var_7307
-    let var_7308 = u64[r1 + 288]
-    u64[r1 + 1088] = var_7308
-    let var_7312 = 1 << var_7308
-    u64[r1 + 1096] = var_7312
-    let var_7316 = 32 >>u (32 << var_7312)
-    u64[r1 + 1104] = var_7316
-    let ptr_499 = var_7307 + 0x60000
-    let ptr_500 = 0x642A0
-    if (var_7316 == 0) goto block_26ff5;
-
-    block_26ff5:
-    let var_7324 = u64[r1 + 288]
-    u64[r1 + 1120] = var_7324
-    let var_7326 = u64[r1 + 1008]
-    u64[r1 + 1128] = var_7326
-    let var_7330 = var_7326 + var_7324
-    u64[r1 + 1136] = var_7330
-    u64[r1 + 1144] = 32 >>u (32 << var_7330)
-    goto block_27033;
-
-    r2 = ptr_499 + 1
-    r3 = ptr_500 + 1
-
-    block_27170:
     u64[r1 + 176] = r7
     let var_7437 = u32[u64[r1 + 40] + 0x60000]
     u64[r1 + 184] = var_7437
@@ -4316,218 +4262,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 304] = var_7470
     func_175(r1, r7)
 
-    block_27386:
-    let ptr_514 = ptr_516 - 648
-    func_177(ptr_514, r7)
-
-    block_2779a:
-    func_178(r1, r7)
-
-    block_27835:
-    if (0xFEFD0000 >=u r1 - 1048) goto block_2784b;
-
-    block_2784b:
-    goto block_27170;
-
-    return
-
-    let var_7498 = u32[u64[r1 + 40] + 0x60000]
-    u64[r1 + 56] = var_7498
-    let var_7501 = 4 + u64[r1 + 40]
-    u64[r1 + 64] = var_7501
-    u64[r1 + 72] = u32[var_7501 + 0x60000]
-    u32[28] = 1
-    func_179(r1, r7)
-
-    u64[r1 + 120] = r7
-    u64[r1 + 128] = r7
-    let var_7511 = 255 & r7
-    u64[r1 + 136] = var_7511
-    let var_7515 = 32 >>u (32 << var_7511)
-    u64[r1 + 144] = var_7515
-    let var_7518 = 4 + u64[r1 + 80]
-    u64[r1 + 152] = var_7518
-    let var_7519 = u32[var_7518 + 0x60000]
-    u64[r1 + 160] = var_7519
-    u64[r1 + 168] = u8[var_7519 + 0x60000]
-    u64[r1 + 176] = var_7515
-    let cond_267 = !(var_7515)
-    u64[r1 + 184] = cond_267
-    u64[r1 + 192] = cond_267
-    u64[r1 + 200] = cond_267
-    let cond_268 = cond_267 <u 0
-    u64[r1 + 208] = cond_268
-    if (cond_267 <u 0) goto block_27abb;
-
-    block_27abb:
-    goto block_27ac0;
-
-    goto block_27a75;
-
-    block_27ac0:
-    let var_7539 = 8 + u64[r1 + 80]
-    u64[r1 + 352] = var_7539
-    let var_7540 = u32[var_7539 + 0x60000]
-    u64[r1 + 360] = var_7540
-    let var_7541 = u64[r1 + 144]
-    u64[r1 + 368] = var_7541
-    u64[r1 + 376] = var_7540
-    let cond_269 = var_7541 <s var_7540
-    u64[r1 + 384] = cond_269
-    u64[r1 + 392] = cond_269
-    u64[r1 + 400] = cond_269
-    let cond_270 = cond_269 <u 0
-    u64[r1 + 408] = cond_270
-    if (cond_269 <u 0) goto block_27be8;
-
-    block_27a75:
-    func_180(r1, r7)
-
-    block_27be8:
-    goto block_27bed;
-
-    goto block_27b30;
-
-    block_27bed:
-    let var_7578 = u64[r1 + 144]
-    u64[r1 + 512] = var_7578
-    let var_7582 = var_7578 - 8
-    u64[r1 + 520] = var_7582
-    let var_7586 = 32 >>u (32 << var_7582)
-    u64[r1 + 528] = var_7586
-    u64[r1 + 536] = var_7586
-    let var_7591 = var_7586 << 1
-    u64[r1 + 544] = var_7591
-    u64[r1 + 552] = 32 >>u (32 << var_7591)
-    u64[r1 + 560] = var_7586
-    let cond_271 = var_7586 >u 32
-    u64[r1 + 568] = cond_271
-    u64[r1 + 576] = cond_271
-    u64[r1 + 584] = cond_271
-    let cond_272 = cond_271 <u 0
-    u64[r1 + 592] = cond_272
-    u64[r1 + 600] = 0
-    if (cond_271 >=u 0) goto block_27c94;
-
-    block_27b30:
-    r9 = u64[r1 + 144]
-    r0 = 900
-    goto block_26300;
-
-    block_27c94:
-    let var_7610 = u64[r1 + 168]
-    u64[r1 + 608] = var_7610
-    let var_7612 = u64[r1 + 600]
-    u64[r1 + 616] = var_7612
-    let var_7616 = var_7612 + var_7610
-    u64[r1 + 624] = var_7616
-    let var_7620 = 32 >>u (32 << var_7616)
-    u64[r1 + 632] = var_7620
-    u64[r1 + 640] = var_7620
-    let var_7625 = 256 - var_7620
-    u64[r1 + 648] = var_7625
-    let var_7629 = 32 >>u (32 << var_7625)
-    u64[r1 + 656] = var_7629
-    let var_7630 = u64[r1 + 144]
-    u64[r1 + 664] = var_7630
-    let var_7634 = 3 << var_7630
-    u64[r1 + 672] = var_7634
-    let var_7638 = 32 >>u (32 << var_7634)
-    u64[r1 + 680] = var_7638
-    u64[r1 + 688] = var_7629
-    u64[r1 + 696] = var_7638
-    let var_7645 = var_7638 << var_7629
-    u64[r1 + 704] = var_7645
-    u64[r1 + 712] = 32 >>u (32 << var_7645)
-    let var_7650 = u64[r1 + 144]
-    u64[r1 + 720] = var_7650
-    let var_7654 = 1 - var_7650
-    u64[r1 + 728] = var_7654
-    u64[r1 + 736] = 32 >>u (32 << var_7654)
-    goto block_27d7d;
-
-    u64[r1 + 600] = u64[r1 + 552]
-
-    block_27d7d:
-    let var_7659 = u64[r1 + 752]
-    u64[r1 + 760] = var_7659
-    let cond_274 = var_7659 <=s 0
-    u64[r1 + 768] = cond_274
-    u64[r1 + 776] = cond_274
-    u64[r1 + 784] = cond_274
-    let cond_275 = cond_274 <u 0
-    u64[r1 + 792] = cond_275
-    if (cond_274 <u 0) goto block_27f7d;
-
-    block_27f7d:
-    goto block_27f82;
-
-    goto block_27e6e;
-
-    block_27f82:
-    goto block_27dca;
-
-    block_27e6e:
-    let var_7676 = 4 + u64[r1 + 80]
-    u64[r1 + 888] = var_7676
-    let var_7677 = u32[var_7676 + 0x60000]
-    u64[r1 + 896] = var_7677
-    let var_7678 = u64[r1 + 752]
-    u64[r1 + 904] = var_7678
-    let var_7682 = 1 + var_7678
-    u64[r1 + 912] = var_7682
-    let var_7686 = 32 >>u (32 << var_7682)
-    u64[r1 + 920] = var_7686
-    u64[r1 + 928] = var_7677
-    u64[r1 + 936] = var_7686
-    let var_7693 = var_7686 + var_7677
-    u64[r1 + 944] = var_7693
-    let var_7697 = 32 >>u (32 << var_7693)
-    u64[r1 + 952] = var_7697
-    let var_7698 = u8[var_7697 + 0x60000]
-    u64[r1 + 960] = var_7698
-    let var_7699 = u64[r1 + 744]
-    u64[r1 + 968] = var_7699
-    let var_7703 = 8 << var_7699
-    u64[r1 + 976] = var_7703
-    let var_7707 = 32 >>u (32 << var_7703)
-    u64[r1 + 984] = var_7707
-    u64[r1 + 992] = var_7698
-    u64[r1 + 1000] = var_7707
-    let var_7714 = var_7707 + var_7698
-    u64[r1 + 1008] = var_7714
-    u64[r1 + 1016] = 32 >>u (32 << var_7714)
-    let var_7719 = u64[r1 + 752]
-    u64[r1 + 1024] = var_7719
-    let var_7723 = 1 - var_7719
-    u64[r1 + 1032] = var_7723
-    u64[r1 + 1040] = 32 >>u (32 << var_7723)
-    goto block_27d7d;
-
-    block_27dca:
-    r9 = 8
-    r10 = 45
-    r0 = 906
-    goto block_34ec;
-
-    u64[r1 + 416] = r7
-    let var_7559 = 8 + u64[r1 + 80]
-    u64[r1 + 424] = var_7559
-    u64[r1 + 432] = u32[var_7559 + 0x60000]
-    r0 = 902
-    goto block_26300;
-
-    u64[r1 + 440] = r7
-    u32[0x343A4] = u64[r1 + 416]
-    u32[0x343AC] = r7
-    let var_7565 = u32[0x3439C]
-    u64[r1 + 464] = var_7565
-    u64[r1 + 472] = var_7565
-    let var_7570 = 2 >>u var_7565
-    u64[r1 + 480] = var_7570
-    u64[r1 + 488] = 32 >>u (32 << var_7570)
-    func_181(r1, r7)
-
     block_27f87:
     if (0xFEFD0000 >=u r1 - 200) goto block_27f9c;
 
@@ -4537,19 +4271,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     return
 
-    u64[r1 + 64] = u32[u64[r1 + 40] + 0x60000]
-    let var_7736 = 4 + u64[r1 + 40]
-    u64[r1 + 72] = var_7736
-    let var_7737 = u32[var_7736 + 0x60000]
-    u64[r1 + 80] = var_7737
-    let var_7738 = u64[r1 + 48]
-    u64[r1 + 88] = var_7738
-    u64[r1 + 96] = var_7737
-    let var_7744 = var_7737 + var_7738
-    u64[r1 + 104] = var_7744
-    u64[r1 + 112] = 32 >>u (32 << var_7744)
-    func_183(r1, r7)
-
     block_280b8:
     if (0xFEFD0000 >=u ptr_731 - 288) goto block_280cd;
 
@@ -4557,64 +4278,15 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 16
     r10 = 6
     r0 = 912
-    goto block_34ec;
+    goto block_3aa2;
 
     return
-
-    u64[r1 + 48] = r7
-    u32[r7 + 0x60000] = 0
-    let var_7761 = 4 + r7
-    u64[r1 + 64] = var_7761
-    u32[var_7761 + 0x60000] = 0
-    let var_7765 = 8 + r7
-    u64[r1 + 80] = var_7765
-    u32[var_7765 + 0x60000] = 0
-    let var_7769 = 12 + r7
-    u64[r1 + 96] = var_7769
-    u32[var_7769 + 0x60000] = 0
-    let var_7771 = u64[r1 + 40]
-    u64[r1 + 112] = var_7771
-    let cond_276 = var_7771 <u 0x3FFFFFFC
-    u64[r1 + 120] = cond_276
-    u64[r1 + 128] = cond_276
-    u64[r1 + 136] = cond_276
-    let cond_277 = cond_276 <u 0
-    u64[r1 + 144] = cond_277
-    if (cond_276 <u 0) goto block_281ab;
-
-    block_281ab:
-    goto block_281b0;
-
-    goto block_281a9;
-
-    block_281b0:
-    let var_7783 = u64[r1 + 40]
-    u64[r1 + 168] = var_7783
-    let cond_279 = var_7783 >=u 8
-    u64[r1 + 176] = cond_279
-    u64[r1 + 184] = cond_279
-    u64[r1 + 192] = cond_279
-    let cond_280 = cond_279 <u 0
-    u64[r1 + 200] = cond_280
-    u64[r1 + 208] = u64[r1 + 40]
-    if (cond_279 >=u 0) goto block_28207;
-
-    block_281a9:
-    return
-
-    block_28207:
-    r9 = u64[r1 + 208]
-    func_185(r1, r7)
-
-    u64[r1 + 208] = 8
 
     block_282a3:
     if (0xFEFD0000 >=u r1 - 280) goto block_282b8;
 
     block_282b8:
-    let ptr_539_40 = var_8043
     let ptr_539_48 = var_8044
-    let ptr_539_56 = var_8042
     if (u32[12 + var_8043 + 0x60000] >=u var_8044 <u 0) goto block_28393;
 
     return
@@ -4624,15 +4296,8 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     goto block_2834a;
 
-    block_28398:
-    u8[32 >>u (32 << ptr_539_48 + u32[4 + ptr_539_40 + 0x60000]) + 0x60000] = ptr_539_56
-    goto block_28336;
-
     block_2834a:
     if (ptr_539_48 >s 0 <u 0) goto block_283f8;
-
-    block_28336:
-    return
 
     block_283f8:
     goto block_283fd;
@@ -4648,11 +4313,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_283f6:
     return
-
-    let var_7870 = 12 + u64[r1 + 40]
-    u64[r1 + 264] = var_7870
-    u32[var_7870 + 0x60000] = u64[r1 + 248]
-    goto block_28398;
 
     block_28460:
     if (0xFEFD0000 >=u r1 - 144) goto block_28475;
@@ -4682,22 +4342,9 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 8
     r10 = 43
     r0 = 920
-    goto block_34ec;
+    goto block_3aa2;
 
     return
-
-    u64[r1 + 48] = r7
-    u32[r7 + 0x60000] = u64[r1 + 40]
-    let var_7906 = 4 + r7
-    u64[r1 + 64] = var_7906
-    u32[var_7906 + 0x60000] = 0
-    goto block_27835;
-
-    u64[r1 + 80] = r7
-    r9 = u64[r1 + 48]
-    r10 = 1
-    r0 = 924
-    goto block_27170;
 
     let var_7915 = 4 + u64[r1 + 48]
     u64[r1 + 96] = var_7915
@@ -4726,7 +4373,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[var_7945 + 0x60000] = var_7942
     r9 = u64[r1 + 48]
     r0 = 926
-    goto block_27835;
+    goto block_27836;
 
     u64[r1 + 216] = r7
     let var_7949 = u64[r1 + 80]
@@ -4789,8 +4436,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 520] = var_8037
     let var_8041 = 32 >>u (32 << var_8037)
     u64[r1 + 528] = var_8041
-    let var_8042 = u8[var_8041 + 0x60000]
-    u64[r1 + 536] = var_8042
+    u64[r1 + 536] = u8[var_8041 + 0x60000]
     let var_8043 = u64[r1 + 288]
     let var_8044 = u64[r1 + 304]
     goto block_282a3;
@@ -4814,7 +4460,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 4
     r10 = 27
     r0 = 936
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 432] = r7
     u32[r7 + 0x60000] = 0
@@ -4836,7 +4482,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 600] = 32 >>u (32 << var_8060)
     r10 = 28
     r0 = 940
-    goto block_34ec;
+    goto block_3aa2;
 
     goto block_2896e;
 
@@ -4910,7 +4556,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 4
     r10 = 29
     r0 = 942
-    goto block_34ec;
+    goto block_3aa2;
 
     block_28b5e:
     let var_8135 = u64[r1 + 856]
@@ -5102,7 +4748,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 4
     r10 = 30
     r0 = 946
-    goto block_34ec;
+    goto block_3aa2;
 
     block_2900a:
     let var_8336 = u64[r1 + 1528]
@@ -5230,7 +4876,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 1936] = 32 >>u (32 << var_8463)
     r10 = 31
     r0 = 948
-    goto block_34ec;
+    goto block_3aa2;
 
     goto block_2896e;
 
@@ -5586,122 +5232,21 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[var_8812 + 0x60000] = 2
     goto block_29b45;
 
-    block_29bea:
-    u64[r1 + 264] = r7
-    let ptr_601 = r7 + 0x60000
-    let ptr_602 = u64[r1 + 40] + 0x60000
-    if (var_8927 == 0) goto block_29dd7;
-
-    block_29dd7:
-    let var_8932 = u64[r1 + 112]
-    u64[r1 + 280] = var_8932
-    let var_8934 = u64[r1 + 264]
-    u64[r1 + 288] = var_8934
-    let var_8938 = var_8934 + var_8932
-    u64[r1 + 296] = var_8938
-    let var_8942 = 32 >>u (32 << var_8938)
-    u64[r1 + 304] = var_8942
-    let ptr_603 = var_8942 + 0x60000
-    let ptr_604 = u64[r1 + 48] + 0x60000
-    if (var_8945 == 0) goto block_29e38;
-
-    r2 = ptr_601 + 1
-    r3 = ptr_602 + 1
-
-    block_29e38:
-    goto block_29bea;
-
-    r2 = ptr_603 + 1
-    r3 = ptr_604 + 1
-
-    block_29e3d:
-    if (0xFEFD0000 >=u ptr_617 - 904) goto block_29e52;
-
-    block_29e52:
-    let ptr_605_40 = ptr_617_40
-    let var_8960 = 32 >>u (32 << (12 >>u ptr_617_80))
-    let ptr_605_80 = var_8960
-    if (var_8960 >u 16 <u 0) goto block_29f1e;
-
-    return
-
-    block_29f1e:
-    goto block_29f23;
-
-    goto block_29ee9;
-
-    block_29f23:
-    let var_9001 = 32 >>u (32 << 0x165667B5 + (32 >>u (32 << 0xC2B2AE3D * ptr_605_80)))
-    let var_9026 = 32 >>u (32 << 0x27D4EB2F * (32 >>u (32 << ((31 & 17) - 32 >>u var_9001 | (31 & 17) << var_9001))))
-    let var_9055 = 32 >>u (32 << 0x85EBCA77 * (32 >>u (32 << (32 >>u (32 << (15 >>u var_9026)) ^ var_9026))))
-    let var_9084 = 32 >>u (32 << 0xC2B2AE3D * (32 >>u (32 << (32 >>u (32 << (13 >>u var_9055)) ^ var_9055))))
-    let var_9136 = u32[32 >>u (32 << (32 >>u (32 << (2 << (32 >>u (32 << (32 >>u (32 << (32 >>u (32 << (16 >>u var_9084)) ^ var_9084)) & u32[4 + ptr_605_40->field_393216 + 0x60000])))))) + u32[ptr_605_40->field_393216 + 0x60000]) + 0x60000]
-    goto block_2a284;
-
-    block_29ee9:
-    r0 = 954
-    goto block_25f33;
-
-    block_2a284:
-    if (ptr_605_648 <u 0) goto block_2a323;
-
-    block_2a323:
-    goto block_2a328;
-
-    goto block_2a2b4;
-
-    block_2a328:
-    goto block_2a2af;
-
-    block_2a2b4:
-    let ptr_605_680 = u32[8 + ptr_605_648 + 0x60000]
-    let var_9167 = 32
-    if (var_9167 >>u (var_9167 << (1 & u32[8 + ptr_605_648 + 0x60000])) <u 0) goto block_2a332;
-
-    block_2a2af:
-    goto block_2a237;
-
-    block_2a332:
-    goto block_2a371;
-
-    goto block_2a32d;
-
-    block_2a237:
-    if (!(ptr_605_600) <u 0) goto block_2a470;
-
-    block_2a371:
-    if (ptr_605_768 <u 0) goto block_2a39c;
-
-    block_2a32d:
-    goto block_2a371;
-
-    block_2a470:
-    goto block_2a475;
-
-    goto block_2a3d1;
-
-    block_2a39c:
-    let var_9201 = 32 >>u (32 << (0xFFFFFFFE & ptr_605_680))
-    goto block_2a284;
-
-    goto block_2a237;
-
-    block_2a475:
-    func_193(r1, r7)
-
-    block_2a3d1:
-    r0 = 958
-    goto block_1a07a;
-
-    u64[r1 + 136] = r7
-    func_191(r1, r7)
+    u64[r1 + 1312] = r7
+    r9 = 8
+    r10 = 46
+    r0 = 1008
+    goto block_3aa2;
 
     u64[r1 + 832] = r7
     u64[r1 + 840] = u32[u64[r1 + 40] + 0x60000]
     r9 = 8
     r10 = 11
     r0 = 960
-    goto block_34ec;
+    goto block_3aa2;
+
+    u64[r1 + 136] = r7
+    func_191(r1, r7)
 
     u64[r1 + 848] = r7
     u32[r7 + 0x60000] = u64[r1 + 48]
@@ -5711,7 +5256,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = u64[r1 + 840]
     r10 = u64[r1 + 80]
     r0 = 962
-    goto block_1a4ae;
+    goto block_1a4f4;
 
     goto block_2a475;
 
@@ -5719,7 +5264,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     if (0xFEFD0000 >=u r1 - 552) goto block_2a4b6;
 
     block_2a4b6:
-    let ptr_617 = r1 - 552
     let ptr_617_40 = var_10149
     goto block_2a4ee;
 
@@ -5744,50 +5288,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_2a4da:
     return
-
-    u64[r1 + 144] = r7
-    let var_9253 = u64[r1 + 80]
-    u64[r1 + 152] = var_9253
-    let var_9257 = 4095 & var_9253
-    u64[r1 + 160] = var_9257
-    let var_9261 = 32 >>u (32 << var_9257)
-    u64[r1 + 168] = var_9261
-    u64[r1 + 176] = var_9261
-    let var_9266 = var_9261 - 0x1000
-    u64[r1 + 184] = var_9266
-    let var_9270 = 32 >>u (32 << var_9266)
-    u64[r1 + 192] = var_9270
-    let var_9273 = 8 + u64[r1 + 72]
-    u64[r1 + 200] = var_9273
-    let var_9274 = u32[var_9273 + 0x60000]
-    u64[r1 + 208] = var_9274
-    u64[r1 + 216] = var_9270
-    u64[r1 + 224] = var_9274
-    let cond_344 = var_9270 <u var_9274
-    u64[r1 + 232] = cond_344
-    u64[r1 + 240] = cond_344
-    u64[r1 + 248] = cond_344
-    let cond_345 = cond_344 <u 0
-    u64[r1 + 256] = cond_345
-    if (cond_344 <u 0) goto block_2a656;
-
-    block_2a656:
-    goto block_2a65b;
-
-    goto block_2a637;
-
-    block_2a65b:
-    let var_9295 = 4 + u64[r1 + 144]
-    u64[r1 + 288] = var_9295
-    u64[r1 + 296] = u32[var_9295 + 0x60000]
-    r0 = 968
-    goto block_cd08;
-
-    block_2a637:
-    let var_9291 = 8 + u64[r1 + 72]
-    u64[r1 + 264] = var_9291
-    u64[r1 + 272] = u32[var_9291 + 0x60000]
-    goto block_2a65b;
 
     u64[r1 + 304] = r7
     r9 = u64[r1 + 72]
@@ -5870,53 +5370,14 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 544] = r7
     goto block_2a4ee;
 
-    block_2a868:
-    if (0xFEFD0000 >=u r1 - 424) goto block_2a87d;
-
-    block_2a87d:
-    let ptr_629 = r1 - 424
-    func_195(ptr_629)
-
-    return
-
     block_2ab02:
     if (0xFEFD0000 >=u r1 - 184) goto block_2ab17;
 
     block_2ab17:
-    let ptr_630_88 = 32 >>u (32 << var_10196 + var_10195)
+    let var_9394 = 32 >>u (32 << var_10196 + var_10195)
     goto block_2ab77;
 
     return
-
-    block_2ab77:
-    if (ptr_630_88 <u ptr_630_96 <u 0) goto block_2ac15;
-
-    block_2ac15:
-    goto block_2ac1a;
-
-    goto block_2abca;
-
-    block_2ac1a:
-    goto block_2abc5;
-
-    block_2abca:
-    r10 = 2
-    r0 = 976
-    goto block_29e3d;
-
-    block_2abc5:
-    goto block_2ab63;
-
-    block_2ab63:
-    return
-
-    u64[r1 + 152] = r7
-    let var_9419 = u64[r1 + 96]
-    u64[r1 + 160] = var_9419
-    let var_9423 = 0x1000 + var_9419
-    u64[r1 + 168] = var_9423
-    u64[r1 + 176] = 32 >>u (32 << var_9423)
-    goto block_2ab77;
 
     block_2ac1f:
     if (0xFEFD0000 >=u r1 - 3904) goto block_2ac34;
@@ -5936,16 +5397,16 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 8
     r10 = 43
     r0 = 984
-    goto block_34ec;
+    goto block_3aa2;
 
     block_2acbe:
     r0 = 978
-    goto block_25f33;
+    goto block_27185;
 
     u64[r1 + 120] = r7
     r9 = 0x1000000
     r0 = 980
-    goto block_25f33;
+    goto block_27185;
 
     u64[r1 + 128] = r7
     u32[0x345D4] = u64[r1 + 120]
@@ -5957,13 +5418,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 168] = var_9457
     u64[r1 + 176] = 32 >>u (32 << var_9457)
     func_196(r1, r7)
-
-    u64[r1 + 200] = r7
-    u32[r7 + 0x60000] = u64[r1 + 40]
-    let var_9471 = 4 + r7
-    u64[r1 + 216] = var_9471
-    u32[var_9471 + 0x60000] = 0
-    goto block_2a868;
 
     u64[r1 + 232] = r7
     r9 = u64[r1 + 200]
@@ -6228,12 +5682,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 1288] = r7
     func_198(r1, r7)
 
-    u64[r1 + 1312] = r7
-    r9 = 8
-    r10 = 46
-    r0 = 1008
-    goto block_34ec;
-
     u64[r1 + 1320] = r7
     u64[r1 + 1328] = r7
     let cond_354 = !(r7)
@@ -6253,13 +5701,13 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 24
     r10 = 20
     r0 = 1012
-    goto block_34ec;
+    goto block_3aa2;
 
     block_2b59b:
     r9 = 0
     r10 = 0
     r0 = 1010
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 1368] = r7
     goto block_2b5bd;
@@ -6293,7 +5741,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 12
     r10 = 18
     r0 = 1018
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 1504] = r7
     u32[r7 + 0x60000] = 0
@@ -6311,7 +5759,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 19
     r12 = 0x4410
     r0 = 1020
-    goto block_3b2a;
+    goto block_3501;
 
     u64[r1 + 1568] = r7
     let var_9874 = 8 + u64[r1 + 1504]
@@ -6486,7 +5934,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 12
     r10 = 10
     r0 = 1024
-    goto block_34ec;
+    goto block_3aa2;
 
     block_2bb24:
     return
@@ -6561,7 +6009,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 36
     r10 = 15
     r0 = 1040
-    goto block_34ec;
+    goto block_3aa2;
 
     block_2bef6:
     r9 = u64[r1 + 1376]
@@ -6589,7 +6037,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 8
     r10 = 12
     r0 = 1026
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 2216] = r7
     u32[r7 + 0x60000] = u64[r1 + 1624]
@@ -6680,7 +6128,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 8
     r10 = 16
     r0 = 1042
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 2688] = r7
     u64[r1 + 2696] = r7
@@ -6708,13 +6156,13 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 16
     r10 = 17
     r0 = 1046
-    goto block_34ec;
+    goto block_3aa2;
 
     block_2c055:
     r9 = 0
     r10 = 0
     r0 = 1044
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 2736] = r7
     goto block_2c077;
@@ -6772,7 +6220,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 0
     r10 = 0
     r0 = 1048
-    goto block_34ec;
+    goto block_3aa2;
 
     block_2c266:
     goto block_2c26b;
@@ -6990,7 +6438,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 16
     r10 = 41
     r0 = 1052
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 3664] = r7
     let var_10552 = 4 + r7
@@ -7011,45 +6459,8 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 16
     r10 = 5
     r0 = 1056
-    goto block_34ec;
+    goto block_3aa2;
 
-    return
-
-    u64[r1 + 40] = r7
-    u64[r1 + 48] = r7
-    let cond_378 = !(r7)
-    u64[r1 + 56] = cond_378
-    u64[r1 + 64] = cond_378
-    u64[r1 + 72] = cond_378
-    let cond_379 = cond_378 <u 0
-    u64[r1 + 80] = cond_379
-    if (cond_378 <u 0) goto block_2c971;
-
-    block_2c971:
-    goto block_2c976;
-
-    goto block_2c955;
-
-    block_2c976:
-    let var_10647 = 4 + u64[r1 + 104]
-    u64[r1 + 120] = var_10647
-    u32[var_10647 + 0x60000] = 0
-    let var_10651 = 8 + u64[r1 + 104]
-    u64[r1 + 136] = var_10651
-    u32[var_10651 + 0x60000] = 0
-    let var_10655 = 12 + u64[r1 + 104]
-    u64[r1 + 152] = var_10655
-    u32[var_10655 + 0x60000] = 0
-    goto block_2c93e;
-
-    block_2c955:
-    r9 = 0
-    r10 = 0
-    r0 = 1058
-    goto block_34ec;
-
-    block_2c93e:
-    r7 = u64[r1 + 88]
     return
 
     u64[r1 + 96] = r7
@@ -8224,16 +7635,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     goto block_2ccc6;
 
-    block_2ee72:
-    if (0xFEFD0000 >=u r1 - 200) goto block_2ee87;
-
-    block_2ee87:
-    let ptr_882 = r1 - 200
-    let var_12158 = 32 >>u (32 << 1 + u32[12 + var_12581 + 0x60000])
-    func_207(ptr_882)
-
-    return
-
     block_2efa4:
     if (0xFEFD0000 >=u r1 - 1456) goto block_2efb9;
 
@@ -8244,25 +7645,9 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 40
     r12 = 0x4C60
     r0 = 1066
-    goto block_3b2a;
+    goto block_3501;
 
     return
-
-    u64[r1 + 48] = r7
-    let var_12173 = 28 + u64[r1 + 40]
-    u64[r1 + 56] = var_12173
-    let var_12174 = u32[var_12173 + 0x60000]
-    u64[r1 + 64] = var_12174
-    let var_12177 = 8 + var_12174
-    u64[r1 + 72] = var_12177
-    u64[r1 + 80] = u32[var_12177 + 0x60000]
-    let var_12181 = 16 + var_12174
-    u64[r1 + 88] = var_12181
-    u64[r1 + 96] = u32[var_12181 + 0x60000]
-    r9 = 16
-    r10 = 53
-    r0 = 1068
-    goto block_34ec;
 
     u64[r1 + 104] = r7
     u32[r7 + 0x60000] = 0
@@ -8313,7 +7698,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 288] = 32 >>u (32 << var_12236)
     r10 = 1
     r0 = 1070
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 264] = 8
 
@@ -8623,7 +8008,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 8
     r10 = 39
     r0 = 1084
-    goto block_34ec;
+    goto block_3aa2;
 
     goto block_2f81d;
 
@@ -8668,13 +8053,13 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 6
     r12 = 0x4C80
     r0 = 1088
-    goto block_3b2a;
+    goto block_3501;
 
     block_2f8c1:
     r9 = 0
     r10 = 0
     r0 = 1086
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 1288] = r7
     goto block_2f8e3;
@@ -8700,7 +8085,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 6
     r12 = 0
     r0 = 1090
-    goto block_3b2a;
+    goto block_3501;
 
     u64[r1 + 1400] = r7
     r10 = 0
@@ -8724,7 +8109,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 36
     r10 = 47
     r0 = 1098
-    goto block_34ec;
+    goto block_3aa2;
 
     return
 
@@ -8758,13 +8143,13 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 6
     r12 = 0x4C00
     r0 = 1102
-    goto block_3b2a;
+    goto block_3501;
 
     block_2fad3:
     r9 = 0
     r10 = 0
     r0 = 1100
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 104] = r7
     goto block_2faf4;
@@ -8778,7 +8163,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 36
     r12 = 0x4C20
     r0 = 1104
-    goto block_3b2a;
+    goto block_3501;
 
     u64[r1 + 200] = r7
     let var_12637 = 28 + u64[r1 + 112]
@@ -8789,7 +8174,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 40
     r12 = 0x4C40
     r0 = 1106
-    goto block_3b2a;
+    goto block_3501;
 
     u64[r1 + 224] = r7
     let var_12646 = 32 + u64[r1 + 112]
@@ -8820,7 +8205,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 36
     r12 = 0
     r0 = 1108
-    goto block_3b2a;
+    goto block_3501;
 
     u64[r1 + 352] = r7
     let var_12687 = 4 + r7
@@ -8959,7 +8344,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 6
     r12 = 0x4CA0
     r0 = 1114
-    goto block_3b2a;
+    goto block_3501;
 
     block_301e3:
     goto block_301e8;
@@ -8990,7 +8375,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 6
     r12 = 0x4CC0
     r0 = 1116
-    goto block_3b2a;
+    goto block_3501;
 
     block_3028d:
     goto block_30292;
@@ -9008,7 +8393,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 6
     r12 = 0x4CE0
     r0 = 1118
-    goto block_3b2a;
+    goto block_3501;
 
     block_2ff28:
     let var_12780 = 24 + u64[r1 + 112]
@@ -9031,7 +8416,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 16
     r10 = 54
     r0 = 1112
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 760] = r7
     u32[r7 + 0x60000] = 0
@@ -9082,7 +8467,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 2008] = 32 >>u (32 << var_13173)
     r10 = 1
     r0 = 1134
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 1984] = 8
 
@@ -9144,7 +8529,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r12 = 1
     u64[0xFF00] = u64[r1 + 1160]
     r0 = 1124
-    goto block_c05f;
+    goto block_c55a;
 
     block_3034e:
     let var_12939 = u8[u64[r1 + 1128] + 0x60000]
@@ -9170,7 +8555,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 6
     r12 = 0x4D00
     r0 = 1128
-    goto block_3b2a;
+    goto block_3501;
 
     let var_12968 = u8[u64[r1 + 1128] + 0x60000]
     u64[r1 + 1312] = var_12968
@@ -9538,68 +8923,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[var_13220 + 0x60000] = u64[r1 + 2096]
     goto block_30d71;
 
-    block_30d71:
-    let var_13365 = 12 + u64[r1 + 760]
-    u64[r1 + 2632] = var_13365
-    let var_13366 = u32[var_13365 + 0x60000]
-    u64[r1 + 2640] = var_13366
-    let var_13367 = u64[r1 + 2624]
-    u64[r1 + 2648] = var_13367
-    u64[r1 + 2656] = var_13366
-    let cond_514 = var_13366 <s var_13367
-    u64[r1 + 2664] = cond_514
-    u64[r1 + 2672] = cond_514
-    u64[r1 + 2680] = cond_514
-    let cond_515 = cond_514 <u 0
-    u64[r1 + 2688] = cond_515
-    if (cond_514 <u 0) goto block_30fcc;
-
-    block_30fcc:
-    goto block_30fd1;
-
-    goto block_30ebe;
-
-    block_30fd1:
-    goto block_30de2;
-
-    block_30ebe:
-    let var_13396 = 24 + u64[r1 + 704]
-    u64[r1 + 2816] = var_13396
-    let var_13397 = u32[var_13396 + 0x60000]
-    u64[r1 + 2824] = var_13397
-    u64[r1 + 2832] = u32[var_13397 + 0x60000]
-    let var_13401 = 4 + u64[r1 + 760]
-    u64[r1 + 2840] = var_13401
-    let var_13402 = u32[var_13401 + 0x60000]
-    u64[r1 + 2848] = var_13402
-    let var_13403 = u64[r1 + 2624]
-    u64[r1 + 2856] = var_13403
-    let var_13407 = 2 << var_13403
-    u64[r1 + 2864] = var_13407
-    let var_13411 = 32 >>u (32 << var_13407)
-    u64[r1 + 2872] = var_13411
-    u64[r1 + 2880] = var_13402
-    u64[r1 + 2888] = var_13411
-    let var_13418 = var_13411 + var_13402
-    u64[r1 + 2896] = var_13418
-    let var_13422 = 32 >>u (32 << var_13418)
-    u64[r1 + 2904] = var_13422
-    let var_13423 = u32[var_13422 + 0x60000]
-    u64[r1 + 2912] = var_13423
-    let var_13426 = 4 + var_13423
-    u64[r1 + 2920] = var_13426
-    u64[r1 + 2928] = u32[var_13426 + 0x60000]
-    r0 = 1144
-    goto block_2ee72;
-
-    block_30de2:
-    let var_13383 = 28 + u64[r1 + 704]
-    u64[r1 + 2696] = var_13383
-    u64[r1 + 2704] = u32[var_13383 + 0x60000]
-    r9 = 16
-    r0 = 1140
-    goto block_1a42c;
-
     let var_13361 = 12 + u64[r1 + 760]
     u64[r1 + 2608] = var_13361
     u32[var_13361 + 0x60000] = u64[r1 + 2592]
@@ -9611,14 +8934,8 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[var_13390 + 0x60000] = 3
     func_211(r1, r7)
 
-    let var_13431 = u64[r1 + 2624]
-    u64[r1 + 2944] = var_13431
-    let var_13435 = 1 + var_13431
-    u64[r1 + 2952] = var_13435
-    u64[r1 + 2960] = 32 >>u (32 << var_13435)
-    goto block_30d71;
-
-    let ptr_993_40 = u64[r1] - 0x60000
+    let var_13441 = u64[r1]
+    let ptr_993_40 = var_13441 - 0x60000
     let ptr_993_48 = u64[r1 + 8]
     if (u64[r1 + 8] >u 20 <u 0) goto block_3107c;
 
@@ -9636,7 +8953,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 6
     r12 = 0x3A20
     r0 = 1148
-    goto block_3b2a;
+    goto block_3501;
 
     goto block_31056;
 
@@ -9703,7 +9020,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 6
     r12 = 0x3A40
     r0 = 1150
-    goto block_3b2a;
+    goto block_3501;
 
     u64[r1 + 344] = r7
     goto block_31306;
@@ -9756,7 +9073,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 36
     r12 = 0x3A60
     r0 = 1154
-    goto block_3b2a;
+    goto block_3501;
 
     let var_13568 = u64[r1 + 264]
     u64[r1 + 424] = var_13568
@@ -9771,7 +9088,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 38
     r12 = 0x3A80
     r0 = 1156
-    goto block_3b2a;
+    goto block_3501;
 
     u64[r1 + 512] = r7
     r9 = 0
@@ -9779,7 +9096,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r11 = 40
     r12 = 0x3AA0
     r0 = 1158
-    goto block_3b2a;
+    goto block_3501;
 
     u64[r1 + 520] = r7
     let var_13608 = 12 + u64[r1 + 256]
@@ -9787,15 +9104,11 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 536] = u32[var_13608 + 0x60000]
     func_212(r1, r7, r11, r12)
 
-    r9 = 0
-    r0 = 1164
-    goto block_77ed;
-
     u64[r1 + 560] = r7
     r9 = 8
     r10 = 43
     r0 = 1166
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 568] = r7
     u32[r7 + 0x60000] = u64[r1 + 544]
@@ -9803,7 +9116,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u64[r1 + 584] = var_13620
     u32[var_13620 + 0x60000] = 0
     r0 = 1168
-    goto block_27835;
+    goto block_27836;
 
     u64[r1 + 600] = r7
     r9 = u64[r1 + 568]
@@ -9840,7 +9153,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 8
     r10 = 42
     r0 = 1174
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 728] = r7
     u32[r7 + 0x60000] = u64[r1 + 640]
@@ -9874,7 +9187,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 28
     r10 = 48
     r0 = 1182
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 880] = r7
     let var_13699 = 16 + r7
@@ -9906,7 +9219,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 52
     r10 = 25
     r0 = 1184
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 1032] = r7
     u32[r7 + 0x60000] = 0
@@ -9937,7 +9250,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 8
     r10 = 33
     r0 = 1186
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 1176] = r7
     u64[r1 + 1184] = r7
@@ -9967,7 +9280,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 0
     r10 = 0
     r0 = 1190
-    goto block_34ec;
+    goto block_3aa2;
 
     let var_13809 = u64[r1 + 448]
     u64[r1 + 1304] = var_13809
@@ -9986,7 +9299,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 20
     r10 = 13
     r0 = 1194
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 1408] = r7
     u64[r1 + 1416] = r7
@@ -10022,13 +9335,13 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 8
     r10 = 34
     r0 = 1198
-    goto block_34ec;
+    goto block_3aa2;
 
     block_31aa8:
     r9 = 0
     r10 = 0
     r0 = 1196
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 1456] = r7
     goto block_31aca;
@@ -10064,13 +9377,13 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 8
     r10 = 49
     r0 = 1202
-    goto block_34ec;
+    goto block_3aa2;
 
     block_31bbb:
     r9 = 0
     r10 = 0
     r0 = 1200
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 1608] = r7
     goto block_31bdd;
@@ -10284,7 +9597,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 8
     r10 = 12
     r0 = 1214
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 56] = r7
     u32[r7 + 0x60000] = 0xFFFFFFFF
@@ -10294,7 +9607,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 8
     r10 = 11
     r0 = 1216
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 88] = r7
     u32[r7 + 0x60000] = 0
@@ -10320,7 +9633,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r9 = 24
     r10 = 35
     r0 = 1224
-    goto block_34ec;
+    goto block_3aa2;
 
     u64[r1 + 144] = r7
     r9 = 16
@@ -10397,15 +9710,18 @@ fn func_3(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
         func_4(r1 - 88, r7)
     }
 
-    if (0xFEFD0000 >=u r1 - 296) goto block_3171;
+    while (0xFEFD0000 <u r1 - 88 - 1784) {
+        if (0xFEFD0000 >=u r1 - 88 - 296) {
+            let ptr_16 = ptr_15 - 296
+            let var_562 = u8[32 >>u (32 << r11 + u32[4 + r10 + 0x60000]) + 0x60000]
+            let var_571 = 32 >>u (32 << 1 + r11)
 
-    block_3171:
-    let ptr_16 = r1 - 296
-    let var_562 = u8[32 >>u (32 << r11 + u32[4 + r10 + 0x60000]) + 0x60000]
-    let var_571 = 32 >>u (32 << 1 + r11)
-    func_10(ptr_16, r7)
+            continue
+        } else {
+            return
+        }
+    }
 
-    return
 }
 
 fn func_4(r1: u64, r7: u64) {

@@ -237,7 +237,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut function_dataflow: HashMap<usize, DataFlowAnalysis> = HashMap::new();
     let mut function_params_by_name: HashMap<String, Vec<u8>> = HashMap::new();
     for func in &detected_functions {
-        let func_cfg = build_function_cfg(&cfg, func);
+        let func_cfg = build_function_cfg(&cfg, func, &direct_call_patterns, &program.jump_table);
         let dataflow = DataFlowAnalysis::analyze(&func_cfg);
         let mut params: Vec<u8> = dataflow
             .live_in
@@ -286,7 +286,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let func_cfg = function_cfgs
             .remove(&func.entry_pc)
-            .unwrap_or_else(|| build_function_cfg(&cfg, func));
+            .unwrap_or_else(|| build_function_cfg(&cfg, func, &direct_call_patterns, &program.jump_table));
 
         if verbosity >= Verbosity::Verbose {
             eprintln!("  Computing dominator tree...");
@@ -347,11 +347,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for pc in redundant_call_setup_pcs {
             lifted.eliminated_pcs.insert(pc);
         }
-        // Suppress callee blocks that were misassigned to this function.
-        let caller_block_pcs: HashSet<usize> = direct_call_patterns
+        // Suppress callee/dispatch blocks that were misassigned to this function.
+        // Build a stop-set: caller blocks, return PCs, and orphan continuation PCs
+        // (jump-table entries that build_function_cfg connected as synthetic edges).
+        let jump_table_pcs: HashSet<usize> =
+            program.jump_table.iter().map(|&e| e as usize).collect();
+        let mut suppression_stop_pcs: HashSet<usize> = direct_call_patterns
             .iter()
             .flat_map(|p| [p.caller_block_pc, p.return_pc])
             .collect();
+        // Add orphan jump-table continuation blocks to the stop set so the
+        // suppression BFS doesn't swallow post-call body blocks.
+        for &bp in func.block_pcs.iter() {
+            if bp != func.entry_pc && jump_table_pcs.contains(&bp) {
+                if let Some(block) = func_cfg.blocks.get(&bp) {
+                    // A jump-table block whose only predecessor is a synthetic
+                    // trampoline edge is a continuation — protect it.
+                    if block.predecessors.iter().all(|&pred| {
+                        direct_call_patterns
+                            .iter()
+                            .any(|pat| pat.jump_target_pc == pred)
+                    }) {
+                        suppression_stop_pcs.insert(bp);
+                    }
+                }
+            }
+        }
         for pat in &direct_call_patterns {
             if func.block_pcs.contains(&pat.jump_target_pc) && pat.callee_name != func.name {
                 let mut queue = std::collections::VecDeque::new();
@@ -362,7 +383,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     {
                         for &succ in &block.successors {
                             if !lifted.suppressed_blocks.contains(&succ)
-                                && !caller_block_pcs.contains(&succ)
+                                && !suppression_stop_pcs.contains(&succ)
                             {
                                 queue.push_back(succ);
                             }
@@ -461,7 +482,7 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
     let mut function_dataflow: HashMap<usize, DataFlowAnalysis> = HashMap::new();
     let mut function_params_by_name: HashMap<String, Vec<u8>> = HashMap::new();
     for func in &detected_functions {
-        let func_cfg = functions::build_function_cfg(&cfg, func);
+        let func_cfg = functions::build_function_cfg(&cfg, func, &direct_call_patterns, &program.jump_table);
         let dataflow = DataFlowAnalysis::analyze(&func_cfg);
         let mut params: Vec<u8> = dataflow
             .live_in
@@ -480,7 +501,7 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
     for func in &detected_functions {
         let func_cfg = function_cfgs
             .remove(&func.entry_pc)
-            .unwrap_or_else(|| functions::build_function_cfg(&cfg, func));
+            .unwrap_or_else(|| functions::build_function_cfg(&cfg, func, &direct_call_patterns, &program.jump_table));
         let dom_tree = structuring::DominatorTree::compute(&func_cfg);
         let dataflow = function_dataflow
             .remove(&func.entry_pc)
@@ -525,10 +546,25 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
         for pc in redundant_call_setup_pcs {
             lifted.eliminated_pcs.insert(pc);
         }
-        let caller_block_pcs: HashSet<usize> = direct_call_patterns
+        let jump_table_pcs: HashSet<usize> =
+            program.jump_table.iter().map(|&e| e as usize).collect();
+        let mut suppression_stop_pcs: HashSet<usize> = direct_call_patterns
             .iter()
             .flat_map(|p| [p.caller_block_pc, p.return_pc])
             .collect();
+        for &bp in func.block_pcs.iter() {
+            if bp != func.entry_pc && jump_table_pcs.contains(&bp) {
+                if let Some(block) = func_cfg.blocks.get(&bp) {
+                    if block.predecessors.iter().all(|&pred| {
+                        direct_call_patterns
+                            .iter()
+                            .any(|pat| pat.jump_target_pc == pred)
+                    }) {
+                        suppression_stop_pcs.insert(bp);
+                    }
+                }
+            }
+        }
         for pat in &direct_call_patterns {
             if func.block_pcs.contains(&pat.jump_target_pc) && pat.callee_name != func.name {
                 let mut queue = std::collections::VecDeque::new();
@@ -539,7 +575,7 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
                     {
                         for &succ in &block.successors {
                             if !lifted.suppressed_blocks.contains(&succ)
-                                && !caller_block_pcs.contains(&succ)
+                                && !suppression_stop_pcs.contains(&succ)
                             {
                                 queue.push_back(succ);
                             }
