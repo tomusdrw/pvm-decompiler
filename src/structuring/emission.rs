@@ -2701,12 +2701,9 @@ fn collect_hoisted_declarations(
 
     let mut definitions: HashMap<String, (usize, Option<String>)> = HashMap::new();
     for (name, def_pc) in &lifted.var_name_to_def_pc {
-        let var_type = lifted
-            .variables
-            .iter()
-            .find_map(|(&(pc, _), var)| {
-                (pc == *def_pc && var.name == *name).then(|| format!("{}", var.var_type))
-            });
+        let var_type = lifted.variables.iter().find_map(|(&(pc, _), var)| {
+            (pc == *def_pc && var.name == *name).then(|| format!("{}", var.var_type))
+        });
         definitions
             .entry(name.clone())
             .or_insert((*def_pc, var_type));
@@ -2787,8 +2784,8 @@ fn raw_contains_identifier(raw: &str, name: &str) -> bool {
     for i in 0..=raw_bytes.len() - needle.len() {
         if &raw_bytes[i..i + needle.len()] == needle {
             let before_ok = i == 0 || !is_ident_byte(raw_bytes[i - 1]);
-            let after_ok = i + needle.len() == raw_bytes.len()
-                || !is_ident_byte(raw_bytes[i + needle.len()]);
+            let after_ok =
+                i + needle.len() == raw_bytes.len() || !is_ident_byte(raw_bytes[i + needle.len()]);
             if before_ok && after_ok {
                 return true;
             }
@@ -3686,23 +3683,21 @@ mod tests {
         // var_0 defined and used within the same block — should not be hoisted.
         let cfg = build_test_cfg(
             0,
-            vec![
-                (
-                    0,
-                    vec![
-                        (0, Instruction::LoadImm { reg: 0, value: 7 }),
-                        (
-                            4,
-                            Instruction::Add32 {
-                                dst: 1,
-                                src1: 0,
-                                src2: 0,
-                            },
-                        ),
-                    ],
-                    vec![],
-                ),
-            ],
+            vec![(
+                0,
+                vec![
+                    (0, Instruction::LoadImm { reg: 0, value: 7 }),
+                    (
+                        4,
+                        Instruction::Add32 {
+                            dst: 1,
+                            src1: 0,
+                            src2: 0,
+                        },
+                    ),
+                ],
+                vec![],
+            )],
         );
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
