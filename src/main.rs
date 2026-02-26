@@ -1350,4 +1350,34 @@ mod integration_tests {
             subset
         );
     }
+
+    #[test]
+    fn test_as_fibonacci_hoists_conditional_decl() {
+        let buffer = std::fs::read("examples/compiled/as-fibonacci.pvm")
+            .expect("as-fibonacci.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        let decl_pos = output
+            .find("let ptr_0_344")
+            .expect("ptr_0_344 should be hoisted to the function prologue");
+        let guard_pos = output
+            .find("if (var_27 <u var_9 + 268)")
+            .expect("expected heap-ensure guard in as-fibonacci");
+
+        assert!(
+            decl_pos < guard_pos,
+            "ptr_0_344 declaration must appear before its guarded definition:\n{}",
+            output
+        );
+        assert!(
+            !output.contains("let ptr_0_344 ="),
+            "ptr_0_344 should not be redeclared inside the guarded block:\n{}",
+            output
+        );
+        assert!(
+            output.contains("ptr_0_344 = var_64"),
+            "ptr_0_344 assignment should remain after hoisting:\n{}",
+            output
+        );
+    }
 }

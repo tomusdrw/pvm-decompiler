@@ -1,8 +1,12 @@
 fn main(r1: u64, r7: u64, r8: u64) {
+    let ptr_0_128
+    let ptr_0_72
+    let ptr_0_80
+
     let var_1 = u32[r7]
 
     if (var_1 == 0) {
-        let ptr_0_80 = 100
+        ptr_0_80 = 100
         goto block_0062;
     }
 
@@ -18,7 +22,7 @@ fn main(r1: u64, r7: u64, r8: u64) {
 
     block_0062:
     if (!(ptr_0_80)) {
-        let ptr_0_128 = 999
+        ptr_0_128 = 999
         goto block_00d5;
     }
 
@@ -26,6 +30,7 @@ fn main(r1: u64, r7: u64, r8: u64) {
 
     block_00d5:
     u32[0x20000] = ptr_0_128
+    ptr_0_72 = 0x400000000
 
     halt()
 }

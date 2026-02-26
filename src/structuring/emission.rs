@@ -1,7 +1,7 @@
 use super::{CondOp, Condition, Operand, StructuralAnalysis, Structure, extract_condition};
 use crate::cfg::ControlFlowGraph;
 use crate::instruction::InstructionShape;
-use crate::lifting::LiftedProgram;
+use crate::lifting::{Expression, LiftedProgram};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::Write;
 use wasm_pvm::pvm::Instruction;
@@ -176,7 +176,17 @@ impl StructuralAnalysis {
             &loop_map,
             &if_map,
         );
-        let declared_vars = lifted.map(|l| l.declared_vars.clone()).unwrap_or_default();
+
+        let (declared_vars, hoisted_decls) = if let Some(lifted) = lifted {
+            let hoisted = collect_hoisted_declarations(lifted, cfg);
+            let mut declared = lifted.declared_vars.clone();
+            for decl in &hoisted {
+                declared.insert(decl.name.clone());
+            }
+            (declared, hoisted)
+        } else {
+            (HashSet::new(), Vec::new())
+        };
 
         // Create the emitter with all mutable state.
         let mut em = Emitter {
@@ -197,6 +207,17 @@ impl StructuralAnalysis {
             declared_vars,
             dispatch_loop_header: None,
         };
+
+        if !hoisted_decls.is_empty() {
+            for decl in &hoisted_decls {
+                if let Some(ref ty) = decl.var_type {
+                    let _ = writeln!(em.output, "let {}: {}", decl.name, ty);
+                } else {
+                    let _ = writeln!(em.output, "let {}", decl.name);
+                }
+            }
+            em.output.push('\n');
+        }
 
         for &block_pc in &self.dom_tree.rpo {
             if em.emitted.contains(&block_pc) {
@@ -2480,6 +2501,12 @@ fn is_block_label_name(label: &str) -> bool {
 }
 
 /// Build human-readable labels for blocks that are targets of goto/switch statements.
+#[derive(Clone, Debug)]
+struct HoistedDecl {
+    name: String,
+    var_type: Option<String>,
+}
+
 /// Information about a detected for-loop pattern.
 #[derive(Clone)]
 struct ForLoopInfo {
@@ -2659,6 +2686,115 @@ fn build_pc_to_block_index(cfg: &ControlFlowGraph) -> HashMap<usize, usize> {
         }
     }
     pc_to_block
+}
+
+/// Hoist declarations for variables whose definitions do not dominate all uses.
+/// This prevents block-scoped `let` bindings from being used out of scope
+/// (e.g., conditionally defined temps referenced after an `if`).
+fn collect_hoisted_declarations(
+    lifted: &LiftedProgram,
+    cfg: &ControlFlowGraph,
+) -> Vec<HoistedDecl> {
+    let pc_to_block = build_pc_to_block_index(cfg);
+    let mut decls = Vec::new();
+    let mut seen = HashSet::new();
+
+    let mut definitions: HashMap<String, (usize, Option<String>)> = HashMap::new();
+    for (name, def_pc) in &lifted.var_name_to_def_pc {
+        let var_type = lifted
+            .variables
+            .iter()
+            .find_map(|(&(pc, _), var)| {
+                (pc == *def_pc && var.name == *name).then(|| format!("{}", var.var_type))
+            });
+        definitions
+            .entry(name.clone())
+            .or_insert((*def_pc, var_type));
+    }
+    for (&(pc, _), var) in &lifted.variables {
+        definitions
+            .entry(var.name.clone())
+            .or_insert((pc, Some(format!("{}", var.var_type))));
+    }
+    for block in cfg.blocks.values() {
+        for (pc, instr) in &block.instructions {
+            if let Some((_, Some(var_name))) = lifted.format_pc_raw(*pc, instr) {
+                definitions.entry(var_name).or_insert((*pc, None));
+            }
+        }
+    }
+
+    for (name, (def_pc, var_type)) in definitions {
+        let Some(def_block) = pc_to_block.get(&def_pc).copied() else {
+            continue;
+        };
+
+        let mut needs_hoist = false;
+        for (use_pc, expr) in &lifted.expressions {
+            if *use_pc == def_pc {
+                continue;
+            }
+            if !expression_uses_var(expr, &name) {
+                continue;
+            }
+            let Some(use_block) = pc_to_block.get(use_pc).copied() else {
+                continue;
+            };
+            if use_block != def_block {
+                needs_hoist = true;
+                break;
+            }
+        }
+
+        if needs_hoist && seen.insert(name.clone()) {
+            decls.push(HoistedDecl {
+                name: name.clone(),
+                var_type: var_type.clone(),
+            });
+        }
+    }
+
+    decls.sort_by(|a, b| a.name.cmp(&b.name));
+    decls
+}
+
+fn expression_uses_var(expr: &Expression, name: &str) -> bool {
+    match expr {
+        Expression::Var(n) => n == name,
+        Expression::BinOp { lhs, rhs, .. } => {
+            expression_uses_var(lhs, name) || expression_uses_var(rhs, name)
+        }
+        Expression::UnaryOp { operand, .. } => expression_uses_var(operand, name),
+        Expression::Load { base, .. } => expression_uses_var(base, name),
+        Expression::Store { base, value, .. } => {
+            expression_uses_var(base, name) || expression_uses_var(value, name)
+        }
+        Expression::Call { args, .. } => args.iter().any(|a| expression_uses_var(a, name)),
+        Expression::Raw(text) => raw_contains_identifier(text, name),
+        Expression::Const(_) => false,
+    }
+}
+
+fn raw_contains_identifier(raw: &str, name: &str) -> bool {
+    if name.is_empty() {
+        return false;
+    }
+    let raw_bytes = raw.as_bytes();
+    let needle = name.as_bytes();
+    if needle.len() > raw_bytes.len() {
+        return false;
+    }
+    for i in 0..=raw_bytes.len() - needle.len() {
+        if &raw_bytes[i..i + needle.len()] == needle {
+            let before_ok = i == 0 || !is_ident_byte(raw_bytes[i - 1]);
+            let after_ok = i + needle.len() == raw_bytes.len()
+                || !is_ident_byte(raw_bytes[i + needle.len()]);
+            if before_ok && after_ok {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 /// Get the PC of the last instruction in a block (the branch/terminator).
@@ -3539,6 +3675,43 @@ mod tests {
         assert!(
             !lifted.eliminated_pcs.contains(&selector_def_pc),
             "non-boolean selector def must be preserved"
+        );
+    }
+
+    #[test]
+    fn test_hoisting_skips_same_block_definitions() {
+        use crate::dataflow::DataFlowAnalysis;
+        use crate::lifting::LiftedProgram;
+
+        // var_0 defined and used within the same block — should not be hoisted.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (0, Instruction::LoadImm { reg: 0, value: 7 }),
+                        (
+                            4,
+                            Instruction::Add32 {
+                                dst: 1,
+                                src1: 0,
+                                src2: 0,
+                            },
+                        ),
+                    ],
+                    vec![],
+                ),
+            ],
+        );
+
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+        let hoisted = collect_hoisted_declarations(&lifted, &cfg);
+        assert!(
+            hoisted.is_empty(),
+            "same-block definition should not be hoisted, but got {:?}",
+            hoisted
         );
     }
 
