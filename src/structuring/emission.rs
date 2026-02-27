@@ -137,6 +137,8 @@ impl StructuralAnalysis {
 
         // Build block labels for readable goto targets.
         let labels = build_block_labels(cfg, &self.structures);
+        // Determine which CFG blocks are reachable from the entry point.
+        let reachable_blocks = compute_reachable_blocks(cfg, cfg.entry_pc);
 
         // Build lookup maps for structures
         let mut loop_map: HashMap<usize, &Structure> = HashMap::new();
@@ -197,7 +199,7 @@ impl StructuralAnalysis {
                 "=== Pseudo-Code ===\n\n".to_string()
             },
             emitted: HashSet::new(),
-            reachable_blocks: self.dom_tree.rpo.iter().copied().collect(),
+            reachable_blocks: reachable_blocks.clone(),
             lifted,
             labels,
             if_map,
@@ -219,8 +221,29 @@ impl StructuralAnalysis {
             em.output.push('\n');
         }
 
-        for &block_pc in &self.dom_tree.rpo {
-            if em.emitted.contains(&block_pc) {
+        let mut pending = VecDeque::new();
+        let mut queued: HashSet<usize> = HashSet::new();
+        if cfg.blocks.contains_key(&cfg.entry_pc) {
+            pending.push_back(cfg.entry_pc);
+            queued.insert(cfg.entry_pc);
+        } else {
+            for &block_pc in &self.dom_tree.rpo {
+                pending.push_back(block_pc);
+                queued.insert(block_pc);
+            }
+        }
+
+        while let Some(block_pc) = pending.pop_front() {
+            if !reachable_blocks.contains(&block_pc)
+                || !cfg.blocks.contains_key(&block_pc)
+                || em.emitted.contains(&block_pc)
+            {
+                continue;
+            }
+
+            let idom = *self.dom_tree.idom.get(&block_pc).unwrap_or(&block_pc);
+            if idom != block_pc && !em.emitted.contains(&idom) {
+                pending.push_back(block_pc);
                 continue;
             }
 
@@ -273,6 +296,21 @@ impl StructuralAnalysis {
                 // Emit a linear plain region to avoid redundant goto-to-next-block noise.
                 em.emit_linear_region(block_pc, 0);
             }
+
+            if let Some(block) = cfg.blocks.get(&block_pc) {
+                let mut successors: Vec<usize> = Vec::new();
+                for &succ in &block.successors {
+                    if reachable_blocks.contains(&succ)
+                        && !em.emitted.contains(&succ)
+                        && queued.insert(succ)
+                    {
+                        successors.push(succ);
+                    }
+                }
+                for succ in successors.into_iter().rev() {
+                    pending.push_front(succ);
+                }
+            }
         }
 
         em.emit_switch_targets();
@@ -322,6 +360,11 @@ impl<'a, 'p> Emitter<'a, 'p> {
     fn emit_linear_region(&mut self, start_pc: usize, indent: usize) {
         let chain = self.collect_linear_region(start_pc);
         for (idx, &block_pc) in chain.iter().enumerate() {
+            if idx > 0 {
+                if let Some(label) = self.labels.get(&block_pc) {
+                    let _ = writeln!(self.output, "{}:", label);
+                }
+            }
             // Chained blocks have a single predecessor in the chain, so they
             // can be rendered as plain fallthrough without local labels.
             let mut fallthrough_target = chain.get(idx + 1).copied();
@@ -354,6 +397,12 @@ impl<'a, 'p> Emitter<'a, 'p> {
             let Some(block) = self.cfg.blocks.get(&current) else {
                 break;
             };
+            let Some((_, last_instr)) = block.instructions.last() else {
+                break;
+            };
+            if !matches!(last_instr, Instruction::Fallthrough) {
+                break;
+            }
             if block.successors.len() != 1 {
                 break;
             }
@@ -473,7 +522,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
             false
         } else {
             for &tb in then_blocks {
-                let ctrl = self.emit_block_with_loop_control(tb, indent + 1, loop_context);
+                let ctrl = self.emit_block_or_inline_if(tb, indent + 1, loop_context);
                 if let Some(keyword) = ctrl {
                     let _ = writeln!(self.output, "{}{}", inner_prefix, keyword);
                     self.emitted.insert(tb);
@@ -497,7 +546,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
                 let else_insert_at = self.output.len();
 
                 for &eb in else_blocks {
-                    let ctrl = self.emit_block_with_loop_control(eb, indent + 1, loop_context);
+                    let ctrl = self.emit_block_or_inline_if(eb, indent + 1, loop_context);
                     if let Some(keyword) = ctrl {
                         let _ = writeln!(self.output, "{}{}", inner_prefix, keyword);
                         self.emitted.insert(eb);
@@ -534,6 +583,32 @@ impl<'a, 'p> Emitter<'a, 'p> {
         loop_context: Option<usize>,
     ) -> Option<&'static str> {
         self.emit_block_with_loop_control_and_fallthrough(block_pc, indent, loop_context, None)
+    }
+
+    fn emit_block_or_inline_if(
+        &mut self,
+        block_pc: usize,
+        indent: usize,
+        loop_context: Option<usize>,
+    ) -> Option<&'static str> {
+        if let Some(Structure::IfThenElse {
+            then_blocks,
+            else_blocks,
+            condition,
+            ..
+        }) = self.if_map.get(&block_pc).cloned()
+        {
+            self.emit_if(
+                block_pc,
+                then_blocks.as_slice(),
+                else_blocks.as_slice(),
+                condition.as_ref(),
+                indent,
+                loop_context,
+            );
+            return None;
+        }
+        self.emit_block_with_loop_control(block_pc, indent, loop_context)
     }
 
     fn emit_block_with_loop_control_and_fallthrough(
@@ -1039,6 +1114,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
                 && self.cfg.blocks.contains_key(target)
                 && header_succs.contains(target)
                 && !self.emitted.contains(target)
+                && self.reachable_blocks.contains(target)
         });
         if roots.len() < 2 {
             return false;
@@ -1047,7 +1123,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
         let mut visited: HashSet<usize> = HashSet::new();
         let mut queue: VecDeque<usize> = roots.into_iter().collect();
         while let Some(pc) = queue.pop_front() {
-            if !visited.insert(pc) {
+            if !visited.insert(pc) || !self.reachable_blocks.contains(&pc) {
                 continue;
             }
             if let Some(block) = self.cfg.blocks.get(&pc) {
@@ -1055,7 +1131,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
                     if succ == header_pc {
                         return true;
                     }
-                    if !visited.contains(&succ) {
+                    if !visited.contains(&succ) && self.reachable_blocks.contains(&succ) {
                         queue.push_back(succ);
                     }
                 }
@@ -1078,7 +1154,9 @@ impl<'a, 'p> Emitter<'a, 'p> {
             .filter(|(_, target)| {
                 self.cfg.blocks.contains_key(target)
                     && (*target == header_pc
-                        || (header_succs.contains(target) && !self.emitted.contains(target)))
+                        || (header_succs.contains(target)
+                            && !self.emitted.contains(target)
+                            && self.reachable_blocks.contains(target)))
             })
             .cloned()
             .collect();
@@ -1111,6 +1189,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
             if target_pc == dispatch_header
                 || self.emitted.contains(&target_pc)
                 || !self.cfg.blocks.contains_key(&target_pc)
+                || !self.reachable_blocks.contains(&target_pc)
             {
                 continue;
             }
@@ -1127,7 +1206,11 @@ impl<'a, 'p> Emitter<'a, 'p> {
             queue.push_back(target_pc);
 
             while let Some(pc) = queue.pop_front() {
-                if pc == dispatch_header || !visited.insert(pc) || self.emitted.contains(&pc) {
+                if pc == dispatch_header
+                    || !visited.insert(pc)
+                    || self.emitted.contains(&pc)
+                    || !self.reachable_blocks.contains(&pc)
+                {
                     continue;
                 }
                 reachable.push(pc);
@@ -1137,6 +1220,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
                         if succ != dispatch_header
                             && !visited.contains(&succ)
                             && !self.emitted.contains(&succ)
+                            && self.reachable_blocks.contains(&succ)
                         {
                             queue.push_back(succ);
                         }
@@ -1145,6 +1229,9 @@ impl<'a, 'p> Emitter<'a, 'p> {
             }
 
             for &block_pc in &reachable {
+                if !self.reachable_blocks.contains(&block_pc) {
+                    continue;
+                }
                 if block_pc != target_pc
                     && let Some(label) = self.labels.get(&block_pc)
                 {
@@ -1194,12 +1281,16 @@ impl<'a, 'p> Emitter<'a, 'p> {
             .labels
             .keys()
             .copied()
-            .filter(|pc| !self.emitted.contains(pc) && self.cfg.blocks.contains_key(pc))
+            .filter(|pc| {
+                !self.emitted.contains(pc)
+                    && self.cfg.blocks.contains_key(pc)
+                    && self.reachable_blocks.contains(pc)
+            })
             .collect();
         switch_targets.sort();
 
         for target_pc in switch_targets {
-            if self.emitted.contains(&target_pc) {
+            if self.emitted.contains(&target_pc) || !self.reachable_blocks.contains(&target_pc) {
                 continue;
             }
             let _ = writeln!(self.output, "{}:", self.labels[&target_pc]);
@@ -1210,14 +1301,20 @@ impl<'a, 'p> Emitter<'a, 'p> {
             let mut queue = VecDeque::new();
             queue.push_back(target_pc);
             while let Some(pc) = queue.pop_front() {
-                if !visited.insert(pc) || self.emitted.contains(&pc) {
+                if !visited.insert(pc)
+                    || self.emitted.contains(&pc)
+                    || !self.reachable_blocks.contains(&pc)
+                {
                     continue;
                 }
                 reachable.push(pc);
                 self.emitted.insert(pc);
                 if let Some(block) = self.cfg.blocks.get(&pc) {
                     for &succ in &block.successors {
-                        if !visited.contains(&succ) && !self.emitted.contains(&succ) {
+                        if !visited.contains(&succ)
+                            && !self.emitted.contains(&succ)
+                            && self.reachable_blocks.contains(&succ)
+                        {
                             queue.push_back(succ);
                         }
                     }
@@ -1225,6 +1322,9 @@ impl<'a, 'p> Emitter<'a, 'p> {
             }
 
             for &block_pc in &reachable {
+                if !self.reachable_blocks.contains(&block_pc) {
+                    continue;
+                }
                 if block_pc != target_pc
                     && let Some(label) = self.labels.get(&block_pc)
                 {
@@ -1716,6 +1816,7 @@ fn block_may_emit_output(
             if lifted.format_pc_raw(*pc, instr).is_some() {
                 return true;
             }
+            return true;
         }
 
         if lifted.epilogue_blocks.contains_key(&block_pc) {
@@ -2633,6 +2734,18 @@ fn build_block_labels(cfg: &ControlFlowGraph, structures: &[Structure]) -> HashM
                 }
             }
         }
+        if let Structure::IfThenElse {
+            then_blocks,
+            else_blocks,
+            ..
+        } = s
+        {
+            for &target in then_blocks.iter().chain(else_blocks.iter()) {
+                if cfg.blocks.contains_key(&target) {
+                    goto_targets.insert(target);
+                }
+            }
+        }
     }
 
     for block in cfg.blocks.values() {
@@ -2668,6 +2781,26 @@ fn build_block_labels(cfg: &ControlFlowGraph, structures: &[Structure]) -> HashM
     }
 
     labels
+}
+
+/// Collect all CFG blocks reachable from the specified entry point.
+fn compute_reachable_blocks(cfg: &ControlFlowGraph, entry: usize) -> HashSet<usize> {
+    let mut reachable = HashSet::new();
+    let mut queue = VecDeque::new();
+    queue.push_back(entry);
+
+    while let Some(pc) = queue.pop_front() {
+        if !reachable.insert(pc) {
+            continue;
+        }
+        if let Some(block) = cfg.blocks.get(&pc) {
+            for &succ in &block.successors {
+                queue.push_back(succ);
+            }
+        }
+    }
+
+    reachable
 }
 
 /// Format a goto target using a label if available, otherwise as a hex address.
@@ -3263,6 +3396,8 @@ mod tests {
     use super::*;
     use crate::cfg::build_test_cfg;
     use crate::decoder::DecodedProgram;
+    use crate::lifting::LiftedProgram;
+    use std::collections::{HashMap, HashSet};
 
     fn empty_program() -> DecodedProgram {
         DecodedProgram {
@@ -3271,6 +3406,41 @@ mod tests {
             memory_base: None,
             code_len: 0,
         }
+    }
+
+    #[test]
+    fn block_may_emit_output_counts_unliftable_instructions() {
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(0, Instruction::LoadImm { reg: 0, value: 42 })],
+                    vec![10],
+                ),
+                (10, vec![(10, Instruction::Trap)], vec![]),
+            ],
+        );
+        let lifted = LiftedProgram {
+            variables: HashMap::new(),
+            expressions: HashMap::new(),
+            eliminated_pcs: HashSet::new(),
+            var_at_use: HashMap::new(),
+            declared_vars: HashSet::new(),
+            stack_vars: HashMap::new(),
+            call_targets: HashMap::new(),
+            direct_call_sites: HashMap::new(),
+            call_param_regs: HashMap::new(),
+            var_name_to_def_pc: HashMap::new(),
+            epilogue_blocks: HashMap::new(),
+            suppressed_blocks: HashSet::new(),
+            memory_base: None,
+        };
+        let emission_eliminated = HashSet::new();
+        assert!(
+            block_may_emit_output(&cfg, Some(&lifted), &emission_eliminated, 0, false),
+            "instructions that lack lifted expressions should still emit output"
+        );
     }
 
     fn has_empty_if_or_while(output: &str) -> bool {
@@ -3453,6 +3623,51 @@ mod tests {
         assert!(
             pseudo.contains("r1 != 5"),
             "Should contain condition: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_nested_if_renders_inline() {
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::BranchNeImm {
+                            reg: 1,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
+                    vec![10, 20],
+                ),
+                (
+                    10,
+                    vec![(
+                        10,
+                        Instruction::BranchNeImm {
+                            reg: 2,
+                            value: 0,
+                            offset: 10,
+                        },
+                    )],
+                    vec![30, 40],
+                ),
+                (20, vec![(20, Instruction::Trap)], vec![]),
+                (30, vec![(30, Instruction::Trap)], vec![]),
+                (40, vec![(40, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, None, None);
+
+        assert!(
+            pseudo.contains("if (r1 != 0) {\n    if (r2 != 0) {"),
+            "Nested ifs should stay inside their parent branch: {}",
             pseudo
         );
     }
