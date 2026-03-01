@@ -6,11 +6,14 @@ use wasm_pvm::pvm::Instruction;
 
 mod cfg;
 mod dataflow;
+mod decompile;
 mod decoder;
 mod functions;
 mod instruction;
 mod ir;
 mod lifting;
+mod llm_refine;
+mod llvm_lift;
 mod structuring;
 mod varint;
 
@@ -33,14 +36,29 @@ enum Verbosity {
     Debug,
 }
 
+/// Output mode selection.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum OutputMode {
+    /// Default: emit pseudo-code via the existing pipeline
+    PseudoCode,
+    /// Emit LLVM IR text
+    LlvmIr,
+    /// Full pipeline: LLVM IR → decompile to C → optional LLM refinement
+    Decompile,
+}
+
 fn print_usage(program: &str) {
     eprintln!("Usage: {} [OPTIONS] <file.pvm>", program);
     eprintln!();
     eprintln!("Options:");
-    eprintln!("  -v, --verbose  Show CFG, dataflow, and structural analysis");
-    eprintln!("      --debug    Show raw instructions and all diagnostics");
-    eprintln!("  -V, --version  Show version");
-    eprintln!("  -h, --help     Show this help message");
+    eprintln!("  -v, --verbose    Show CFG, dataflow, and structural analysis");
+    eprintln!("      --debug      Show raw instructions and all diagnostics");
+    eprintln!("      --llvm       Emit LLVM IR instead of pseudo-code");
+    eprintln!("      --decompile  Full LLVM pipeline: lift → decompile → C output");
+    eprintln!("      --refine     Enable LLM refinement (requires claude CLI)");
+    eprintln!("      --backend=X  Decompiler backend: retdec, rellic, llvm-cbe, builtin");
+    eprintln!("  -V, --version    Show version");
+    eprintln!("  -h, --help       Show this help message");
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -48,12 +66,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Parse flags
     let mut verbosity = Verbosity::Normal;
+    let mut output_mode = OutputMode::PseudoCode;
+    let mut enable_refine = false;
+    let mut backend_choice: Option<decompile::DecompilerBackend> = None;
     let mut filename = None;
 
     for arg in &args[1..] {
         match arg.as_str() {
             "-v" | "--verbose" => verbosity = Verbosity::Verbose,
             "--debug" => verbosity = Verbosity::Debug,
+            "--llvm" => output_mode = OutputMode::LlvmIr,
+            "--decompile" => output_mode = OutputMode::Decompile,
+            "--refine" => enable_refine = true,
             "-V" | "--version" => {
                 println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
                 return Ok(());
@@ -61,6 +85,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "-h" | "--help" => {
                 print_usage(&args[0]);
                 return Ok(());
+            }
+            _ if arg.starts_with("--backend=") => {
+                let val = &arg["--backend=".len()..];
+                backend_choice = Some(match val {
+                    "retdec" => decompile::DecompilerBackend::RetDec,
+                    "rellic" => decompile::DecompilerBackend::Rellic,
+                    "llvm-cbe" => decompile::DecompilerBackend::LlvmCbe,
+                    "builtin" => decompile::DecompilerBackend::Builtin,
+                    _ => {
+                        eprintln!("Unknown backend: {}. Options: retdec, rellic, llvm-cbe, builtin", val);
+                        std::process::exit(2);
+                    }
+                });
             }
             _ => {
                 if arg.starts_with('-') {
@@ -174,6 +211,77 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 sorted_blocks
             );
         }
+    }
+
+    // === LLVM Pipeline Hook ===
+    // If --llvm or --decompile, branch into the LLVM IR path
+    if output_mode == OutputMode::LlvmIr || output_mode == OutputMode::Decompile {
+        eprintln!("Generating LLVM IR...");
+        let llvm_ir = llvm_lift::lift_program(&program, &cfg, &detected_functions);
+
+        if output_mode == OutputMode::LlvmIr {
+            // Just output the LLVM IR
+            print!("{}", llvm_ir);
+            return Ok(());
+        }
+
+        // Full decompile pipeline
+        eprintln!("Running decompiler...");
+        let available = decompile::detect_available_backends();
+        eprintln!(
+            "  Available backends: {}",
+            available
+                .iter()
+                .map(|b| b.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+
+        let result = decompile::decompile(&llvm_ir, backend_choice)?;
+        eprintln!("  Used backend: {}", result.backend_used);
+        for w in &result.warnings {
+            eprintln!("  Warning: {}", w);
+        }
+
+        if enable_refine {
+            if llm_refine::is_claude_available() {
+                eprintln!("Running LLM refinement...");
+                let context = format!(
+                    "PVM bytecode decompiled from {}. {} function(s) detected.",
+                    filename, detected_functions.len()
+                );
+                match llm_refine::refine(&result.c_code, &context) {
+                    Ok(refined) => {
+                        eprintln!(
+                            "  Completed {} refinement round(s)",
+                            refined.rounds_completed
+                        );
+                        for imp in &refined.improvements {
+                            eprintln!("  - {}", imp);
+                        }
+
+                        // Output both raw and refined
+                        println!("// === Raw Decompiler Output ({}) ===", result.backend_used);
+                        println!("{}", refined.raw_decompiler_output);
+                        println!();
+                        println!("// === LLM-Refined Output ===");
+                        println!("{}", refined.refined_code);
+                    }
+                    Err(e) => {
+                        eprintln!("  LLM refinement failed: {}", e);
+                        eprintln!("  Falling back to raw decompiler output");
+                        print!("{}", result.c_code);
+                    }
+                }
+            } else {
+                eprintln!("Warning: --refine requires the 'claude' CLI. Outputting raw decompiler result.");
+                print!("{}", result.c_code);
+            }
+        } else {
+            print!("{}", result.c_code);
+        }
+
+        return Ok(());
     }
 
     // Build call graph
