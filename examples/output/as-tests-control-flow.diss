@@ -66,11 +66,53 @@ fn func_1(r1: u64) {
         } else {
             ptr_0_400 = ptr_0_120
         }
-    } else {
-        goto block_0263;
     }
 
-    block_010d:
+    block_0268:
+    HEAP_PAGES = ptr_0_112
+    RESULT_PTR = ptr_0_88
+    ptr_0_464 = ptr_0_40->field_327680
+    ptr_0_512 = 2
+
+    if (ptr_0_40->field_327680 <=s 10) {
+        ptr_0_568 = 0
+        ptr_0_576 = ptr_0_512
+        goto block_0376;
+    } else {
+        ptr_0_512 = 1
+    }
+
+    ptr_0_512 = 1
+
+    ptr_0_568 = 0
+    ptr_0_576 = ptr_0_512
+
+    block_0376:
+    while (ptr_0_568 <s ptr_0_464) {
+        ptr_0_568 = ptr_0_568 + 1
+        ptr_0_576 = ptr_0_576 + 1
+    }
+
+    ptr_0_680 = 0
+    ptr_0_688 = ptr_0_576
+
+    while (ptr_0_680 <s 5) {
+        ptr_0_760 = 0
+        ptr_0_768 = ptr_0_688
+
+        while (ptr_0_760 <s 5 & ptr_0_760 <=s 2) {
+            ptr_0_760 = ptr_0_760 + 1
+            ptr_0_768 = ptr_0_768 + 1
+        }
+
+        ptr_0_680 = ptr_0_680 + 1
+        ptr_0_688 = ptr_0_768
+    }
+
+    u32[RESULT_PTR + 0x50000] = ptr_0_688
+    RESULT_LEN = RESULT_PTR
+    HEAP_PTR = 4
+
     halt()
 
     block_0227:
@@ -90,7 +132,7 @@ fn func_1(r1: u64) {
             }
         }
     } else {
-        goto block_0361;
+        goto block_0268;
     }
 
     var_115 = u32[16]
@@ -108,10 +150,6 @@ fn func_1(r1: u64) {
         }
     }
 
-    goto block_0361;
-
-    r4 = -1
-
     if (var_116 <u 256) {
         r4 = -1
     } else {
@@ -120,94 +158,15 @@ fn func_1(r1: u64) {
         goto block_0325;
     }
 
-    block_0361:
-    goto block_0366;
+    u32[16] = var_116
+    ptr_15 = sbrk(var_116 - var_115 << 16)
+
+    r4 = -1
 
     block_0325:
     if (var_115 <s 0) {
         return
-    } else {
-        goto block_036c;
     }
 
-    u32[16] = var_116
-    ptr_15 = sbrk(var_116 - var_115 << 16)
-    goto block_0325;
-
-    block_0366:
-    goto block_0268;
-
-    return
-
-    goto block_036c;
-
-    block_0268:
-    HEAP_PAGES = ptr_0_112
-    RESULT_PTR = ptr_0_88
-    ptr_0_464 = ptr_0_40->field_327680
-    ptr_0_512 = 2
-
-    if (ptr_0_40->field_327680 <=s 10) {
-        ptr_0_568 = 0
-        ptr_0_576 = ptr_0_512
-        goto block_0376;
-    } else {
-        ptr_0_512 = 1
-    }
-
-    block_036c:
-    goto block_0371;
-
-    ptr_0_568 = 0
-    ptr_0_576 = ptr_0_512
-    goto block_0376;
-
-    ptr_0_512 = 1
-
-    block_0371:
-    goto block_0366;
-
-    block_0376:
-    ptr_0_568 = ptr_0_568 + 1
-    ptr_0_576 = ptr_0_576 + 1
-    goto block_0376;
-
-    ptr_0_680 = 0
-    ptr_0_688 = ptr_0_576
-
-    block_0422:
-    ptr_0_760 = 0
-    ptr_0_768 = ptr_0_688
-    goto block_04b3;
-
-    block_04b3:
-    goto block_04ae;
-
-    ptr_0_760 = ptr_0_760 + 1
-    ptr_0_768 = ptr_0_768 + 1
-    goto block_04b3;
-
-    goto block_05a4;
-
-    block_04ae:
-    goto block_045d;
-
-    block_05a4:
-    goto block_05a9;
-
-    block_045d:
-    u32[RESULT_PTR + 0x50000] = ptr_0_688
-    RESULT_LEN = RESULT_PTR
-    HEAP_PTR = 4
-    goto block_010d;
-
-    block_05a9:
-
-    ptr_0_680 = ptr_0_680 + 1
-    ptr_0_688 = ptr_0_768
-    goto block_0422;
-
-    block_0263:
-    goto block_0268;
 }
 

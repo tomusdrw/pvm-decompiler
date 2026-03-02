@@ -166,8 +166,10 @@ Output the improved C code only, wrapped in ```c ... ```."#,
 /// Call the local claude CLI with a prompt.
 fn call_claude(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
     // Try 'claude' CLI first
+    // Remove CLAUDECODE env var so child process doesn't think it's a nested session
     let result = Command::new("claude")
         .args(["--print", "--no-input", "--prompt", prompt])
+        .env_remove("CLAUDECODE")
         .output();
 
     match result {
@@ -178,6 +180,7 @@ fn call_claude(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
             // Fallback: try with -p flag (older versions)
             let result = Command::new("claude")
                 .args(["-p", prompt])
+                .env_remove("CLAUDECODE")
                 .output();
 
             match result {
@@ -224,7 +227,7 @@ fn extract_code_block(response: &str) -> Option<String> {
     }
 
     // If no code block, return the whole response if it looks like code
-    if response.contains("int") && response.contains("{") {
+    if (response.contains("int") || response.contains("fn ")) && response.contains("{") {
         Some(response.trim().to_string())
     } else {
         None
@@ -241,10 +244,46 @@ fn summarize(suggestions: &str) -> String {
     }
 }
 
+/// Refine a single function's pseudo-code via a single LLM call.
+///
+/// Asks the LLM to add explanatory comments and improve variable names
+/// while preserving the exact structure and syntax.
+pub fn refine_pseudo_code(
+    pseudo_code: &str,
+    fn_name: &str,
+    context: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let prompt = format!(
+        r#"You are enhancing decompiled PVM (Polkadot Virtual Machine) pseudo-code.
+
+Context: {context}
+Function: {fn_name}
+
+RULES:
+1. Add short explanatory comments for non-obvious operations (memory accesses, bitwise ops, constants)
+2. Rename variables to meaningful names based on their usage patterns (e.g. ptr_0_56 → counter, var_1 → switch_index)
+3. Do NOT change any logic, control flow, operators, or expressions
+4. Keep the exact same syntax — this is pseudo-code, not C or Rust
+5. Preserve function signature exactly
+6. Output ONLY the improved pseudo-code in a fenced code block
+
+Pseudo-code to enhance:
+```
+{pseudo_code}
+```"#
+    );
+
+    let response = call_claude(&prompt)?;
+    extract_code_block(&response).ok_or_else(|| {
+        format!("Failed to extract pseudo-code from LLM response for {}", fn_name).into()
+    })
+}
+
 /// Check if the claude CLI is available.
 pub fn is_claude_available() -> bool {
     Command::new("claude")
         .arg("--version")
+        .env_remove("CLAUDECODE")
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false)

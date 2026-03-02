@@ -11,8 +11,10 @@ use std::process::Command;
 pub enum DecompilerBackend {
     /// RetDec (retdec-decompiler CLI)
     RetDec,
-    /// Rellic (rellic-decomp CLI)
+    /// Rellic (rellic-decomp CLI, native)
     Rellic,
+    /// Rellic via Docker container
+    RellicDocker,
     /// LLVM C Backend Emitter (llvm-cbe)
     LlvmCbe,
     /// Built-in naive C emitter (always available)
@@ -24,6 +26,7 @@ impl std::fmt::Display for DecompilerBackend {
         match self {
             DecompilerBackend::RetDec => write!(f, "retdec"),
             DecompilerBackend::Rellic => write!(f, "rellic"),
+            DecompilerBackend::RellicDocker => write!(f, "rellic-docker"),
             DecompilerBackend::LlvmCbe => write!(f, "llvm-cbe"),
             DecompilerBackend::Builtin => write!(f, "builtin"),
         }
@@ -47,6 +50,9 @@ pub fn detect_available_backends() -> Vec<DecompilerBackend> {
     if command_exists("rellic-decomp") {
         available.push(DecompilerBackend::Rellic);
     }
+    if docker_rellic_available() {
+        available.push(DecompilerBackend::RellicDocker);
+    }
     if command_exists("llvm-cbe") {
         available.push(DecompilerBackend::LlvmCbe);
     }
@@ -67,6 +73,12 @@ pub fn decompile(
     let backend = if let Some(pref) = preferred_backend {
         if available.contains(&pref) {
             pref
+        } else if pref == DecompilerBackend::Rellic
+            && available.contains(&DecompilerBackend::RellicDocker)
+        {
+            // Auto-promote: user asked for "rellic" but only Docker version available
+            eprintln!("Note: using Docker-based Rellic (native rellic-decomp not found)");
+            DecompilerBackend::RellicDocker
         } else {
             eprintln!(
                 "Warning: preferred backend '{}' not available, falling back",
@@ -81,6 +93,7 @@ pub fn decompile(
     match backend {
         DecompilerBackend::RetDec => decompile_retdec(llvm_ir),
         DecompilerBackend::Rellic => decompile_rellic(llvm_ir),
+        DecompilerBackend::RellicDocker => decompile_rellic_docker(llvm_ir),
         DecompilerBackend::LlvmCbe => decompile_llvm_cbe(llvm_ir),
         DecompilerBackend::Builtin => Ok(decompile_builtin(llvm_ir)),
     }
@@ -233,6 +246,119 @@ fn decompile_llvm_cbe(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::err
         backend_used: DecompilerBackend::LlvmCbe,
         warnings,
     })
+}
+
+/// Docker image name for Rellic.
+const RELLIC_DOCKER_IMAGE: &str = "pvm-rellic-decomp";
+
+/// Check if Docker-based Rellic is available (image exists or can be built).
+fn docker_rellic_available() -> bool {
+    // Check if Docker is available
+    if !command_exists("docker") {
+        return false;
+    }
+    // Check if the image exists
+    Command::new("docker")
+        .args(["image", "inspect", RELLIC_DOCKER_IMAGE])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
+/// Decompile using Rellic via Docker container.
+fn decompile_rellic_docker(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::error::Error>> {
+    let tmp_dir = std::env::temp_dir().join("pvm-decompile");
+    fs::create_dir_all(&tmp_dir)?;
+
+    let ll_path = tmp_dir.join("input.ll");
+    let out_path = tmp_dir.join("output.c");
+
+    // Write LLVM IR to temp file
+    fs::write(&ll_path, llvm_ir)?;
+
+    // Remove stale output if present
+    let _ = fs::remove_file(&out_path);
+
+    // Check if Docker image exists; if not, try to build it
+    if !docker_rellic_available() {
+        // Try to find the Dockerfile relative to the executable
+        let dockerfile_dir = find_rellic_dockerfile_dir();
+        if let Some(dir) = dockerfile_dir {
+            eprintln!(
+                "[rellic-docker] Building Docker image '{}' (this may take 15-30 minutes)...",
+                RELLIC_DOCKER_IMAGE
+            );
+            let status = Command::new("docker")
+                .args(["build", "-t", RELLIC_DOCKER_IMAGE, dir.to_str().unwrap()])
+                .status()?;
+            if !status.success() {
+                return Err("Failed to build Rellic Docker image".into());
+            }
+        } else {
+            return Err(format!(
+                "Rellic Docker image '{}' not found. Build it with:\n  \
+                 docker build -t {} docker/rellic/",
+                RELLIC_DOCKER_IMAGE, RELLIC_DOCKER_IMAGE
+            )
+            .into());
+        }
+    }
+
+    // Run rellic via Docker: mount tmp dir, pass .ll file (entrypoint handles llvm-as)
+    let output = Command::new("docker")
+        .args([
+            "run",
+            "--rm",
+            "-v",
+            &format!("{}:/work", tmp_dir.display()),
+            RELLIC_DOCKER_IMAGE,
+            "/work/input.ll",
+            "/work/output.c",
+        ])
+        .output()?;
+
+    let mut warnings = Vec::new();
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        warnings.push(format!("rellic-docker stderr: {}", stderr));
+    }
+
+    let c_code = if out_path.exists() {
+        fs::read_to_string(&out_path)?
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Rellic Docker produced no output. stderr: {}", stderr).into());
+    };
+
+    // Cleanup
+    let _ = fs::remove_dir_all(&tmp_dir);
+
+    Ok(DecompileResult {
+        c_code,
+        backend_used: DecompilerBackend::RellicDocker,
+        warnings,
+    })
+}
+
+/// Try to find the docker/rellic/ directory relative to the current executable or CWD.
+fn find_rellic_dockerfile_dir() -> Option<std::path::PathBuf> {
+    // Try CWD first
+    let cwd_path = std::path::PathBuf::from("docker/rellic");
+    if cwd_path.join("Dockerfile").exists() {
+        return Some(cwd_path);
+    }
+    // Try relative to executable
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(parent) = exe.parent() {
+            let exe_path = parent.join("../docker/rellic");
+            if exe_path.join("Dockerfile").exists() {
+                return Some(exe_path);
+            }
+        }
+    }
+    None
 }
 
 /// Built-in naive C emitter that translates LLVM IR text to readable C.
@@ -430,10 +556,22 @@ fn command_exists(name: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// Find an LLVM tool, trying versioned names first.
+/// Find an LLVM tool, trying Homebrew paths and versioned names.
 fn find_llvm_tool(name: &str) -> String {
-    // Try versioned names (e.g., llvm-as-17, llvm-as-16, etc.)
-    for version in (14..=19).rev() {
+    // Try Homebrew paths first (macOS, not on PATH by default)
+    for version in [20, 19, 18, 17, 16, 15, 14] {
+        let homebrew_path = format!("/opt/homebrew/opt/llvm@{}/bin/{}", version, name);
+        if std::path::Path::new(&homebrew_path).exists() {
+            return homebrew_path;
+        }
+    }
+    // Also try unversioned Homebrew LLVM
+    let homebrew_unversioned = format!("/opt/homebrew/opt/llvm/bin/{}", name);
+    if std::path::Path::new(&homebrew_unversioned).exists() {
+        return homebrew_unversioned;
+    }
+    // Try versioned names on PATH (e.g., llvm-as-17, llvm-as-16, etc.)
+    for version in (14..=20).rev() {
         let versioned = format!("{}-{}", name, version);
         if command_exists(&versioned) {
             return versioned;

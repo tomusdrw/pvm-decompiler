@@ -190,6 +190,14 @@ impl StructuralAnalysis {
             (HashSet::new(), Vec::new())
         };
 
+        let rpo_index: HashMap<usize, usize> = self
+            .dom_tree
+            .rpo
+            .iter()
+            .enumerate()
+            .map(|(i, &pc)| (pc, i))
+            .collect();
+
         // Create the emitter with all mutable state.
         let mut em = Emitter {
             cfg,
@@ -208,6 +216,7 @@ impl StructuralAnalysis {
             plan: &emission_plan,
             declared_vars,
             dispatch_loop_header: None,
+            rpo_index: rpo_index.clone(),
         };
 
         if !hoisted_decls.is_empty() {
@@ -269,21 +278,26 @@ impl StructuralAnalysis {
             }) = em.loop_map.get(&block_pc)
             {
                 em.emit_loop(block_pc, body, *latch, condition, 0);
-            } else if let Some(Structure::IfThenElse {
-                then_blocks,
-                else_blocks,
-                condition,
-                ..
-            }) = em.if_map.get(&block_pc).copied()
-            {
-                em.emit_if(
-                    block_pc,
+            } else if em.if_map.contains_key(&block_pc) {
+                // Try to recover a switch from chained if-else on the same variable
+                if let Some(sw) = em.try_collect_switch_cases(block_pc) {
+                    em.emit_recovered_switch(sw, 0, None);
+                } else if let Some(Structure::IfThenElse {
                     then_blocks,
                     else_blocks,
-                    condition.as_ref(),
-                    0,
-                    None,
-                );
+                    condition,
+                    ..
+                }) = em.if_map.get(&block_pc).copied()
+                {
+                    em.emit_if(
+                        block_pc,
+                        then_blocks,
+                        else_blocks,
+                        condition.as_ref(),
+                        0,
+                        None,
+                    );
+                }
             } else if let Some((reg, cases)) = dispatch_switch {
                 if render_dispatch_loop {
                     em.emit_dispatch_loop(block_pc, reg, cases);
@@ -307,6 +321,7 @@ impl StructuralAnalysis {
                         successors.push(succ);
                     }
                 }
+                successors.sort_by_key(|s| rpo_index.get(s).copied().unwrap_or(usize::MAX));
                 for succ in successors.into_iter().rev() {
                     pending.push_front(succ);
                 }
@@ -353,6 +368,7 @@ struct Emitter<'a, 'p> {
     plan: &'p EmissionPlan,
     declared_vars: HashSet<String>,
     dispatch_loop_header: Option<usize>,
+    rpo_index: HashMap<usize, usize>,
 }
 
 impl<'a, 'p> Emitter<'a, 'p> {
@@ -591,22 +607,30 @@ impl<'a, 'p> Emitter<'a, 'p> {
         indent: usize,
         loop_context: Option<usize>,
     ) -> Option<&'static str> {
-        if let Some(Structure::IfThenElse {
-            then_blocks,
-            else_blocks,
-            condition,
-            ..
-        }) = self.if_map.get(&block_pc).cloned()
-        {
-            self.emit_if(
-                block_pc,
-                then_blocks.as_slice(),
-                else_blocks.as_slice(),
-                condition.as_ref(),
-                indent,
-                loop_context,
-            );
-            return None;
+        if self.if_map.contains_key(&block_pc) {
+            // Try to recover a switch statement from a chain of if-else on the same variable
+            if let Some(sw) = self.try_collect_switch_cases(block_pc) {
+                self.emit_recovered_switch(sw, indent, loop_context);
+                return None;
+            }
+
+            if let Some(Structure::IfThenElse {
+                then_blocks,
+                else_blocks,
+                condition,
+                ..
+            }) = self.if_map.get(&block_pc).cloned()
+            {
+                self.emit_if(
+                    block_pc,
+                    then_blocks.as_slice(),
+                    else_blocks.as_slice(),
+                    condition.as_ref(),
+                    indent,
+                    loop_context,
+                );
+                return None;
+            }
         }
         self.emit_block_with_loop_control(block_pc, indent, loop_context)
     }
@@ -1228,6 +1252,8 @@ impl<'a, 'p> Emitter<'a, 'p> {
                 }
             }
 
+            reachable.sort_by_key(|pc| self.rpo_index.get(pc).copied().unwrap_or(usize::MAX));
+
             for &block_pc in &reachable {
                 if !self.reachable_blocks.contains(&block_pc) {
                     continue;
@@ -1287,7 +1313,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
                     && self.reachable_blocks.contains(pc)
             })
             .collect();
-        switch_targets.sort();
+        switch_targets.sort_by_key(|pc| self.rpo_index.get(pc).copied().unwrap_or(usize::MAX));
 
         for target_pc in switch_targets {
             if self.emitted.contains(&target_pc) || !self.reachable_blocks.contains(&target_pc) {
@@ -1295,7 +1321,9 @@ impl<'a, 'p> Emitter<'a, 'p> {
             }
             let _ = writeln!(self.output, "{}:", self.labels[&target_pc]);
 
-            // BFS forward walk to collect reachable blocks
+            // BFS forward walk to collect reachable blocks.
+            // When encountering a loop header, don't traverse into the loop body —
+            // emit_loop will handle those blocks. Instead, follow the loop's exit edges.
             let mut reachable = Vec::new();
             let mut visited: HashSet<usize> = HashSet::new();
             let mut queue = VecDeque::new();
@@ -1308,18 +1336,41 @@ impl<'a, 'p> Emitter<'a, 'p> {
                     continue;
                 }
                 reachable.push(pc);
-                self.emitted.insert(pc);
-                if let Some(block) = self.cfg.blocks.get(&pc) {
-                    for &succ in &block.successors {
-                        if !visited.contains(&succ)
-                            && !self.emitted.contains(&succ)
-                            && self.reachable_blocks.contains(&succ)
-                        {
-                            queue.push_back(succ);
+
+                // For loop headers, don't mark body blocks as emitted or traverse them;
+                // emit_loop will handle the body. Only follow exit edges.
+                if let Some(Structure::Loop { body, .. }) = self.loop_map.get(&pc).copied() {
+                    // Don't mark the loop header as emitted here — emit_loop will do it.
+                    // Find successors of loop body blocks that exit the loop.
+                    for &body_pc in body {
+                        if let Some(block) = self.cfg.blocks.get(&body_pc) {
+                            for &succ in &block.successors {
+                                if !body.contains(&succ)
+                                    && !visited.contains(&succ)
+                                    && !self.emitted.contains(&succ)
+                                    && self.reachable_blocks.contains(&succ)
+                                {
+                                    queue.push_back(succ);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    self.emitted.insert(pc);
+                    if let Some(block) = self.cfg.blocks.get(&pc) {
+                        for &succ in &block.successors {
+                            if !visited.contains(&succ)
+                                && !self.emitted.contains(&succ)
+                                && self.reachable_blocks.contains(&succ)
+                            {
+                                queue.push_back(succ);
+                            }
                         }
                     }
                 }
             }
+
+            reachable.sort_by_key(|pc| self.rpo_index.get(pc).copied().unwrap_or(usize::MAX));
 
             for &block_pc in &reachable {
                 if !self.reachable_blocks.contains(&block_pc) {
@@ -1331,7 +1382,15 @@ impl<'a, 'p> Emitter<'a, 'p> {
                     let _ = writeln!(self.output, "{}:", label);
                 }
 
-                if let Some(Structure::IfThenElse {
+                if let Some(Structure::Loop {
+                    body,
+                    latch,
+                    condition,
+                    ..
+                }) = self.loop_map.get(&block_pc).copied()
+                {
+                    self.emit_loop(block_pc, body, *latch, condition, 0);
+                } else if let Some(Structure::IfThenElse {
                     then_blocks,
                     else_blocks,
                     condition,
@@ -1352,6 +1411,214 @@ impl<'a, 'p> Emitter<'a, 'p> {
             }
         }
     }
+
+    /// Walk an if-else chain to detect a switch pattern.
+    /// Returns `None` if the chain doesn't qualify as a switch.
+    fn try_collect_switch_cases(
+        &self,
+        block_pc: usize,
+    ) -> Option<CollectedSwitch> {
+        let mut cases: Vec<(i32, Vec<usize>, usize)> = Vec::new(); // (value, then_blocks, header_pc)
+        let mut header_pcs: Vec<usize> = Vec::new();
+        let mut default_blocks: Option<Vec<usize>> = None;
+        let mut switch_reg: Option<u8> = None;
+        let mut current = block_pc;
+
+        loop {
+            let Some(Structure::IfThenElse {
+                header,
+                then_blocks,
+                else_blocks,
+                condition: Some(condition),
+                ..
+            }) = self.if_map.get(&current).cloned()
+            else {
+                break;
+            };
+
+            // Only Eq conditions qualify
+            if condition.op != CondOp::Eq {
+                return None;
+            }
+
+            // Extract register and immediate value
+            let (reg, imm) = match (&condition.lhs, &condition.rhs) {
+                (Operand::Reg(r), Operand::Imm(v)) => (*r, *v),
+                (Operand::Imm(v), Operand::Reg(r)) => (*r, *v),
+                _ => return None,
+            };
+
+            // All cases must compare the same register
+            match switch_reg {
+                None => switch_reg = Some(reg),
+                Some(existing) if existing != reg => return None,
+                _ => {}
+            }
+
+            // then_blocks must have exactly one block
+            if then_blocks.len() != 1 {
+                return None;
+            }
+
+            header_pcs.push(*header);
+            cases.push((imm, then_blocks.clone(), *header));
+
+            // Check else branch: must have exactly one block
+            if else_blocks.len() != 1 {
+                // No else = last case with no default
+                break;
+            }
+
+            let else_pc = else_blocks[0];
+            // If the else block is another IfThenElse in the chain, continue
+            if self.if_map.contains_key(&else_pc) {
+                current = else_pc;
+            } else {
+                // This is the default case — track separately
+                default_blocks = Some(else_blocks.clone());
+                header_pcs.push(else_pc);
+                break;
+            }
+        }
+
+        // Need at least 3 cases (including possible default) to prefer switch
+        let total = cases.len() + if default_blocks.is_some() { 1 } else { 0 };
+        if total < 3 {
+            return None;
+        }
+
+        let reg = switch_reg?;
+
+        Some(CollectedSwitch {
+            reg,
+            cases,
+            default_blocks,
+            header_pcs,
+        })
+    }
+
+    /// Emit a recovered switch statement from a detected chain of if-else on the same variable.
+    fn emit_recovered_switch(
+        &mut self,
+        sw: CollectedSwitch,
+        indent: usize,
+        loop_context: Option<usize>,
+    ) {
+        let prefix = "    ".repeat(indent);
+        let case_prefix = "    ".repeat(indent + 1);
+        let body_prefix = "    ".repeat(indent + 2);
+
+        // Emit the first header's block body (pre-branch instructions, e.g. `let var_1 = ...`)
+        let first_header = sw.cases[0].2;
+        self.emit_block_body(first_header, indent, true);
+
+        // Resolve the switch variable name
+        let switch_var = if let Some(lifted) = self.lifted {
+            if let Some(branch_pc) = last_instruction_pc(self.cfg, first_header) {
+                if let Some(name) = lifted.var_at_use.get(&(branch_pc, sw.reg)).cloned() {
+                    let has_local_def =
+                        lifted.var_name_to_def_pc.get(&name).is_some_and(|def_pc| {
+                            self.cfg
+                                .blocks
+                                .values()
+                                .any(|b| b.instructions.iter().any(|(pc, _)| pc == def_pc))
+                        });
+                    if has_local_def && self.declared_vars.insert(name.clone()) {
+                        let type_str = lifted
+                            .variables
+                            .values()
+                            .find(|v| v.name == name)
+                            .map(|v| format!("{}", v.var_type))
+                            .unwrap_or_else(|| "u64".to_string());
+                        let _ = writeln!(self.output, "{}let {}: {};", prefix, name, type_str);
+                    }
+                    name
+                } else {
+                    format!("r{}", sw.reg)
+                }
+            } else {
+                format!("r{}", sw.reg)
+            }
+        } else {
+            format!("r{}", sw.reg)
+        };
+        let switch_var = apply_aliases(&switch_var, &self.plan.var_aliases);
+
+        let _ = writeln!(self.output, "{}switch ({}) {{", prefix, switch_var);
+
+        // Emit each case
+        for (value, then_blocks, header_pc) in &sw.cases {
+            let _ = writeln!(self.output, "{}case {}:", case_prefix, value);
+            // Mark the header as emitted
+            self.emitted.insert(*header_pc);
+
+            let mut had_ctrl = false;
+            for &tb in then_blocks {
+                let ctrl = self.emit_block_with_loop_control(tb, indent + 2, loop_context);
+                if let Some(keyword) = ctrl {
+                    let _ = writeln!(self.output, "{}{}", body_prefix, keyword);
+                    self.emitted.insert(tb);
+                    had_ctrl = true;
+                    break;
+                }
+                self.emitted.insert(tb);
+            }
+            // Only emit break if the case body didn't already end with a
+            // control-flow statement (goto, break, continue).
+            if !had_ctrl && !self.case_body_ends_with_jump(&body_prefix) {
+                let _ = writeln!(self.output, "{}break;", body_prefix);
+            }
+        }
+
+        // Emit default case if present
+        if let Some(default_blocks) = &sw.default_blocks {
+            let _ = writeln!(self.output, "{}default:", case_prefix);
+            let mut had_ctrl = false;
+            for &db in default_blocks {
+                let ctrl = self.emit_block_with_loop_control(db, indent + 2, loop_context);
+                if let Some(keyword) = ctrl {
+                    let _ = writeln!(self.output, "{}{}", body_prefix, keyword);
+                    self.emitted.insert(db);
+                    had_ctrl = true;
+                    break;
+                }
+                self.emitted.insert(db);
+            }
+            if !had_ctrl && !self.case_body_ends_with_jump(&body_prefix) {
+                let _ = writeln!(self.output, "{}break;", body_prefix);
+            }
+        }
+
+        let _ = writeln!(self.output, "{}}}", prefix);
+
+        // Mark all header PCs as emitted
+        for &hpc in &sw.header_pcs {
+            self.emitted.insert(hpc);
+        }
+    }
+
+    /// Check whether the last non-empty line of output ends with a control-flow
+    /// statement (goto, break, continue) so we can suppress redundant `break;`.
+    fn case_body_ends_with_jump(&self, _body_prefix: &str) -> bool {
+        let trimmed = self.output.trim_end();
+        if let Some(last_line) = trimmed.lines().last() {
+            let t = last_line.trim();
+            t.starts_with("goto ") || t == "break;" || t == "continue;"
+        } else {
+            false
+        }
+    }
+}
+
+/// Collected switch information from a chain of if-else comparisons.
+struct CollectedSwitch {
+    reg: u8,
+    /// (case_value, then_blocks, header_pc) for each case
+    cases: Vec<(i32, Vec<usize>, usize)>,
+    /// The blocks for the default (final else) case, if present
+    default_blocks: Option<Vec<usize>>,
+    /// All header PCs in the chain (for marking as emitted)
+    header_pcs: Vec<usize>,
 }
 
 struct EmissionPlan {
@@ -2183,9 +2450,22 @@ fn fix_blank_lines(input: &str) -> String {
     let mut out = deduped.join("\n");
     out.push('\n');
     let collapsed = collapse_consecutive_labels(&out);
-    let without_redundant_gotos = elide_redundant_gotos(&collapsed);
-    let without_unused_labels = prune_unused_labels(&without_redundant_gotos);
-    prune_unused_pure_let_definitions(&without_unused_labels)
+    // Run goto-elision, unreachable-removal, and label-pruning iteratively:
+    // eliding gotos can expose unreachable code, removing unreachable code
+    // can expose further goto elision, and pruning orphan labels enables
+    // both Pattern 2 (else-goto-fallthrough) and unreachable detection.
+    let mut text = collapsed;
+    for _ in 0..4 {
+        let next = elide_redundant_gotos(&text);
+        let next = remove_unreachable_after_control_flow(&next);
+        let next = invert_conditional_gotos(&next);
+        let next = prune_unused_labels(&next);
+        if next == text {
+            break;
+        }
+        text = next;
+    }
+    prune_unused_pure_let_definitions(&text)
 }
 
 /// Collapse runs of consecutive labels into a single canonical label.
@@ -2229,35 +2509,30 @@ fn collapse_consecutive_labels(input: &str) -> String {
     out
 }
 
-/// Remove label definitions that are never targeted by any emitted goto.
-/// Remove goto statements that jump to the immediately following label.
+/// Remove goto statements that jump to the immediately following label,
+/// and inline else-goto blocks whose target appears nearby.
 ///
-/// Handles two patterns:
+/// **Pattern 1** – bare goto to next label (with brace-depth tracking):
+/// The goto line is removed when the target label is the next reachable
+/// point after exiting any enclosing block (e.g. switch cases).
 ///
-/// **Pattern 1** – bare goto to next label:
-/// ```text
-///     goto block_XXXX;
-///                           ← optional blank lines
-///     block_XXXX:
-/// ```
-/// The goto line is removed.
-///
-/// **Pattern 2** – else-only-goto to next label:
-/// ```text
-///     } else {
-///         goto block_XXXX;
-///     }
-///                           ← optional blank lines
-///     block_XXXX:
-/// ```
-/// The three else lines are replaced with a single `}` to close the if.
+/// **Pattern 2** – else-goto inlining:
+/// When an else branch contains only `goto block_XXX;` and `block_XXX:`
+/// appears in the file, the goto is replaced with block_XXX's body lines,
+/// effectively inlining the target block into the else branch.
 fn elide_redundant_gotos(input: &str) -> String {
     let lines: Vec<&str> = input.lines().collect();
+
+    // Build a map of block labels to their body lines for inlining.
+    let block_bodies = collect_block_bodies(&lines);
+
     let mut kept: Vec<&str> = Vec::with_capacity(lines.len());
+    let mut inlined_blocks: HashSet<String> = HashSet::new();
     let mut i = 0;
 
     while i < lines.len() {
         // Try Pattern 2: } else { / goto block_XXXX; / }
+        // Inline the target block's body into the else branch.
         if i + 2 < lines.len() {
             let l0 = lines[i].trim();
             let l1 = lines[i + 1].trim();
@@ -2265,7 +2540,44 @@ fn elide_redundant_gotos(input: &str) -> String {
 
             if l0 == "} else {" && l2 == "}" {
                 if let Some(goto_label) = parse_goto_target(l1) {
-                    // Look ahead past blank lines for matching label
+                    if let Some(body) = block_bodies.get(&goto_label) {
+                        // Only inline simple bodies (no braces) to avoid
+                        // creating complex nested structures that confuse
+                        // subsequent passes.
+                        let is_simple = body
+                            .iter()
+                            .all(|l| !l.contains('{') && !l.contains('}'));
+
+                        if !body.is_empty() && is_simple {
+                            // Determine indentation from the goto line
+                            let indent = &lines[i + 1]
+                                [..lines[i + 1].len() - lines[i + 1].trim_start().len()];
+                            // Keep `} else {`
+                            kept.push(lines[i]);
+                            // Inline the body with proper indentation
+                            for body_line in body {
+                                let trimmed = body_line.trim();
+                                if trimmed.is_empty() {
+                                    kept.push(body_line);
+                                } else {
+                                    // We need to own these strings; push into a leaked
+                                    // string to keep &str lifetimes. This is fine for
+                                    // a one-shot formatting pass.
+                                    let new_line: &str =
+                                        Box::leak(format!("{}{}", indent, trimmed).into_boxed_str());
+                                    kept.push(new_line);
+                                }
+                            }
+                            // Keep closing `}`
+                            kept.push(lines[i + 2]);
+                            inlined_blocks.insert(goto_label);
+                            i += 3;
+                            continue;
+                        }
+                    }
+
+                    // Fallback: original Pattern 2 — remove the else when
+                    // the goto target is the next label after the closing `}`.
                     let mut j = i + 3;
                     while j < lines.len() && lines[j].trim().is_empty() {
                         j += 1;
@@ -2273,9 +2585,6 @@ fn elide_redundant_gotos(input: &str) -> String {
                     if j < lines.len() {
                         if let Some(next_label) = parse_block_label_name(lines[j]) {
                             if goto_label == next_label {
-                                // Replace the else block with just `}` to close the if.
-                                // The closing brace line (lines[i+2]) already has
-                                // the right indentation.
                                 kept.push(lines[i + 2]);
                                 i += 3;
                                 continue;
@@ -2286,12 +2595,76 @@ fn elide_redundant_gotos(input: &str) -> String {
             }
         }
 
+        // Skip lines belonging to inlined blocks (label + full body).
+        // Use brace-depth tracking to skip nested structures correctly.
+        if let Some(label) = parse_block_label_name(lines[i]) {
+            if inlined_blocks.contains(&label) {
+                // Skip the label line
+                i += 1;
+                let mut skip_depth: i32 = 0;
+                while i < lines.len() {
+                    let trimmed = lines[i].trim();
+                    if trimmed.is_empty() {
+                        i += 1;
+                        continue;
+                    }
+                    // Stop at the next label (not inside a nested block)
+                    if skip_depth == 0 && parse_block_label_name(lines[i]).is_some() {
+                        break;
+                    }
+                    let opens = trimmed.chars().filter(|c| *c == '{').count() as i32;
+                    let closes = trimmed.chars().filter(|c| *c == '}').count() as i32;
+                    skip_depth += opens - closes;
+                    // Stop at a closing brace that exits the block's scope
+                    if skip_depth < 0 {
+                        break;
+                    }
+                    i += 1;
+                }
+                continue;
+            }
+        }
+
         // Try Pattern 1: goto block_XXXX;
+        // Use brace-depth tracking to find the next reachable label.
+        // This handles gotos inside switch cases where the label appears
+        // after the switch closing brace.
         {
             let trimmed = lines[i].trim();
             if let Some(goto_label) = parse_goto_target(trimmed) {
                 let mut j = i + 1;
-                while j < lines.len() && lines[j].trim().is_empty() {
+                let mut depth: i32 = 0;
+                loop {
+                    // Skip blank lines
+                    while j < lines.len() && lines[j].trim().is_empty() {
+                        j += 1;
+                    }
+                    if j >= lines.len() {
+                        break;
+                    }
+                    let ahead = lines[j].trim();
+                    // Update brace depth
+                    for c in ahead.chars() {
+                        match c {
+                            '{' => depth += 1,
+                            '}' => depth -= 1,
+                            _ => {}
+                        }
+                    }
+                    if depth < 0 {
+                        // We exited our enclosing block (e.g. switch).
+                        // Look past blank lines for the label.
+                        j += 1;
+                        while j < lines.len() && lines[j].trim().is_empty() {
+                            j += 1;
+                        }
+                        break;
+                    }
+                    if depth == 0 {
+                        if let Some(_) = parse_block_label_name(lines[j]) {
+                            break;
+                        }
+                    }
                     j += 1;
                 }
                 if j < lines.len() {
@@ -2313,6 +2686,339 @@ fn elide_redundant_gotos(input: &str) -> String {
     let mut out = kept.join("\n");
     out.push('\n');
     out
+}
+
+/// Build a map from block label names to their body lines.
+/// A block's body starts after the label line and extends to the next label
+/// or to a line that is just `}` at depth 0 (function-level brace).
+/// Control-flow terminators at depth 0 end the body (included);
+/// terminators inside nested blocks (if/else, loops) are not boundary markers.
+fn collect_block_bodies<'a>(lines: &[&'a str]) -> HashMap<String, Vec<&'a str>> {
+    let mut bodies: HashMap<String, Vec<&str>> = HashMap::new();
+    let mut i = 0;
+
+    while i < lines.len() {
+        if let Some(label) = parse_block_label_name(lines[i]) {
+            let mut body = Vec::new();
+            let mut depth: i32 = 0;
+            let mut j = i + 1;
+            while j < lines.len() {
+                let trimmed = lines[j].trim();
+                if trimmed.is_empty() {
+                    j += 1;
+                    continue;
+                }
+                if parse_block_label_name(lines[j]).is_some() {
+                    break;
+                }
+                // Count braces for depth tracking
+                let opens = trimmed.chars().filter(|c| *c == '{').count() as i32;
+                let closes = trimmed.chars().filter(|c| *c == '}').count() as i32;
+                let new_depth = depth + opens - closes;
+
+                // Stop at a top-level `}` (function/enclosing-block end)
+                if trimmed == "}" && new_depth < 0 {
+                    break;
+                }
+
+                depth = new_depth;
+                body.push(lines[j]);
+
+                // Stop after control-flow terminators at depth 0
+                // (rest is unreachable), but not inside nested blocks
+                if depth == 0 && is_control_flow_terminator(trimmed) {
+                    j += 1;
+                    break;
+                }
+                j += 1;
+            }
+            bodies.insert(label, body);
+            i = j;
+        } else {
+            i += 1;
+        }
+    }
+
+    bodies
+}
+
+/// Transform `if (COND) goto block_XXX; <stmts> block_XXX:` into
+/// `if (!(COND)) { <stmts> }` — replacing a conditional forward-goto with
+/// an inverted if-block that wraps the skipped-over statements.
+fn invert_conditional_gotos(input: &str) -> String {
+    let lines: Vec<&str> = input.lines().collect();
+    let mut out: Vec<String> = Vec::with_capacity(lines.len());
+    let mut i = 0;
+
+    while i < lines.len() {
+        let trimmed = lines[i].trim();
+
+        // Match: if (...) goto block_XXXX;
+        if let Some((cond, goto_label)) = parse_conditional_goto(trimmed) {
+            // Collect body lines until we find the target label
+            let mut body: Vec<&str> = Vec::new();
+            let mut j = i + 1;
+            let mut found = false;
+            let mut depth: i32 = 0;
+            while j < lines.len() {
+                let ahead = lines[j].trim();
+                if ahead.is_empty() {
+                    j += 1;
+                    continue;
+                }
+                if let Some(label) = parse_block_label_name(lines[j]) {
+                    if label == goto_label && depth == 0 {
+                        found = true;
+                        break;
+                    }
+                    // Hit a different label — bail out
+                    break;
+                }
+                // Track brace depth; bail if we enter nested structures
+                let opens = ahead.chars().filter(|c| *c == '{').count() as i32;
+                let closes = ahead.chars().filter(|c| *c == '}').count() as i32;
+                depth += opens - closes;
+                if depth < 0 {
+                    // Exiting an enclosing block — bail
+                    break;
+                }
+                body.push(lines[j]);
+                j += 1;
+            }
+
+            if found && !body.is_empty() && depth == 0 {
+                // Determine indentation from the original line
+                let indent =
+                    &lines[i][..lines[i].len() - lines[i].trim_start().len()];
+
+                // Invert the condition and emit an if-block
+                let inverted = invert_condition_text(&cond);
+                out.push(format!("{}if ({}) {{", indent, inverted));
+                for body_line in &body {
+                    let bt = body_line.trim();
+                    if bt.is_empty() {
+                        out.push(String::new());
+                    } else {
+                        out.push(format!("{}    {}", indent, bt));
+                    }
+                }
+                out.push(format!("{}}}", indent));
+                i = j; // skip past; label will be handled by prune_unused_labels
+                continue;
+            }
+        }
+
+        out.push(lines[i].to_string());
+        i += 1;
+    }
+
+    let mut result = out.join("\n");
+    result.push('\n');
+    result
+}
+
+/// Parse `if (COND) goto block_XXXX;` and return (condition, label).
+fn parse_conditional_goto(trimmed: &str) -> Option<(String, String)> {
+    let rest = trimmed.strip_prefix("if (")?;
+    // Find the matching `)` — need to track parenthesis depth
+    let mut depth = 1i32;
+    let mut cond_end = 0;
+    for (idx, ch) in rest.char_indices() {
+        match ch {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    cond_end = idx;
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    if depth != 0 {
+        return None;
+    }
+    let cond = rest[..cond_end].to_string();
+    let after_cond = rest[cond_end + 1..].trim();
+    // Must be `goto block_XXXX;`
+    let goto_part = after_cond.strip_prefix("goto ")?.strip_suffix(';')?.trim();
+    if is_block_label_name(goto_part) {
+        Some((cond, goto_part.to_string()))
+    } else {
+        None
+    }
+}
+
+/// Invert a condition string. Tries simple inversions first, then wraps in `!()`.
+fn invert_condition_text(cond: &str) -> String {
+    let c = cond.trim();
+    // Already negated: !(X) → X
+    if c.starts_with("!(") && c.ends_with(')') {
+        let inner = &c[2..c.len() - 1];
+        // Verify balanced parens
+        let mut depth = 0i32;
+        let mut balanced = true;
+        for ch in inner.chars() {
+            match ch {
+                '(' => depth += 1,
+                ')' => {
+                    depth -= 1;
+                    if depth < 0 {
+                        balanced = false;
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        if balanced && depth == 0 {
+            return inner.to_string();
+        }
+    }
+    format!("!({})", c)
+}
+
+/// Returns true if the line ends with a control-flow transfer statement
+/// (goto, break, continue, return, or halt()).
+fn is_control_flow_terminator(trimmed: &str) -> bool {
+    trimmed.starts_with("goto ") && trimmed.ends_with(';')
+        || trimmed == "break;"
+        || trimmed == "continue;"
+        || trimmed.starts_with("return")
+        || trimmed == "halt()"
+}
+
+/// Remove unreachable statements after if-else blocks where both branches
+/// end with control-flow transfers (goto/break/continue/return/halt).
+fn remove_unreachable_after_control_flow(input: &str) -> String {
+    let lines: Vec<&str> = input.lines().collect();
+    let mut kept: Vec<&str> = Vec::with_capacity(lines.len());
+    let mut i = 0;
+
+    while i < lines.len() {
+        kept.push(lines[i]);
+        let trimmed = lines[i].trim();
+
+        // Detect closing `}` of an else block — check if the if-else we just
+        // finished has both branches ending with control-flow terminators.
+        if trimmed == "}" {
+            if let Some(range) = find_enclosing_if_else(&kept) {
+                if both_branches_terminate(&kept, range) {
+                    // Skip unreachable lines until we hit a label or another `}`
+                    let mut j = i + 1;
+                    while j < lines.len() {
+                        let ahead = lines[j].trim();
+                        if ahead.is_empty() {
+                            j += 1;
+                            continue;
+                        }
+                        if parse_block_label_name(lines[j]).is_some() || ahead == "}" {
+                            break;
+                        }
+                        // This line is unreachable — skip it
+                        j += 1;
+                    }
+                    i = j;
+                    continue;
+                }
+            }
+        }
+
+        i += 1;
+    }
+
+    let mut out = kept.join("\n");
+    out.push('\n');
+    out
+}
+
+/// Represents the line range of an if-else block within `kept`.
+struct IfElseRange {
+    if_open: usize,   // line index of `if (...) {`
+    else_open: usize,  // line index of `} else {`
+    else_close: usize, // line index of closing `}`
+}
+
+/// Search backward from the end of `kept` to find the enclosing if-else block.
+/// The last line of `kept` must be the closing `}` of the else branch.
+fn find_enclosing_if_else(kept: &[&str]) -> Option<IfElseRange> {
+    if kept.is_empty() {
+        return None;
+    }
+    let else_close = kept.len() - 1;
+    if kept[else_close].trim() != "}" {
+        return None;
+    }
+
+    // Find matching `} else {` by counting brace depth backward.
+    // `} else {` is brace-neutral (one `{` and one `}`), so handle it
+    // explicitly: match when depth == 1 (only our starting `}` is unmatched).
+    let mut depth = 1i32;
+    let mut pos = else_close;
+    while pos > 0 {
+        pos -= 1;
+        let t = kept[pos].trim();
+
+        if t == "} else {" {
+            if depth == 1 {
+                let else_open = pos;
+                // The `}` in `} else {` closes the if body.
+                // Now find the matching `if (...) {` above.
+                let mut depth2 = 1i32;
+                let mut pos2 = else_open;
+                while pos2 > 0 {
+                    pos2 -= 1;
+                    let t2 = kept[pos2].trim();
+                    if t2 == "} else {" {
+                        // Brace-neutral, skip
+                        continue;
+                    }
+                    let opens = t2.chars().filter(|c| *c == '{').count() as i32;
+                    let closes = t2.chars().filter(|c| *c == '}').count() as i32;
+                    depth2 = depth2 + closes - opens;
+                    if depth2 == 0 && t2.starts_with("if ") && t2.ends_with('{') {
+                        return Some(IfElseRange {
+                            if_open: pos2,
+                            else_open,
+                            else_close,
+                        });
+                    }
+                }
+                return None;
+            }
+            // Nested `} else {`: brace-neutral, don't change depth
+            continue;
+        }
+
+        let opens = t.chars().filter(|c| *c == '{').count() as i32;
+        let closes = t.chars().filter(|c| *c == '}').count() as i32;
+        depth = depth + closes - opens;
+    }
+    None
+}
+
+/// Check that both branches of an if-else block end with control-flow terminators.
+fn both_branches_terminate(kept: &[&str], range: IfElseRange) -> bool {
+    // Find last non-blank line before `} else {`
+    let mut if_last = range.else_open;
+    while if_last > range.if_open + 1 {
+        if_last -= 1;
+        if !kept[if_last].trim().is_empty() {
+            break;
+        }
+    }
+    // Find last non-blank line before closing `}`
+    let mut else_last = range.else_close;
+    while else_last > range.else_open + 1 {
+        else_last -= 1;
+        if !kept[else_last].trim().is_empty() {
+            break;
+        }
+    }
+
+    is_control_flow_terminator(kept[if_last].trim())
+        && is_control_flow_terminator(kept[else_last].trim())
 }
 
 /// Extract the label name from a `goto block_XXXX;` statement.
@@ -5691,6 +6397,203 @@ halt()
             output.contains("let var_2 = sbrk(var_1)"),
             "Effectful let bindings must be preserved even if unused: {}",
             output
+        );
+    }
+
+    #[test]
+    fn test_switch_recovery_from_nested_ifs() {
+        // Build a chain: block 0 branches on r1==0 → block 10, else → block 20
+        //                block 20 branches on r1==1 → block 30, else → block 40
+        //                block 40 branches on r1==2 → block 50, else → block 60 (default)
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::BranchEqImm {
+                            reg: 1,
+                            value: 0,
+                            offset: 20, // target = 0 + 20 = 20? No — need to match successors
+                        },
+                    )],
+                    vec![10, 20], // then=10, else=20
+                ),
+                (10, vec![(10, Instruction::Trap)], vec![]),
+                (
+                    20,
+                    vec![(
+                        20,
+                        Instruction::BranchEqImm {
+                            reg: 1,
+                            value: 1,
+                            offset: 20,
+                        },
+                    )],
+                    vec![30, 40],
+                ),
+                (30, vec![(30, Instruction::Trap)], vec![]),
+                (
+                    40,
+                    vec![(
+                        40,
+                        Instruction::BranchEqImm {
+                            reg: 1,
+                            value: 2,
+                            offset: 20,
+                        },
+                    )],
+                    vec![50, 60],
+                ),
+                (50, vec![(50, Instruction::Trap)], vec![]),
+                (60, vec![(60, Instruction::Trap)], vec![]), // default
+            ],
+        );
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, None, None);
+
+        assert!(
+            pseudo.contains("switch (r1)"),
+            "Should produce a switch statement: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("case 0:"),
+            "Should contain case 0: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("case 1:"),
+            "Should contain case 1: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("case 2:"),
+            "Should contain case 2: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("default:"),
+            "Should contain default case: {}",
+            pseudo
+        );
+        // Should NOT contain nested if-else
+        assert!(
+            !pseudo.contains("if (r1 == 0)"),
+            "Should not have nested ifs: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_short_chain_with_default_still_becomes_switch() {
+        // 2 explicit cases + 1 default = 3 total, which qualifies as a switch.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::BranchEqImm {
+                            reg: 1,
+                            value: 0,
+                            offset: 20,
+                        },
+                    )],
+                    vec![10, 20],
+                ),
+                (10, vec![(10, Instruction::Trap)], vec![]),
+                (
+                    20,
+                    vec![(
+                        20,
+                        Instruction::BranchEqImm {
+                            reg: 1,
+                            value: 1,
+                            offset: 20,
+                        },
+                    )],
+                    vec![30, 40],
+                ),
+                (30, vec![(30, Instruction::Trap)], vec![]),
+                (40, vec![(40, Instruction::Trap)], vec![]), // default
+            ],
+        );
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, None, None);
+
+        assert!(
+            pseudo.contains("switch (r1)"),
+            "2 cases + default = 3 branches, should become switch: {}",
+            pseudo
+        );
+        assert!(
+            pseudo.contains("default:"),
+            "Should have default case: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_mixed_register_chain_stays_as_if_else() {
+        // 3 cases but on different registers — should remain as if-else.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::BranchEqImm {
+                            reg: 1,
+                            value: 0,
+                            offset: 20,
+                        },
+                    )],
+                    vec![10, 20],
+                ),
+                (10, vec![(10, Instruction::Trap)], vec![]),
+                (
+                    20,
+                    vec![(
+                        20,
+                        Instruction::BranchEqImm {
+                            reg: 2, // different register!
+                            value: 1,
+                            offset: 20,
+                        },
+                    )],
+                    vec![30, 40],
+                ),
+                (30, vec![(30, Instruction::Trap)], vec![]),
+                (
+                    40,
+                    vec![(
+                        40,
+                        Instruction::BranchEqImm {
+                            reg: 1,
+                            value: 2,
+                            offset: 20,
+                        },
+                    )],
+                    vec![50, 60],
+                ),
+                (50, vec![(50, Instruction::Trap)], vec![]),
+                (60, vec![(60, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, None, None);
+
+        assert!(
+            !pseudo.contains("switch"),
+            "Mixed-register chain should not become switch: {}",
+            pseudo
         );
     }
 }
