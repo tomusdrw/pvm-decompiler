@@ -2657,7 +2657,7 @@ fn elide_redundant_gotos(input: &str) -> String {
                         break;
                     }
                     if depth == 0 {
-                        if let Some(_) = parse_block_label_name(lines[j]) {
+                        if parse_block_label_name(lines[j]).is_some() {
                             break;
                         }
                     }

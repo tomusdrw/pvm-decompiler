@@ -158,7 +158,7 @@ fn lift_single_function(
         }
 
         // Emit terminator
-        emit_terminator(out, block, program, &block_pcs, &mut tmp_counter);
+        emit_terminator(out, block, program, block_pcs, &mut tmp_counter);
         writeln!(out).unwrap();
     }
 
