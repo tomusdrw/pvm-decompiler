@@ -1414,10 +1414,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
 
     /// Walk an if-else chain to detect a switch pattern.
     /// Returns `None` if the chain doesn't qualify as a switch.
-    fn try_collect_switch_cases(
-        &self,
-        block_pc: usize,
-    ) -> Option<CollectedSwitch> {
+    fn try_collect_switch_cases(&self, block_pc: usize) -> Option<CollectedSwitch> {
         let mut cases: Vec<(i32, Vec<usize>, usize)> = Vec::new(); // (value, then_blocks, header_pc)
         let mut header_pcs: Vec<usize> = Vec::new();
         let mut default_blocks: Option<Vec<usize>> = None;
@@ -2544,9 +2541,7 @@ fn elide_redundant_gotos(input: &str) -> String {
                         // Only inline simple bodies (no braces) to avoid
                         // creating complex nested structures that confuse
                         // subsequent passes.
-                        let is_simple = body
-                            .iter()
-                            .all(|l| !l.contains('{') && !l.contains('}'));
+                        let is_simple = body.iter().all(|l| !l.contains('{') && !l.contains('}'));
 
                         if !body.is_empty() && is_simple {
                             // Determine indentation from the goto line
@@ -2563,8 +2558,9 @@ fn elide_redundant_gotos(input: &str) -> String {
                                     // We need to own these strings; push into a leaked
                                     // string to keep &str lifetimes. This is fine for
                                     // a one-shot formatting pass.
-                                    let new_line: &str =
-                                        Box::leak(format!("{}{}", indent, trimmed).into_boxed_str());
+                                    let new_line: &str = Box::leak(
+                                        format!("{}{}", indent, trimmed).into_boxed_str(),
+                                    );
                                     kept.push(new_line);
                                 }
                             }
@@ -2788,8 +2784,7 @@ fn invert_conditional_gotos(input: &str) -> String {
 
             if found && !body.is_empty() && depth == 0 {
                 // Determine indentation from the original line
-                let indent =
-                    &lines[i][..lines[i].len() - lines[i].trim_start().len()];
+                let indent = &lines[i][..lines[i].len() - lines[i].trim_start().len()];
 
                 // Invert the condition and emit an if-block
                 let inverted = invert_condition_text(&cond);
@@ -2935,7 +2930,7 @@ fn remove_unreachable_after_control_flow(input: &str) -> String {
 
 /// Represents the line range of an if-else block within `kept`.
 struct IfElseRange {
-    if_open: usize,   // line index of `if (...) {`
+    if_open: usize,    // line index of `if (...) {`
     else_open: usize,  // line index of `} else {`
     else_close: usize, // line index of closing `}`
 }

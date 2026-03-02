@@ -50,11 +50,7 @@ pub fn lift_program(
     )
     .unwrap();
     writeln!(out, "declare void @pvm_trap() noreturn ; Trap/halt").unwrap();
-    writeln!(
-        out,
-        "declare i64 @pvm_sbrk(i64) ; Memory allocation (sbrk)"
-    )
-    .unwrap();
+    writeln!(out, "declare i64 @pvm_sbrk(i64) ; Memory allocation (sbrk)").unwrap();
 
     // Intrinsics
     writeln!(out, "declare i32 @llvm.ctpop.i32(i32)").unwrap();
@@ -74,11 +70,25 @@ pub fn lift_program(
 
     // If no functions detected, emit the whole program as one function
     if functions.is_empty() {
-        lift_single_function(&mut out, "main", program, cfg, &cfg.blocks.keys().copied().collect(), 0);
+        lift_single_function(
+            &mut out,
+            "main",
+            program,
+            cfg,
+            &cfg.blocks.keys().copied().collect(),
+            0,
+        );
     } else {
         // Emit each function
         for func in functions {
-            lift_single_function(&mut out, &func.name, program, cfg, &func.block_pcs, func.entry_pc);
+            lift_single_function(
+                &mut out,
+                &func.name,
+                program,
+                cfg,
+                &func.block_pcs,
+                func.entry_pc,
+            );
         }
     }
 
@@ -292,12 +302,7 @@ fn emit_instruction(
             let td = next_tmp(tmp);
             writeln!(out, "  {} = load i64, ptr %r{}, align 8", td, dst).unwrap();
             let sel = next_tmp(tmp);
-            writeln!(
-                out,
-                "  {} = select i1 {}, i64 {}, i64 {}",
-                sel, cmp, ts, td
-            )
-            .unwrap();
+            writeln!(out, "  {} = select i1 {}, i64 {}, i64 {}", sel, cmp, ts, td).unwrap();
             writeln!(out, "  store i64 {}, ptr %r{}, align 8", sel, dst).unwrap();
         }
 
@@ -329,22 +334,16 @@ fn emit_instruction(
 
         InstructionShape::LoadImmJump { dst, value, .. } => {
             // Load immediate (jump handled by terminator)
-            writeln!(
-                out,
-                "  store i64 {}, ptr %r{}, align 8",
-                *value as i64, dst
-            )
-            .unwrap();
+            writeln!(out, "  store i64 {}, ptr %r{}, align 8", *value as i64, dst).unwrap();
         }
 
-        InstructionShape::LoadImmJumpInd { base: _, dst, value } => {
+        InstructionShape::LoadImmJumpInd {
+            base: _,
+            dst,
+            value,
+        } => {
             // Load immediate (indirect jump handled by terminator)
-            writeln!(
-                out,
-                "  store i64 {}, ptr %r{}, align 8",
-                *value as i64, dst
-            )
-            .unwrap();
+            writeln!(out, "  store i64 {}, ptr %r{}, align 8", *value as i64, dst).unwrap();
         }
 
         InstructionShape::Ecalli { index } => {
@@ -421,7 +420,7 @@ fn emit_terminator(
                 }
             }
 
-            InstructionShape::LoadImmJumpInd {  .. } => {
+            InstructionShape::LoadImmJumpInd { .. } => {
                 // Combined load + indirect jump - typically a return or tail call
                 let t = next_tmp(tmp);
                 writeln!(out, "  {} = load i64, ptr %r0, align 8", t).unwrap();
@@ -498,12 +497,7 @@ fn emit_terminator(
 
                 let cmp = next_tmp(tmp);
                 let llvm_cond = branch_cond_to_icmp(cond);
-                writeln!(
-                    out,
-                    "  {} = icmp {} i64 {}, {}",
-                    cmp, llvm_cond, t1, t2
-                )
-                .unwrap();
+                writeln!(out, "  {} = icmp {} i64 {}, {}", cmp, llvm_cond, t1, t2).unwrap();
 
                 let target_label = if func_block_pcs.contains(&target) {
                     format!("bb_{:04x}", target)
@@ -607,8 +601,14 @@ fn emit_binop(
         BinOp::And => writeln!(out, "  {} = and {} {}, {}", result, ty, l, r).unwrap(),
         BinOp::Or => writeln!(out, "  {} = or {} {}, {}", result, ty, l, r).unwrap(),
         BinOp::Xor => writeln!(out, "  {} = xor {} {}, {}", result, ty, l, r).unwrap(),
-        BinOp::LtU | BinOp::LtS | BinOp::GeU | BinOp::GeS
-        | BinOp::GtU | BinOp::GtS | BinOp::LeU | BinOp::LeS => {
+        BinOp::LtU
+        | BinOp::LtS
+        | BinOp::GeU
+        | BinOp::GeS
+        | BinOp::GtU
+        | BinOp::GtS
+        | BinOp::LeU
+        | BinOp::LeS => {
             let icmp = match op {
                 BinOp::LtU => "ult",
                 BinOp::LtS => "slt",
@@ -730,8 +730,7 @@ fn emit_binop(
                 result, cmp, ty, l, ty, r
             )
             .unwrap();
-        }
-        // Eq and Ne only appear as branch conditions in PVM, not as BinOp variants
+        } // Eq and Ne only appear as branch conditions in PVM, not as BinOp variants
     }
 
     // Extend 32-bit result back to 64-bit and store
@@ -822,20 +821,10 @@ fn emit_unary(out: &mut String, op: &UnaryOp, dst: u8, src: &str, tmp: &mut u64)
             .unwrap();
         }
         UnaryOp::Sbrk => {
-            writeln!(
-                out,
-                "  {} = call i64 @pvm_sbrk(i64 {})",
-                result, src
-            )
-            .unwrap();
+            writeln!(out, "  {} = call i64 @pvm_sbrk(i64 {})", result, src).unwrap();
         }
         UnaryOp::Bswap => {
-            writeln!(
-                out,
-                "  {} = call i64 @llvm.bswap.i64(i64 {})",
-                result, src
-            )
-            .unwrap();
+            writeln!(out, "  {} = call i64 @llvm.bswap.i64(i64 {})", result, src).unwrap();
         }
     }
     writeln!(out, "  store i64 {}, ptr %r{}, align 8", result, dst).unwrap();
@@ -1042,6 +1031,12 @@ fn next_tmp(counter: &mut u64) -> String {
 /// Sanitize a name for use as an LLVM identifier.
 fn sanitize_name(name: &str) -> String {
     name.chars()
-        .map(|c| if c.is_alphanumeric() || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect()
 }

@@ -114,11 +114,7 @@ fn decompile_retdec(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::error
     // Convert .ll to .bc using llvm-as
     let llvm_as = find_llvm_tool("llvm-as");
     let status = Command::new(&llvm_as)
-        .args([
-            ll_path.to_str().unwrap(),
-            "-o",
-            bc_path.to_str().unwrap(),
-        ])
+        .args([ll_path.to_str().unwrap(), "-o", bc_path.to_str().unwrap()])
         .status()?;
 
     if !status.success() {
@@ -170,11 +166,7 @@ fn decompile_rellic(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::error
     // Convert .ll to .bc
     let llvm_as = find_llvm_tool("llvm-as");
     let status = Command::new(&llvm_as)
-        .args([
-            ll_path.to_str().unwrap(),
-            "-o",
-            bc_path.to_str().unwrap(),
-        ])
+        .args([ll_path.to_str().unwrap(), "-o", bc_path.to_str().unwrap()])
         .status()?;
 
     if !status.success() {
@@ -384,8 +376,11 @@ fn decompile_builtin(llvm_ir: &str) -> DecompileResult {
     for line in llvm_ir.lines() {
         let trimmed = line.trim();
 
-        if trimmed.is_empty() || trimmed.starts_with(';') || trimmed.starts_with("source_filename")
-            || trimmed.starts_with("target") || trimmed.starts_with("@")
+        if trimmed.is_empty()
+            || trimmed.starts_with(';')
+            || trimmed.starts_with("source_filename")
+            || trimmed.starts_with("target")
+            || trimmed.starts_with("@")
             || trimmed.starts_with("declare")
         {
             continue;
@@ -398,8 +393,12 @@ fn decompile_builtin(llvm_ir: &str) -> DecompileResult {
             if let Some(name) = extract_func_name(trimmed) {
                 _func_name = name.to_string();
                 c_code.push_str(&format!("int64_t {}(void) {{\n", name));
-                c_code.push_str("    int64_t r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12;\n");
-                c_code.push_str("    r0 = r1 = r2 = r3 = r4 = r5 = r6 = r7 = r8 = r9 = r10 = r11 = r12 = 0;\n");
+                c_code.push_str(
+                    "    int64_t r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12;\n",
+                );
+                c_code.push_str(
+                    "    r0 = r1 = r2 = r3 = r4 = r5 = r6 = r7 = r8 = r9 = r10 = r11 = r12 = 0;\n",
+                );
             }
             continue;
         }
@@ -429,7 +428,9 @@ fn decompile_builtin(llvm_ir: &str) -> DecompileResult {
         }
     }
 
-    warnings.push("Used built-in naive C emitter (install retdec or rellic for better results)".to_string());
+    warnings.push(
+        "Used built-in naive C emitter (install retdec or rellic for better results)".to_string(),
+    );
 
     DecompileResult {
         c_code,

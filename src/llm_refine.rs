@@ -20,10 +20,7 @@ pub struct RefinementResult {
 }
 
 /// Run the full LLM refinement pipeline on decompiled C code.
-pub fn refine(
-    c_code: &str,
-    context: &str,
-) -> Result<RefinementResult, Box<dyn std::error::Error>> {
+pub fn refine(c_code: &str, context: &str) -> Result<RefinementResult, Box<dyn std::error::Error>> {
     let mut current = c_code.to_string();
     let mut all_improvements = Vec::new();
     let raw = c_code.to_string();
@@ -51,7 +48,10 @@ pub fn refine(
             all_improvements.push(format!("Round {}: {}", round + 1, summarize(&suggestions)));
             current = improved;
         } else {
-            eprintln!("  Warning: LLM produced invalid output in round {}, keeping previous", round + 1);
+            eprintln!(
+                "  Warning: LLM produced invalid output in round {}, keeping previous",
+                round + 1
+            );
             break;
         }
     }
@@ -65,10 +65,7 @@ pub fn refine(
 }
 
 /// Run the Referee role: evaluate code quality.
-fn run_referee(
-    code: &str,
-    context: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
+fn run_referee(code: &str, context: &str) -> Result<String, Box<dyn std::error::Error>> {
     let prompt = format!(
         r#"You are a code quality referee for decompiled PVM (Polkadot Virtual Machine) bytecode.
 
@@ -236,7 +233,10 @@ fn extract_code_block(response: &str) -> Option<String> {
 
 /// Summarize suggestions to a one-line description.
 fn summarize(suggestions: &str) -> String {
-    let lines: Vec<&str> = suggestions.lines().filter(|l| !l.trim().is_empty()).collect();
+    let lines: Vec<&str> = suggestions
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
     if lines.len() <= 2 {
         lines.join("; ")
     } else {
@@ -275,7 +275,11 @@ Pseudo-code to enhance:
 
     let response = call_claude(&prompt)?;
     extract_code_block(&response).ok_or_else(|| {
-        format!("Failed to extract pseudo-code from LLM response for {}", fn_name).into()
+        format!(
+            "Failed to extract pseudo-code from LLM response for {}",
+            fn_name
+        )
+        .into()
     })
 }
 

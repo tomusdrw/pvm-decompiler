@@ -6,8 +6,8 @@ use wasm_pvm::pvm::Instruction;
 
 mod cfg;
 mod dataflow;
-mod decompile;
 mod decoder;
+mod decompile;
 mod functions;
 mod instruction;
 mod ir;
@@ -55,8 +55,12 @@ fn print_usage(program: &str) {
     eprintln!("      --debug      Show raw instructions and all diagnostics");
     eprintln!("      --llvm       Emit LLVM IR instead of pseudo-code");
     eprintln!("      --decompile  Full LLVM pipeline: lift → decompile → C output");
-    eprintln!("      --refine     Enable LLM refinement of pseudo-code or C output (requires claude CLI)");
-    eprintln!("      --backend=X  Decompiler backend: retdec, rellic, rellic-docker, llvm-cbe, builtin");
+    eprintln!(
+        "      --refine     Enable LLM refinement of pseudo-code or C output (requires claude CLI)"
+    );
+    eprintln!(
+        "      --backend=X  Decompiler backend: retdec, rellic, rellic-docker, llvm-cbe, builtin"
+    );
     eprintln!("  -V, --version    Show version");
     eprintln!("  -h, --help       Show this help message");
 }
@@ -95,7 +99,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "llvm-cbe" => decompile::DecompilerBackend::LlvmCbe,
                     "builtin" => decompile::DecompilerBackend::Builtin,
                     _ => {
-                        eprintln!("Unknown backend: {}. Options: retdec, rellic, rellic-docker, llvm-cbe, builtin", val);
+                        eprintln!(
+                            "Unknown backend: {}. Options: retdec, rellic, rellic-docker, llvm-cbe, builtin",
+                            val
+                        );
                         std::process::exit(2);
                     }
                 });
@@ -249,7 +256,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 eprintln!("Running LLM refinement...");
                 let context = format!(
                     "PVM bytecode decompiled from {}. {} function(s) detected.",
-                    filename, detected_functions.len()
+                    filename,
+                    detected_functions.len()
                 );
                 match llm_refine::refine(&result.c_code, &context) {
                     Ok(refined) => {
@@ -275,7 +283,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
             } else {
-                eprintln!("Warning: --refine requires the 'claude' CLI. Outputting raw decompiler result.");
+                eprintln!(
+                    "Warning: --refine requires the 'claude' CLI. Outputting raw decompiler result."
+                );
                 print!("{}", result.c_code);
             }
         } else {
@@ -564,7 +574,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             } else {
                 if func_idx == 0 {
-                    eprintln!("Warning: --refine requires the 'claude' CLI. Outputting raw pseudo-code.");
+                    eprintln!(
+                        "Warning: --refine requires the 'claude' CLI. Outputting raw pseudo-code."
+                    );
                 }
                 pseudo
             }
@@ -1203,7 +1215,9 @@ mod integration_tests {
             output
         );
         assert!(
-            output.contains("switch (var_1)") && output.contains("case 0:") && output.contains("case 2:"),
+            output.contains("switch (var_1)")
+                && output.contains("case 0:")
+                && output.contains("case 2:"),
             "br-table should produce switch/case from selector-based branching: {}",
             output
         );
