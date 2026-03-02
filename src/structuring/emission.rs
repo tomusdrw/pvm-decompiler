@@ -2656,10 +2656,8 @@ fn elide_redundant_gotos(input: &str) -> String {
                         }
                         break;
                     }
-                    if depth == 0 {
-                        if parse_block_label_name(lines[j]).is_some() {
-                            break;
-                        }
+                    if depth == 0 && parse_block_label_name(lines[j]).is_some() {
+                        break;
                     }
                     j += 1;
                 }
