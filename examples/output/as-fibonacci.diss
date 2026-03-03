@@ -1,34 +1,22 @@
 fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
-    let ptr_0: ptr
-    let ptr_1: ptr
-    let ptr_1_0
-    let ptr_1_16
-    let ptr_1_24
-    let ptr_1_32
-    let ptr_1_8
 
     func_1(r1 - 16)
 
 }
 
 fn func_1(r1: u64) {
-    let ptr_0_112
     let ptr_0_40
     let ptr_0_520
+    let ptr_0_528
     let ptr_0_536
-    let ptr_0_56
     let ptr_0_88
 
-    ptr_0_40 = u64[r1] - 0x50000
-    ptr_0_56 = HEAP_PTR
-    let var_9 = HEAP_PTR + 4
-    ptr_0_88 = var_9
-    ptr_0_112 = var_9 + 268
-    heap_alloc(272)
+    ptr_0_40 = u64[r1]
+    ptr_0_88 = heap_alloc(272)
 
     ptr_0_520 = 0
-    let ptr_0_528 = 1
-    ptr_0_536 = ptr_0_40->field_327680
+    ptr_0_528 = 1
+    ptr_0_536 = *ptr_0_40
 
     while (ptr_0_536 >s 0) {
         let var_136 = ptr_0_528 + ptr_0_520
@@ -37,6 +25,7 @@ fn func_1(r1: u64) {
         ptr_0_536 = ptr_0_536 - 1
     }
 
+    *ptr_0_88 = ptr_0_520
     RESULT_PTR = ptr_0_88
     RESULT_LEN = 4
 

@@ -1,43 +1,27 @@
 fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
-    let ptr_0: ptr
-    let ptr_1: ptr
-    let ptr_1_0
-    let ptr_1_16
-    let ptr_1_24
-    let ptr_1_32
-    let ptr_1_8
 
     func_1(r1 - 16)
 
 }
 
 fn func_1(r1: u64) {
-    let ptr_0_112
     let ptr_0_40
-    let ptr_0_464
     let ptr_0_512
-    let ptr_0_56
-    let ptr_0_568
     let ptr_0_576
     let ptr_0_680
     let ptr_0_688
-    let ptr_0_760
     let ptr_0_768
     let ptr_0_88
 
-    ptr_0_40 = u64[r1] - 0x50000
-    ptr_0_56 = HEAP_PAGES
-    let var_9 = HEAP_PAGES + 4
-    ptr_0_88 = var_9
-    ptr_0_112 = var_9 + 268
-    heap_alloc(272)
+    ptr_0_40 = u64[r1]
+    ptr_0_88 = heap_alloc(272)
 
     RESULT_PTR = ptr_0_88
-    ptr_0_464 = ptr_0_40->field_327680
+    let ptr_0_464 = *ptr_0_40
     ptr_0_512 = 2
 
-    if (ptr_0_40->field_327680 <=s 10) {
-        ptr_0_568 = 0
+    if (*ptr_0_40 <=s 10) {
+        let ptr_0_568 = 0
         ptr_0_576 = ptr_0_512
         goto block_0376;
     } else {
@@ -59,7 +43,7 @@ fn func_1(r1: u64) {
     ptr_0_688 = ptr_0_576
 
     while (ptr_0_680 <s 5) {
-        ptr_0_760 = 0
+        let ptr_0_760 = 0
         ptr_0_768 = ptr_0_688
 
         while (ptr_0_760 <s 5 & ptr_0_760 <=s 2) {

@@ -844,11 +844,19 @@ impl<'a, 'p> Emitter<'a, 'p> {
             && let Some(ref heap_alloc) = lifted.heap_alloc
             && block_pc == self.cfg.entry_pc
         {
-            let _ = writeln!(
-                self.output,
-                "{}heap_alloc({})",
-                prefix, heap_alloc.alloc_size
-            );
+            if let Some(ref name) = lifted.heap_alloc_data_ptr {
+                let _ = writeln!(
+                    self.output,
+                    "{}{} = heap_alloc({})",
+                    prefix, name, heap_alloc.alloc_size
+                );
+            } else {
+                let _ = writeln!(
+                    self.output,
+                    "{}heap_alloc({})",
+                    prefix, heap_alloc.alloc_size
+                );
+            }
         }
 
         // Emit return/halt for epilogue blocks (after all other instructions).
@@ -3576,10 +3584,28 @@ fn collect_hoisted_declarations(
         }
     }
 
+    // Helper: check if a PC is visible (not eliminated and not in a suppressed block)
+    let is_visible = |pc: usize| -> bool {
+        if lifted.eliminated_pcs.contains(&pc) {
+            return false;
+        }
+        if let Some(&block) = pc_to_block.get(&pc) {
+            if lifted.suppressed_blocks.contains(&block) {
+                return false;
+            }
+        }
+        true
+    };
+
     for (name, (def_pc, var_type)) in definitions {
         let Some(def_block) = pc_to_block.get(&def_pc).copied() else {
             continue;
         };
+
+        // Skip variables whose definition is not visible
+        if !is_visible(def_pc) {
+            continue;
+        }
 
         let mut needs_hoist = false;
         for (use_pc, expr) in &lifted.expressions {
@@ -3587,6 +3613,10 @@ fn collect_hoisted_declarations(
                 continue;
             }
             if !expression_uses_var(expr, &name) {
+                continue;
+            }
+            // Skip uses that are not visible
+            if !is_visible(*use_pc) {
                 continue;
             }
             let Some(use_block) = pc_to_block.get(use_pc).copied() else {
@@ -3602,6 +3632,17 @@ fn collect_hoisted_declarations(
             decls.push(HoistedDecl {
                 name: name.clone(),
                 var_type: var_type.clone(),
+            });
+        }
+    }
+
+    // Force-hoist the heap_alloc data pointer variable: its def PC is eliminated
+    // but uses are still visible (assigned via synthetic `data_ptr = heap_alloc(size)`).
+    if let Some(ref name) = lifted.heap_alloc_data_ptr {
+        if seen.insert(name.clone()) {
+            decls.push(HoistedDecl {
+                name: name.clone(),
+                var_type: None,
             });
         }
     }
@@ -4159,6 +4200,8 @@ mod tests {
             memory_base: None,
             heap_alloc: None,
             hidden_labels: HashSet::new(),
+            linear_memory_offset: None,
+            heap_alloc_data_ptr: None,
         };
         let emission_eliminated = HashSet::new();
         assert!(

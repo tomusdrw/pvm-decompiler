@@ -863,6 +863,13 @@ pub struct HeapAllocPattern {
     pub convergence_block_pc: usize,
     /// Allocation size in bytes (sum of AddImm/Add32 constants applied to HEAP_PTR).
     pub alloc_size: u64,
+    /// Linear memory offset used for heap accesses (e.g. 0x50000 for AS programs).
+    /// Detected from Load/Store instructions in the convergence block.
+    pub linear_memory_offset: Option<u64>,
+    /// PCs in the HEAP_PTR arithmetic range (between heap_ptr load and heap_pages load).
+    pub heap_ptr_arithmetic_pcs: Vec<usize>,
+    /// PCs of header write instructions in the convergence block.
+    pub header_write_pcs: Vec<usize>,
 }
 
 /// Detect the AssemblyScript heap allocation boilerplate pattern.
@@ -930,6 +937,7 @@ pub fn detect_heap_alloc_pattern(
     // Step 3: Find convergence block (block with LoadImm heap_ptr_addr → StoreIndU32)
     let mut convergence_block_pc = None;
     let mut heap_ptr_store_pcs = Vec::new();
+    let mut header_write_pcs = Vec::new();
     for (&block_pc, block) in &cfg.blocks {
         if block_pc == entry_pc {
             continue;
@@ -945,6 +953,23 @@ pub fn detect_heap_alloc_pattern(
                         }
                         heap_ptr_store_pcs.push(*pc);
                         heap_ptr_store_pcs.push(block.instructions[idx + 1].0);
+
+                        // Detect header write: remaining instructions after the store-back triple.
+                        // Pattern: LoadIndU64 + LoadImm + StoreIndU32 (writes allocation header size).
+                        let after_store = idx + 2;
+                        let remaining = &block.instructions[after_store..];
+                        if remaining.len() >= 3 {
+                            let is_header_write =
+                                matches!(remaining[0].1, Instruction::LoadIndU64 { .. })
+                                    && matches!(remaining[1].1, Instruction::LoadImm { .. })
+                                    && matches!(remaining[2].1, Instruction::StoreIndU32 { .. });
+                            if is_header_write {
+                                header_write_pcs.push(remaining[0].0);
+                                header_write_pcs.push(remaining[1].0);
+                                header_write_pcs.push(remaining[2].0);
+                            }
+                        }
+
                         break;
                     }
                 }
@@ -956,7 +981,13 @@ pub fn detect_heap_alloc_pattern(
     }
     let convergence_block_pc = convergence_block_pc?;
 
-    // Step 4a: Compute allocation size from LoadImm+Add32 chain between HEAP_PTR and HEAP_PAGES
+    // Step 4a: Collect HEAP_PTR arithmetic PCs
+    let heap_ptr_arithmetic_pcs: Vec<usize> = instrs[heap_ptr_load_idx..heap_pages_load_idx]
+        .iter()
+        .map(|(pc, _)| *pc)
+        .collect();
+
+    // Step 4b: Compute allocation size from LoadImm+Add32 chain between HEAP_PTR and HEAP_PAGES
     let mut alloc_size: u64 = 0;
     let mut pending_const: Option<i32> = None;
     for (_, instr) in &instrs[heap_ptr_load_idx..heap_pages_load_idx] {
@@ -1019,11 +1050,40 @@ pub fn detect_heap_alloc_pattern(
         return None;
     }
 
+    // Step 6: Detect linear memory offset from convergence block instructions.
+    // Look for any Load/Store with an offset larger than memory_base — that's the
+    // linear memory offset used for all heap accesses in AS programs.
+    let mut linear_memory_offset = None;
+    if let Some(conv_block) = cfg.blocks.get(&convergence_block_pc) {
+        for (_, instr) in &conv_block.instructions {
+            let off = match instr {
+                Instruction::StoreIndU32 { offset, .. }
+                | Instruction::LoadIndU32 { offset, .. } => Some(*offset as u64),
+                Instruction::StoreIndU64 { offset, .. }
+                | Instruction::LoadIndU64 { offset, .. } => Some(*offset as u64),
+                Instruction::StoreIndU16 { offset, .. }
+                | Instruction::LoadIndU16 { offset, .. } => Some(*offset as u64),
+                Instruction::StoreIndU8 { offset, .. }
+                | Instruction::LoadIndU8 { offset, .. } => Some(*offset as u64),
+                _ => None,
+            };
+            if let Some(o) = off {
+                if o > memory_base {
+                    linear_memory_offset = Some(o);
+                    break;
+                }
+            }
+        }
+    }
+
     Some(HeapAllocPattern {
         sbrk_blocks,
         eliminated_pcs,
         convergence_block_pc,
         alloc_size,
+        linear_memory_offset,
+        heap_ptr_arithmetic_pcs,
+        header_write_pcs,
     })
 }
 

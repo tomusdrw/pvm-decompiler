@@ -23,12 +23,18 @@ pub struct FormatContext {
     /// When set, expressions involving this constant are simplified
     /// (e.g. `addr + MEMORY_BASE` → `pvm_addr(addr)`).
     pub memory_base: Option<u64>,
+    /// Linear memory offset for heap accesses (e.g. 0x50000 for AS programs).
+    /// When set, pointer dereferences through this offset render as `*ptr`.
+    pub linear_memory_offset: Option<u64>,
 }
 
 impl FormatContext {
     /// Create a context with the given memory base.
     pub fn new(memory_base: Option<u64>) -> Self {
-        Self { memory_base }
+        Self {
+            memory_base,
+            linear_memory_offset: None,
+        }
     }
 }
 
@@ -139,12 +145,19 @@ pub struct LiftedProgram {
     pub heap_alloc: Option<crate::functions::HeapAllocPattern>,
     /// Block labels to hide from output (e.g., convergence block after heap alloc suppression).
     pub hidden_labels: HashSet<usize>,
+    /// Linear memory offset for heap accesses (e.g. 0x50000 for AS programs).
+    pub linear_memory_offset: Option<u64>,
+    /// Variable name for the data pointer in heap allocation (e.g. "ptr_0_88").
+    /// When set, heap_alloc() is emitted as `data_ptr = heap_alloc(size)`.
+    pub heap_alloc_data_ptr: Option<String>,
 }
 
 impl LiftedProgram {
     /// Build a `FormatContext` from this program's settings.
     pub fn format_context(&self) -> FormatContext {
-        FormatContext::new(self.memory_base)
+        let mut ctx = FormatContext::new(self.memory_base);
+        ctx.linear_memory_offset = self.linear_memory_offset;
+        ctx
     }
 }
 
@@ -181,6 +194,8 @@ impl LiftedProgram {
             memory_base: None,
             heap_alloc: None,
             hidden_labels: HashSet::new(),
+            linear_memory_offset: None,
+            heap_alloc_data_ptr: None,
         };
 
         lifted.assign_variables(cfg, dataflow);
@@ -1158,8 +1173,14 @@ impl LiftedProgram {
             }
             if let Some(Expression::Store { base, offset, .. }) = self.expressions.get(&pc) {
                 let base_str = format_expression(base, &self.format_context());
-                // Only eliminate stores to known stack slots (ptr_* base).
-                if base_str.starts_with("ptr_") && !live_loads.contains(&(base_str, *offset)) {
+                // Only eliminate stores to known stack slots (ptr_* base with
+                // small offset). Large offsets (>= 0x10000) indicate heap/memory
+                // stores through pointers loaded from the stack, not actual stack
+                // stores — these must be kept since they may be read externally.
+                if base_str.starts_with("ptr_")
+                    && (*offset >= 0 && *offset < 0x10000)
+                    && !live_loads.contains(&(base_str, *offset))
+                {
                     self.eliminated_pcs.insert(pc);
                 }
             }
@@ -1297,6 +1318,16 @@ impl LiftedProgram {
                 {
                     Some((
                         format!("{} = {}", mem_access, format_expression(value, &ctx)),
+                        None,
+                    ))
+                } else if let Some(field) = format_struct_field(base, *offset, *width, &ctx) {
+                    Some((
+                        format!("{} = {}", field, format_expression(value, &ctx)),
+                        None,
+                    ))
+                } else if let Some(arr) = format_array_access(base, *offset, *width, &ctx) {
+                    Some((
+                        format!("{} = {}", arr, format_expression(value, &ctx)),
                         None,
                     ))
                 } else {
@@ -2134,6 +2165,13 @@ pub fn format_expression(expr: &Expression, ctx: &FormatContext) -> String {
                     let lhs_str = format_expression(lhs, ctx);
                     return format!("wasm_ptr({})", lhs_str);
                 }
+                // If subtracting the linear memory offset, strip it entirely —
+                // the matching *ptr dereference already hides the addition.
+                if let Some(lmo) = ctx.linear_memory_offset
+                    && (-*v) as u64 == lmo
+                {
+                    return format_expression(lhs, ctx);
+                }
                 let lhs_str = format_expression_maybe_parens(lhs, BinOp::Sub, true, ctx);
                 return format!("{} - {}", lhs_str, format_const(-v));
             }
@@ -2257,6 +2295,14 @@ fn format_mem_base_access(
     }
 
     // Pattern 2: base = var, offset = MEMORY_BASE (e.g., LoadInd { base: var, offset: 0x50000 })
+    // For pointer variables with linear_memory_offset, render as *ptr dereference.
+    if let Some(lmo) = ctx.linear_memory_offset
+        && offset as u64 == lmo
+        && let Expression::Var(name) = base
+        && name.starts_with("ptr_")
+    {
+        return Some(format!("*{}", name));
+    }
     // Preserve the access width in the rendered syntax.
     if offset as i64 == mem_base {
         return Some(format!("{}[{}]", width, format_expression(base, ctx)));
@@ -2270,18 +2316,24 @@ fn format_mem_base_access(
 fn format_struct_field(
     base: &Expression,
     offset: i32,
-    width: MemWidth,
+    _width: MemWidth,
     ctx: &FormatContext,
 ) -> Option<String> {
     if let Expression::Var(name) = base
         && name.starts_with("ptr_")
         && offset >= 0
     {
-        // If offset equals the memory base, this is a linear memory access
+        // Check linear memory offset first (e.g., 0x50000 for AS programs)
+        if let Some(lmo) = ctx.linear_memory_offset
+            && offset as u64 == lmo
+        {
+            return Some(format!("*{}", name));
+        }
+        // Check memory_base (for non-AS programs)
         if let Some(mem_base) = ctx.memory_base
             && offset as u64 == mem_base
         {
-            return Some(format!("{}[{}]", width, name));
+            return Some(format!("*{}", name));
         }
         return Some(format!("{}->field_{}", name, offset));
     }
@@ -3639,6 +3691,8 @@ mod tests {
             memory_base: None,
             heap_alloc: None,
             hidden_labels: HashSet::new(),
+            linear_memory_offset: None,
+            heap_alloc_data_ptr: None,
         };
 
         // Set up two variables for the same register at different PCs
@@ -3721,6 +3775,8 @@ mod tests {
             memory_base: None,
             heap_alloc: None,
             hidden_labels: HashSet::new(),
+            linear_memory_offset: None,
+            heap_alloc_data_ptr: None,
         };
 
         lifted.variables.insert(
@@ -3790,6 +3846,8 @@ mod tests {
             memory_base: None,
             heap_alloc: None,
             hidden_labels: HashSet::new(),
+            linear_memory_offset: None,
+            heap_alloc_data_ptr: None,
         };
         lifted.variables.insert(
             (0, 1),
@@ -3827,6 +3885,8 @@ mod tests {
             memory_base: None,
             heap_alloc: None,
             hidden_labels: HashSet::new(),
+            linear_memory_offset: None,
+            heap_alloc_data_ptr: None,
         };
 
         lifted.variables.insert(
@@ -4233,6 +4293,8 @@ mod tests {
             memory_base: None,
             heap_alloc: None,
             hidden_labels: HashSet::new(),
+            linear_memory_offset: None,
+            heap_alloc_data_ptr: None,
         }
     }
 

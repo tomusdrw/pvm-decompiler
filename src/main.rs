@@ -23,7 +23,7 @@ use functions::{
     build_call_graph, build_function_cfg, detect_direct_call_patterns, detect_epilogues,
     detect_functions, detect_heap_alloc_pattern, detect_prologue,
 };
-use lifting::LiftedProgram;
+use lifting::{Expression, LiftedProgram};
 use structuring::{DominatorTree, FunctionSignature, StructuralAnalysis};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -519,10 +519,53 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             for &pc in &heap_alloc.eliminated_pcs {
                 lifted.eliminated_pcs.insert(pc);
             }
+            for &pc in &heap_alloc.heap_ptr_arithmetic_pcs {
+                lifted.eliminated_pcs.insert(pc);
+            }
+            for &pc in &heap_alloc.header_write_pcs {
+                lifted.eliminated_pcs.insert(pc);
+            }
             for &block_pc in &heap_alloc.sbrk_blocks {
                 lifted.suppressed_blocks.insert(block_pc);
             }
             lifted.hidden_labels.insert(heap_alloc.convergence_block_pc);
+            lifted.linear_memory_offset = heap_alloc.linear_memory_offset;
+
+            // Resolve the data pointer variable name: find the stack variable from
+            // the eliminated arithmetic range that is still referenced in non-eliminated code.
+            {
+                let arith_pcs: std::collections::HashSet<usize> =
+                    heap_alloc.heap_ptr_arithmetic_pcs.iter().copied().collect();
+                // Collect all stack variable names defined in the eliminated arithmetic range.
+                let mut arith_vars: Vec<String> = Vec::new();
+                for &pc in &heap_alloc.heap_ptr_arithmetic_pcs {
+                    if let Some(Expression::Store { base, offset, .. }) =
+                        lifted.expressions.get(&pc)
+                    {
+                        if let Expression::Var(base_name) = base.as_ref() {
+                            if let Some(name) = lifted
+                                .stack_vars
+                                .get(&(base_name.clone(), *offset))
+                            {
+                                arith_vars.push(name.clone());
+                            }
+                        }
+                    }
+                }
+                // Find the one that is referenced in non-eliminated, non-arithmetic expressions.
+                'outer: for var_name in &arith_vars {
+                    for (pc, expr) in &lifted.expressions {
+                        if arith_pcs.contains(pc) || lifted.eliminated_pcs.contains(pc) {
+                            continue;
+                        }
+                        if expr_uses_var(expr, var_name) {
+                            lifted.heap_alloc_data_ptr = Some(var_name.clone());
+                            break 'outer;
+                        }
+                    }
+                }
+            }
+
             lifted.heap_alloc = Some(heap_alloc);
         }
 
@@ -1028,6 +1071,22 @@ fn is_eliminable_halt_setup_shape(shape: &crate::instruction::InstructionShape) 
             | InstructionShape::CmovReg { .. }
             | InstructionShape::CmovImm { .. }
     )
+}
+
+/// Check if an expression tree references a variable by name.
+fn expr_uses_var(expr: &Expression, name: &str) -> bool {
+    match expr {
+        Expression::Var(n) => n == name,
+        Expression::BinOp { lhs, rhs, .. } => expr_uses_var(lhs, name) || expr_uses_var(rhs, name),
+        Expression::UnaryOp { operand, .. } => expr_uses_var(operand, name),
+        Expression::Load { base, .. } => expr_uses_var(base, name),
+        Expression::Store { base, value, .. } => {
+            expr_uses_var(base, name) || expr_uses_var(value, name)
+        }
+        Expression::Call { args, .. } => args.iter().any(|a| expr_uses_var(a, name)),
+        Expression::Raw(text) => text.contains(name),
+        Expression::Const(_) => false,
+    }
 }
 
 #[cfg(test)]
