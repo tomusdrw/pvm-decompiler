@@ -56,7 +56,7 @@ fn print_usage(program: &str) {
     eprintln!("      --llvm       Emit LLVM IR instead of pseudo-code");
     eprintln!("      --decompile  Full LLVM pipeline: lift → decompile → C output");
     eprintln!(
-        "      --refine     Enable LLM refinement of pseudo-code or C output (requires claude CLI)"
+        "      --refine     Enable LLM refinement of pseudo-code or C output (requires codex CLI)"
     );
     eprintln!(
         "      --backend=X  Decompiler backend: retdec, rellic, rellic-docker, llvm-cbe, builtin"
@@ -252,7 +252,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         if enable_refine {
-            if llm_refine::is_claude_available() {
+            if llm_refine::is_codex_available() {
                 eprintln!("Running LLM refinement...");
                 let context = format!(
                     "PVM bytecode decompiled from {}. {} function(s) detected.",
@@ -284,7 +284,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             } else {
                 eprintln!(
-                    "Warning: --refine requires the 'claude' CLI. Outputting raw decompiler result."
+                    "Warning: --refine requires the 'codex' CLI. Outputting raw decompiler result."
                 );
                 print!("{}", result.c_code);
             }
@@ -609,7 +609,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let pseudo = structural.pseudo_code(&func_cfg, Some(&lifted), Some(&sig));
         let final_pseudo = if enable_refine {
-            if llm_refine::is_claude_available() {
+            if llm_refine::is_codex_available() {
                 eprint!("  Refining {}...", func.name);
                 let context = format!(
                     "PVM bytecode decompiled from {}. Function {} of {}.",
@@ -630,7 +630,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 if func_idx == 0 {
                     eprintln!(
-                        "Warning: --refine requires the 'claude' CLI. Outputting raw pseudo-code."
+                        "Warning: --refine requires the 'codex' CLI. Outputting raw pseudo-code."
                     );
                 }
                 pseudo

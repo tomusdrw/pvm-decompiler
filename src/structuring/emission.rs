@@ -3118,27 +3118,6 @@ fn collect_referenced_labels(input: &str) -> HashSet<String> {
 /// Keeps effectful bindings (e.g. function calls) even when their target is unused.
 fn prune_unused_pure_let_definitions(input: &str) -> String {
     let mut lines: Vec<String> = input.lines().map(|s| s.to_string()).collect();
-    let has_halt = lines.iter().any(|line| line.trim() == "halt()");
-    if !has_halt {
-        return input.to_string();
-    }
-    let func_ids = assign_function_ids(&lines);
-    let has_functions = func_ids.iter().any(Option::is_some);
-    let halt_func_ids: HashSet<usize> = if has_functions {
-        lines
-            .iter()
-            .enumerate()
-            .filter_map(|(idx, line)| {
-                if line.trim() == "halt()" {
-                    func_ids[idx]
-                } else {
-                    None
-                }
-            })
-            .collect()
-    } else {
-        HashSet::new()
-    };
 
     loop {
         let mut uses: HashMap<String, usize> = HashMap::new();
@@ -3161,15 +3140,10 @@ fn prune_unused_pure_let_definitions(input: &str) -> String {
 
         let mut changed = false;
         let mut kept = Vec::with_capacity(lines.len());
-        for (idx, line) in lines.iter().enumerate() {
+        for line in &lines {
             let trimmed = line.trim();
             let remove = if let Some((name, rhs)) = parse_let_binding(trimmed) {
-                let in_halt_context = if has_functions {
-                    func_ids[idx].is_some_and(|fid| halt_func_ids.contains(&fid))
-                } else {
-                    true
-                };
-                in_halt_context && uses.get(name).copied().unwrap_or(0) == 0 && is_pure_let_rhs(rhs)
+                uses.get(name).copied().unwrap_or(0) == 0 && is_pure_let_rhs(rhs)
             } else {
                 false
             };
@@ -3207,41 +3181,6 @@ fn prune_unused_pure_let_definitions(input: &str) -> String {
     let mut out = compact.join("\n");
     out.push('\n');
     out
-}
-
-fn assign_function_ids(lines: &[String]) -> Vec<Option<usize>> {
-    let mut ids = vec![None; lines.len()];
-    let mut current_fn: Option<usize> = None;
-    let mut next_fn_id = 0usize;
-    let mut depth: isize = 0;
-
-    for (idx, line) in lines.iter().enumerate() {
-        let trimmed = line.trim_start();
-
-        if current_fn.is_none() && trimmed.starts_with("fn ") && trimmed.ends_with('{') {
-            current_fn = Some(next_fn_id);
-            next_fn_id += 1;
-            depth = 1;
-            ids[idx] = current_fn;
-            continue;
-        }
-
-        if let Some(fid) = current_fn {
-            ids[idx] = Some(fid);
-            depth += count_char(line, '{') as isize;
-            depth -= count_char(line, '}') as isize;
-            if depth <= 0 {
-                current_fn = None;
-                depth = 0;
-            }
-        }
-    }
-
-    ids
-}
-
-fn count_char(s: &str, needle: char) -> usize {
-    s.chars().filter(|&c| c == needle).count()
 }
 
 fn parse_let_binding(line: &str) -> Option<(&str, &str)> {

@@ -88,7 +88,7 @@ Code to evaluate:
         context, code
     );
 
-    call_claude(&prompt)
+    call_llm(&prompt)
 }
 
 /// Run the Advisor role: suggest specific improvements.
@@ -122,7 +122,7 @@ Respond with numbered suggestions, one per line."#,
         context, evaluation, code
     );
 
-    call_claude(&prompt)
+    call_llm(&prompt)
 }
 
 /// Run the Operator role: apply improvements to code.
@@ -154,49 +154,57 @@ Output the improved C code only, wrapped in ```c ... ```."#,
         context, suggestions, code
     );
 
-    let response = call_claude(&prompt)?;
+    let response = call_llm(&prompt)?;
 
     // Extract code block from response
     extract_code_block(&response).ok_or_else(|| "Failed to extract code from LLM response".into())
 }
 
-/// Call the local claude CLI with a prompt.
-fn call_claude(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
-    // Try 'claude' CLI first
-    // Remove CLAUDECODE env var so child process doesn't think it's a nested session
-    let result = Command::new("claude")
-        .args(["--print", "--no-input", "--prompt", prompt])
+/// Call the codex CLI with a prompt.
+fn call_llm(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
+    use std::io::Write;
+
+    let tmp = std::env::temp_dir().join(format!("pvm_codex_{}.txt", std::process::id()));
+    let tmp_path = tmp.to_str().unwrap().to_string();
+
+    let mut child = Command::new("codex")
+        .args([
+            "exec",
+            "--model",
+            "gpt-5.1-codex-mini",
+            "--color",
+            "never",
+            "-o",
+            &tmp_path,
+            "-",
+        ])
         .env_remove("CLAUDECODE")
-        .output();
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| {
+            format!(
+                "codex CLI not found. Install it with: npm install -g @openai/codex\nError: {}",
+                e
+            )
+        })?;
 
-    match result {
-        Ok(output) if output.status.success() => {
-            Ok(String::from_utf8_lossy(&output.stdout).to_string())
-        }
-        _ => {
-            // Fallback: try with -p flag (older versions)
-            let result = Command::new("claude")
-                .args(["-p", prompt])
-                .env_remove("CLAUDECODE")
-                .output();
-
-            match result {
-                Ok(output) if output.status.success() => {
-                    Ok(String::from_utf8_lossy(&output.stdout).to_string())
-                }
-                Ok(output) => {
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-                    Err(format!("claude CLI failed: {}", stderr).into())
-                }
-                Err(e) => {
-                    Err(format!(
-                        "claude CLI not found. Install it with: npm install -g @anthropic-ai/claude-code\nError: {}",
-                        e
-                    ).into())
-                }
-            }
-        }
+    if let Some(ref mut stdin) = child.stdin {
+        stdin.write_all(prompt.as_bytes())?;
     }
+    drop(child.stdin.take());
+
+    let output = child.wait_with_output()?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("codex CLI failed: {}", stderr).into());
+    }
+
+    let result = std::fs::read_to_string(&tmp_path)
+        .map_err(|e| format!("Failed to read codex output from {}: {}", tmp_path, e))?;
+    let _ = std::fs::remove_file(&tmp_path);
+    Ok(result)
 }
 
 /// Extract a code block from an LLM response.
@@ -273,7 +281,7 @@ Pseudo-code to enhance:
 ```"#
     );
 
-    let response = call_claude(&prompt)?;
+    let response = call_llm(&prompt)?;
     extract_code_block(&response).ok_or_else(|| {
         format!(
             "Failed to extract pseudo-code from LLM response for {}",
@@ -283,9 +291,9 @@ Pseudo-code to enhance:
     })
 }
 
-/// Check if the claude CLI is available.
-pub fn is_claude_available() -> bool {
-    Command::new("claude")
+/// Check if the codex CLI is available.
+pub fn is_codex_available() -> bool {
+    Command::new("codex")
         .arg("--version")
         .env_remove("CLAUDECODE")
         .output()

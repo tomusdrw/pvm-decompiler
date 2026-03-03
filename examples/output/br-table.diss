@@ -1,6 +1,5 @@
 fn main(r1: u64, r7: u64, r8: u64) {
     let ptr_0_128
-    let ptr_0_72
     let ptr_0_80
 
     let var_1 = u32[r7]
@@ -25,7 +24,6 @@ fn main(r1: u64, r7: u64, r8: u64) {
         ptr_0_128 = ptr_0_80
     }
     u32[0x20000] = ptr_0_128
-    ptr_0_72 = 0x400000000
 
     halt()
 }

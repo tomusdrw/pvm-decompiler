@@ -1,114 +1,11 @@
 fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
-    let cond_0: bool
     let cond_128: bool
-    let cond_17: bool
-    let cond_47: bool
-    let cond_60: bool
     let ptr_0: ptr
-    let ptr_0_32
-    let ptr_0_40
-    let ptr_0_48
-    let ptr_0_56
-    let ptr_0_8
-    let ptr_1: ptr
-    let ptr_1005: ptr
-    let ptr_1007: ptr
-    let ptr_1011: ptr
-    let ptr_1011_0
-    let ptr_1011_16
-    let ptr_1011_24
-    let ptr_1011_32
-    let ptr_1011_8
-    let ptr_1013: ptr
-    let ptr_102: ptr
-    let ptr_1025: ptr
-    let ptr_1027: ptr
-    let ptr_102_0
-    let ptr_102_16
-    let ptr_102_8
-    let ptr_103: ptr
-    let ptr_1031: ptr
-    let ptr_104: ptr
-    let ptr_1047: ptr
-    let ptr_1050: ptr
-    let ptr_1050_16
-    let ptr_1050_24
-    let ptr_1050_8
-    let ptr_1053: ptr
-    let ptr_1054: ptr
-    let ptr_1055: ptr
-    let ptr_1058: ptr
-    let ptr_1058_16
-    let ptr_1058_24
-    let ptr_1058_32
-    let ptr_106: ptr
-    let ptr_1062: ptr
-    let ptr_1064: ptr
-    let ptr_1068: ptr
-    let ptr_1070: ptr
-    let ptr_1071: ptr
     let ptr_1073: ptr
-    let ptr_1074: ptr
     let ptr_1078: ptr
-    let ptr_108: ptr
-    let ptr_1084: ptr
-    let ptr_1085: ptr
-    let ptr_1086: ptr
-    let ptr_1087: ptr
-    let ptr_1087_32
-    let ptr_1087_40
-    let ptr_1087_48
-    let ptr_1088: ptr
-    let ptr_109: ptr
-    let ptr_1092: ptr
-    let ptr_1094: ptr
-    let ptr_1098: ptr
-    let ptr_11: ptr
-    let ptr_110: ptr
-    let ptr_1101: ptr
     let ptr_1106: ptr
     let ptr_1107: ptr
-    let ptr_1107_256
     let ptr_1113: ptr
-    let ptr_1114: ptr
-    let ptr_112: ptr
-    let ptr_1124: ptr
-    let ptr_1124_128
-    let ptr_1124_136
-    let ptr_1124_144
-    let ptr_1124_16
-    let ptr_1124_24
-    let ptr_1124_32
-    let ptr_1124_40
-    let ptr_1124_8
-    let ptr_1129: ptr
-    let ptr_1129_104
-    let ptr_1129_112
-    let ptr_1129_120
-    let ptr_1129_128
-    let ptr_1129_136
-    let ptr_1129_144
-    let ptr_1129_152
-    let ptr_1129_16
-    let ptr_1129_160
-    let ptr_1129_168
-    let ptr_1129_176
-    let ptr_1129_184
-    let ptr_1129_192
-    let ptr_1129_24
-    let ptr_1129_32
-    let ptr_1129_40
-    let ptr_1129_48
-    let ptr_1129_56
-    let ptr_1129_64
-    let ptr_1129_72
-    let ptr_1129_8
-    let ptr_1129_80
-    let ptr_1129_88
-    let ptr_1129_96
-    let ptr_113: ptr
-    let ptr_1131: ptr
-    let ptr_1136: ptr
     let ptr_1137: ptr
     let ptr_1141: ptr
     let ptr_1141_0
@@ -116,1123 +13,18 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     let ptr_1141_24
     let ptr_1141_32
     let ptr_1141_40
-    let ptr_1141_48
-    let ptr_1141_56
-    let ptr_1141_64
     let ptr_1141_8
     let ptr_1146: ptr
     let ptr_1146_0
-    let ptr_115: ptr
     let ptr_1163: ptr
-    let ptr_1163_0
-    let ptr_1163_16
-    let ptr_1163_8
     let ptr_1167: ptr
-    let ptr_1167_0
-    let ptr_1168: ptr
     let ptr_1174: ptr
-    let ptr_1174_0
-    let ptr_1175: ptr
-    let ptr_1187: ptr
-    let ptr_1188: ptr
-    let ptr_1188_0
-    let ptr_1188_24
-    let ptr_1188_32
-    let ptr_1188_40
-    let ptr_1188_48
-    let ptr_1188_56
-    let ptr_1188_64
-    let ptr_1188_72
-    let ptr_1188_8
-    let ptr_1189: ptr
-    let ptr_1189_4
-    let ptr_119: ptr
-    let ptr_1193: ptr
-    let ptr_1193_4
-    let ptr_1195: ptr
-    let ptr_12: ptr
-    let ptr_1201: ptr
-    let ptr_1201_0
-    let ptr_1202: ptr
-    let ptr_121: ptr
-    let ptr_1212: ptr
-    let ptr_1212_0
-    let ptr_1213: ptr
-    let ptr_1225: ptr
-    let ptr_1225_0
-    let ptr_1225_16
-    let ptr_1225_24
-    let ptr_1225_32
-    let ptr_1225_40
-    let ptr_1225_48
-    let ptr_1225_56
-    let ptr_1225_8
-    let ptr_1226: ptr
-    let ptr_1229: ptr
-    let ptr_123: ptr
-    let ptr_1230: ptr
-    let ptr_1234: ptr
-    let ptr_1241: ptr
-    let ptr_1249: ptr
-    let ptr_1249_0
-    let ptr_1249_16
-    let ptr_1249_24
-    let ptr_1249_32
-    let ptr_1249_40
-    let ptr_1249_48
-    let ptr_1249_56
-    let ptr_1249_64
-    let ptr_1249_8
-    let ptr_1250: ptr
-    let ptr_1251: ptr
-    let ptr_1253: ptr
-    let ptr_1256: ptr
-    let ptr_1257: ptr
-    let ptr_1260: ptr
-    let ptr_1261: ptr
-    let ptr_1267: ptr
-    let ptr_1268: ptr
-    let ptr_1269: ptr
-    let ptr_1276: ptr
-    let ptr_1284: ptr
     let ptr_1295: ptr
     let ptr_1297: ptr
-    let ptr_12_0
-    let ptr_12_16
-    let ptr_12_8
-    let ptr_13: ptr
-    let ptr_130: ptr
-    let ptr_131: ptr
-    let ptr_13_48
-    let ptr_13_56
-    let ptr_14: ptr
-    let ptr_141: ptr
-    let ptr_141_0
-    let ptr_141_8
-    let ptr_144: ptr
-    let ptr_144_120
-    let ptr_144_136
-    let ptr_144_144
-    let ptr_144_152
-    let ptr_144_64
-    let ptr_144_72
-    let ptr_144_80
-    let ptr_145: ptr
-    let ptr_14_48
-    let ptr_14_56
     let ptr_15: ptr
-    let ptr_150: ptr
-    let ptr_151: ptr
-    let ptr_152: ptr
-    let ptr_152_16
-    let ptr_152_24
-    let ptr_152_32
-    let ptr_152_40
-    let ptr_158: ptr
-    let ptr_158_112
-    let ptr_159: ptr
-    let ptr_15_24
-    let ptr_15_32
-    let ptr_15_40
-    let ptr_16: ptr
-    let ptr_160: ptr
-    let ptr_162: ptr
-    let ptr_162_16
-    let ptr_162_24
-    let ptr_162_32
-    let ptr_162_40
-    let ptr_168: ptr
-    let ptr_168_104
-    let ptr_168_112
-    let ptr_168_136
-    let ptr_168_144
-    let ptr_168_864
-    let ptr_172: ptr
-    let ptr_173: ptr
-    let ptr_177: ptr
-    let ptr_177_136
-    let ptr_178: ptr
-    let ptr_182: ptr
-    let ptr_183: ptr
-    let ptr_184: ptr
-    let ptr_187: ptr
-    let ptr_19: ptr
-    let ptr_191: ptr
-    let ptr_192: ptr
-    let ptr_193: ptr
-    let ptr_194: ptr
-    let ptr_195: ptr
-    let ptr_196: ptr
-    let ptr_196_104
-    let ptr_196_112
-    let ptr_196_136
-    let ptr_196_144
-    let ptr_196_384
-    let ptr_197: ptr
-    let ptr_199: ptr
-    let ptr_2: ptr
-    let ptr_202: ptr
-    let ptr_203: ptr
-    let ptr_204: ptr
-    let ptr_205: ptr
-    let ptr_206: ptr
-    let ptr_208: ptr
-    let ptr_208_16
-    let ptr_208_24
-    let ptr_208_32
-    let ptr_208_40
-    let ptr_21: ptr
-    let ptr_212: ptr
-    let ptr_212_136
-    let ptr_213: ptr
-    let ptr_214: ptr
-    let ptr_218: ptr
-    let ptr_219: ptr
-    let ptr_21_16
-    let ptr_21_24
-    let ptr_21_32
-    let ptr_222: ptr
-    let ptr_223: ptr
-    let ptr_25: ptr
-    let ptr_256: ptr
-    let ptr_258: ptr
-    let ptr_260: ptr
-    let ptr_265: ptr
-    let ptr_27: ptr
-    let ptr_271: ptr
-    let ptr_272: ptr
-    let ptr_276: ptr
-    let ptr_277: ptr
-    let ptr_277_144
-    let ptr_28: ptr
-    let ptr_280: ptr
-    let ptr_282: ptr
-    let ptr_283: ptr
-    let ptr_283_104
-    let ptr_283_112
-    let ptr_283_136
-    let ptr_283_144
-    let ptr_283_384
-    let ptr_283_80
-    let ptr_283_96
-    let ptr_284: ptr
-    let ptr_287: ptr
-    let ptr_288: ptr
-    let ptr_291: ptr
-    let ptr_292: ptr
-    let ptr_295: ptr
-    let ptr_299: ptr
-    let ptr_299_40
-    let ptr_299_65
-    let ptr_299_8
-    let ptr_3: ptr
-    let ptr_300: ptr
-    let ptr_301: ptr
-    let ptr_302: ptr
-    let ptr_306: ptr
-    let ptr_307: ptr
-    let ptr_31: ptr
-    let ptr_311: ptr
-    let ptr_312: ptr
-    let ptr_313: ptr
-    let ptr_314: ptr
-    let ptr_327: ptr
-    let ptr_328: ptr
-    let ptr_333: ptr
-    let ptr_334: ptr
-    let ptr_334_144
-    let ptr_335: ptr
-    let ptr_336: ptr
-    let ptr_34: ptr
-    let ptr_340: ptr
-    let ptr_342: ptr
-    let ptr_347: ptr
-    let ptr_349: ptr
-    let ptr_353: ptr
-    let ptr_353_16
-    let ptr_353_24
-    let ptr_353_32
-    let ptr_353_40
-    let ptr_357: ptr
-    let ptr_363: ptr
-    let ptr_364: ptr
-    let ptr_365: ptr
-    let ptr_366: ptr
-    let ptr_37: ptr
-    let ptr_371: ptr
-    let ptr_372: ptr
-    let ptr_374: ptr
-    let ptr_377: ptr
-    let ptr_390: ptr
-    let ptr_392: ptr
-    let ptr_398: ptr
-    let ptr_3_0
-    let ptr_403: ptr
-    let ptr_404: ptr
-    let ptr_406: ptr
-    let ptr_407: ptr
-    let ptr_408: ptr
-    let ptr_409: ptr
-    let ptr_41: ptr
-    let ptr_410: ptr
-    let ptr_413: ptr
-    let ptr_416: ptr
-    let ptr_421: ptr
-    let ptr_422: ptr
-    let ptr_426: ptr
-    let ptr_428: ptr
-    let ptr_429: ptr
-    let ptr_430: ptr
-    let ptr_435: ptr
-    let ptr_436: ptr
-    let ptr_436_112
-    let ptr_439: ptr
-    let ptr_443: ptr
-    let ptr_444: ptr
-    let ptr_448: ptr
-    let ptr_452: ptr
-    let ptr_453: ptr
-    let ptr_454: ptr
-    let ptr_458: ptr
-    let ptr_459: ptr
-    let ptr_463: ptr
-    let ptr_466: ptr
-    let ptr_470: ptr
-    let ptr_472: ptr
-    let ptr_48: ptr
-    let ptr_481: ptr
-    let ptr_496: ptr
-    let ptr_496_136
-    let ptr_497: ptr
-    let ptr_499: ptr
-    let ptr_500: ptr
-    let ptr_503: ptr
-    let ptr_505: ptr
-    let ptr_508: ptr
-    let ptr_511: ptr
-    let ptr_512: ptr
-    let ptr_513: ptr
-    let ptr_516: ptr
-    let ptr_517: ptr
-    let ptr_517_152
-    let ptr_517_160
-    let ptr_517_168
-    let ptr_517_30
-    let ptr_523: ptr
-    let ptr_524: ptr
-    let ptr_527: ptr
-    let ptr_528: ptr
-    let ptr_529: ptr
-    let ptr_53: ptr
-    let ptr_531: ptr
-    let ptr_532: ptr
-    let ptr_533: ptr
-    let ptr_536: ptr
-    let ptr_536_264
-    let ptr_536_272
-    let ptr_536_280
-    let ptr_538: ptr
-    let ptr_539: ptr
-    let ptr_53_0
-    let ptr_53_8
-    let ptr_543: ptr
-    let ptr_543_16
-    let ptr_543_24
-    let ptr_549: ptr
-    let ptr_550: ptr
-    let ptr_552: ptr
-    let ptr_553: ptr
-    let ptr_558: ptr
-    let ptr_57: ptr
-    let ptr_578: ptr
-    let ptr_587: ptr
-    let ptr_588: ptr
-    let ptr_6: ptr
-    let ptr_60: ptr
-    let ptr_600: ptr
-    let ptr_603: ptr
-    let ptr_605: ptr
-    let ptr_608: ptr
-    let ptr_608_328
-    let ptr_608_336
-    let ptr_608_344
-    let ptr_609: ptr
-    let ptr_61: ptr
-    let ptr_612: ptr
-    let ptr_613: ptr
-    let ptr_620: ptr
-    let ptr_622: ptr
-    let ptr_625: ptr
-    let ptr_625_104
-    let ptr_625_144
-    let ptr_625_152
-    let ptr_625_160
-    let ptr_625_168
-    let ptr_625_24
-    let ptr_625_32
-    let ptr_63: ptr
-    let ptr_630: ptr
-    let ptr_631: ptr
-    let ptr_636: ptr
-    let ptr_638: ptr
-    let ptr_641: ptr
-    let ptr_647: ptr
-    let ptr_648: ptr
-    let ptr_651: ptr
-    let ptr_654: ptr
-    let ptr_657: ptr
-    let ptr_658: ptr
-    let ptr_66: ptr
-    let ptr_665: ptr
-    let ptr_667: ptr
-    let ptr_668: ptr
-    let ptr_669: ptr
-    let ptr_66_0
-    let ptr_66_16
-    let ptr_66_24
-    let ptr_66_64
-    let ptr_66_776
-    let ptr_66_784
-    let ptr_66_792
-    let ptr_674: ptr
-    let ptr_678: ptr
-    let ptr_682: ptr
-    let ptr_688: ptr
-    let ptr_690: ptr
-    let ptr_692: ptr
-    let ptr_693: ptr
-    let ptr_695: ptr
-    let ptr_696: ptr
-    let ptr_698: ptr
-    let ptr_700: ptr
-    let ptr_701: ptr
-    let ptr_701_1320
-    let ptr_701_1328
-    let ptr_701_1336
-    let ptr_701_1344
-    let ptr_701_1348
-    let ptr_701_1350
-    let ptr_701_464
-    let ptr_701_520
-    let ptr_701_560
-    let ptr_701_568
-    let ptr_701_576
-    let ptr_701_776
-    let ptr_701_784
-    let ptr_701_792
-    let ptr_701_800
-    let ptr_701_804
-    let ptr_701_806
-    let ptr_707: ptr
-    let ptr_711: ptr
-    let ptr_712: ptr
-    let ptr_714: ptr
-    let ptr_716: ptr
-    let ptr_718: ptr
-    let ptr_719: ptr
-    let ptr_723: ptr
-    let ptr_723_544
-    let ptr_723_560
-    let ptr_723_576
-    let ptr_724: ptr
-    let ptr_725: ptr
-    let ptr_727: ptr
-    let ptr_730: ptr
-    let ptr_731: ptr
-    let ptr_735: ptr
-    let ptr_738: ptr
-    let ptr_738_0
-    let ptr_742: ptr
-    let ptr_745: ptr
-    let ptr_746: ptr
-    let ptr_747: ptr
-    let ptr_75: ptr
-    let ptr_751: ptr
-    let ptr_752: ptr
-    let ptr_752_0
-    let ptr_752_8
-    let ptr_753: ptr
-    let ptr_757: ptr
-    let ptr_764: ptr
-    let ptr_766: ptr
-    let ptr_767: ptr
-    let ptr_770: ptr
-    let ptr_771: ptr
-    let ptr_774: ptr
-    let ptr_777: ptr
-    let ptr_78: ptr
-    let ptr_780: ptr
-    let ptr_785: ptr
-    let ptr_787: ptr
-    let ptr_79: ptr
-    let ptr_790: ptr
-    let ptr_791: ptr
-    let ptr_798: ptr
-    let ptr_801: ptr
-    let ptr_806: ptr
-    let ptr_807: ptr
-    let ptr_808: ptr
-    let ptr_813: ptr
-    let ptr_82: ptr
-    let ptr_821: ptr
-    let ptr_825: ptr
-    let ptr_826: ptr
-    let ptr_82_32
-    let ptr_82_40
-    let ptr_82_48
-    let ptr_831: ptr
-    let ptr_840: ptr
-    let ptr_840_0
-    let ptr_841: ptr
-    let ptr_843: ptr
-    let ptr_845: ptr
-    let ptr_847: ptr
-    let ptr_851: ptr
-    let ptr_854: ptr
-    let ptr_855: ptr
-    let ptr_856: ptr
-    let ptr_871: ptr
-    let ptr_871_776
-    let ptr_880: ptr
-    let ptr_883: ptr
-    let ptr_888: ptr
-    let ptr_889: ptr
-    let ptr_890: ptr
-    let ptr_891: ptr
-    let ptr_894: ptr
-    let ptr_895: ptr
-    let ptr_898: ptr
-    let ptr_898_1320
-    let ptr_898_1328
-    let ptr_898_1336
-    let ptr_898_1344
-    let ptr_898_1348
-    let ptr_898_1350
-    let ptr_898_528
-    let ptr_898_552
-    let ptr_898_560
-    let ptr_898_776
-    let ptr_898_784
-    let ptr_898_792
-    let ptr_898_800
-    let ptr_898_804
-    let ptr_898_806
-    let ptr_899: ptr
-    let ptr_9: ptr
-    let ptr_900: ptr
-    let ptr_902: ptr
-    let ptr_904: ptr
-    let ptr_904_0
-    let ptr_905: ptr
-    let ptr_907: ptr
-    let ptr_909: ptr
-    let ptr_910: ptr
-    let ptr_911: ptr
-    let ptr_911_0
-    let ptr_912: ptr
-    let ptr_916: ptr
-    let ptr_917: ptr
     let ptr_924: ptr
-    let ptr_926: ptr
-    let ptr_929: ptr
-    let ptr_932: ptr
-    let ptr_933: ptr
-    let ptr_937: ptr
-    let ptr_938: ptr
-    let ptr_942: ptr
-    let ptr_942_24
-    let ptr_942_32
-    let ptr_942_40
-    let ptr_943: ptr
-    let ptr_945: ptr
-    let ptr_945_16
-    let ptr_951: ptr
-    let ptr_951_24
-    let ptr_951_48
-    let ptr_951_56
-    let ptr_951_72
-    let ptr_951_80
-    let ptr_951_88
-    let ptr_968: ptr
-    let ptr_968_0
-    let ptr_968_16
-    let ptr_968_8
-    let ptr_977: ptr
-    let ptr_977_32
-    let ptr_977_40
-    let ptr_977_48
-    let ptr_987: ptr
-    let ptr_988: ptr
-    let ptr_988_0
-    let ptr_988_16
-    let ptr_988_24
-    let ptr_988_32
-    let ptr_988_8
-    let var_1: u64
-    let var_10008: u64
-    let var_10010: u64
-    let var_1002: u64
-    let var_1004: u64
-    let var_10047: u64
-    let var_1005: u64
-    let var_1006: u64
-    let var_1008: u64
-    let var_10091: u64
-    let var_10093: u64
-    let var_10095: u64
-    let var_10096: u64
-    let var_10097: u64
-    let var_10122: u32
-    let var_10123: i64
-    let var_10126: u64
-    let var_10161: u64
-    let var_10163: u64
-    let var_10164: u64
-    let var_10166: u64
-    let var_10167: u64
-    let var_10168: u64
-    let var_10171: u64
-    let var_10180: u64
-    let var_10182: u64
-    let var_10185: u64
-    let var_10187: u64
-    let var_10188: u64
-    let var_10189: u64
-    let var_102: u64
-    let var_1022: u64
-    let var_10221: u64
-    let var_10244: u64
-    let var_10245: u64
-    let var_10316: u64
-    let var_10317: u64
-    let var_10625: u32
-    let var_10644: u64
-    let var_10645: u64
-    let var_10646: u64
-    let var_10653: u64
-    let var_10654: u64
-    let var_10656: u64
-    let var_10657: u64
-    let var_10665: u64
-    let var_10666: u64
-    let var_10669: u64
-    let var_1069: u64
-    let var_10699: u64
-    let var_10700: u64
-    let var_1075: u32
-    let var_1076: u32
-    let var_1077: u32
-    let var_1078: u64
-    let var_108: u32
-    let var_1080: u64
-    let var_1082: u64
-    let var_109: u32
-    let var_1097: u64
-    let var_110: u32
-    let var_11011: u64
-    let var_11041: u64
-    let var_11042: u64
-    let var_1105: u64
-    let var_111: u64
-    let var_1111: u32
-    let var_11114: u64
-    let var_1112: u32
-    let var_1113: u32
-    let var_1114: u64
-    let var_1117: u64
-    let var_1120: u64
-    let var_114: u64
-    let var_1145: u64
-    let var_1146: u64
-    let var_11618: u64
-    let var_11619: i64
-    let var_11622: u64
-    let var_11649: u64
-    let var_11650: u64
-    let var_11655: u64
-    let var_11656: u64
-    let var_11657: u64
-    let var_11658: u64
-    let var_1167: u64
-    let var_11687: u64
-    let var_1169: u64
-    let var_117: u64
-    let var_1171: u64
-    let var_1172: u64
-    let var_11789: u64
-    let var_11790: u64
-    let var_11791: u64
-    let var_11792: u64
-    let var_11796: u64
-    let var_11802: u64
-    let var_11803: u64
-    let var_11805: u64
-    let var_11812: u64
-    let var_11814: u64
-    let var_11859: u64
-    let var_11860: u64
-    let var_11861: u64
-    let var_1188: u64
-    let var_11884: u64
-    let var_11886: u64
-    let var_1191: u64
-    let var_11914: u64
-    let var_11915: u64
-    let var_11928: u64
-    let var_11930: u64
-    let var_12121: u64
-    let var_12130: u64
-    let var_12132: u64
-    let var_12133: u64
-    let var_12134: u64
-    let var_12135: u64
-    let var_12153: u64
-    let var_12155: u32
-    let var_12156: u32
-    let var_12157: u64
-    let var_12173: u64
-    let var_12178: u64
-    let var_12233: u64
-    let var_12234: u64
-    let var_12273: u64
-    let var_12275: u64
-    let var_12276: u64
-    let var_12302: u64
-    let var_1233: u64
-    let var_12330: u64
-    let var_12332: u64
-    let var_12333: u64
-    let var_12335: u64
-    let var_12336: u64
-    let var_12337: u64
-    let var_12338: u64
-    let var_12340: u64
-    let var_12341: u64
-    let var_12342: u64
-    let var_12343: u64
-    let var_1235: u64
-    let var_12364: u32
-    let var_12367: u32
-    let var_12380: u32
-    let var_12381: u64
-    let var_12392: u64
-    let var_12398: u64
-    let var_1240: u64
-    let var_12407: u64
-    let var_12408: u64
-    let var_12409: u64
-    let var_12412: u64
-    let var_12413: u64
-    let var_12414: u64
-    let var_12416: u64
-    let var_1242: u64
-    let var_12424: u64
-    let var_12429: u64
-    let var_1243: u64
-    let var_12471: u64
-    let var_12473: u64
-    let var_1254: u64
-    let var_12547: u64
-    let var_12548: u64
-    let var_12549: u64
-    let var_1255: u64
-    let var_12570: u64
-    let var_12573: u64
-    let var_12594: u64
-    let var_12595: u64
-    let var_12596: u64
-    let var_12602: u64
-    let var_12618: u64
-    let var_12628: u64
-    let var_1263: u64
-    let var_12630: u64
-    let var_12635: u32
-    let var_12636: u64
-    let var_12639: u64
-    let var_12640: u64
-    let var_12641: u64
-    let var_1265: u64
-    let var_12651: u64
-    let var_12663: u64
-    let var_12665: u64
-    let var_12667: u64
-    let var_12700: u64
-    let var_12701: u64
-    let var_12725: u64
-    let var_1273: u64
-    let var_12788: u64
-    let var_12789: u64
-    let var_12791: u64
-    let var_12793: u64
-    let var_12806: u64
-    let var_1281: u64
-    let var_12811: u64
-    let var_12814: u64
-    let var_12817: u64
-    let var_1282: u64
-    let var_12820: u64
-    let var_12827: u64
-    let var_12831: u64
-    let var_12837: u64
-    let var_12843: u64
-    let var_12869: u64
-    let var_12885: u64
-    let var_12887: u64
-    let var_12905: u64
-    let var_12907: u64
-    let var_12908: u64
-    let var_12909: u64
-    let var_1293: u64
-    let var_1295: u64
-    let var_1296: u64
-    let var_13005: u64
-    let var_13007: u64
-    let var_13064: u64
-    let var_13065: u64
-    let var_13126: u64
-    let var_13127: u64
-    let var_13157: u64
-    let var_13163: u64
-    let var_13182: u64
-    let var_13184: u64
-    let var_13185: u64
-    let var_13218: u64
-    let var_13246: u64
-    let var_13273: u64
-    let var_13275: u64
-    let var_13447: u64
-    let var_13451: u64
-    let var_13453: u64
-    let var_13456: u64
-    let var_13462: u64
-    let var_13463: u32
-    let var_13477: u64
-    let var_13506: u64
-    let var_13508: u64
-    let var_13509: u64
-    let var_13559: u64
-    let var_13560: u64
-    let var_13577: u64
-    let var_13581: u64
-    let var_13582: u64
-    let var_13585: u64
-    let var_13591: u64
-    let var_13592: u64
-    let var_13595: u64
-    let var_13599: u64
-    let var_13620: u64
-    let var_13621: u64
-    let var_13622: u64
-    let var_13623: u64
-    let var_13644: u64
-    let var_13673: u64
-    let var_13713: u64
-    let var_13717: u64
-    let var_13719: u64
-    let var_13721: u64
-    let var_13723: u64
-    let var_13725: u64
-    let var_13731: u64
-    let var_13781: u64
-    let var_13787: u32
-    let var_13788: u32
-    let var_13790: u32
-    let var_13793: u64
-    let var_13839: u32
-    let var_13921: u64
-    let var_13923: u64
-    let var_13954: u64
-    let var_13955: u64
-    let var_13987: u64
-    let var_13988: u64
-    let var_14006: u64
-    let var_14012: u64
-    let var_14031: u64
-    let var_14037: u64
-    let var_1404: u64
-    let var_14055: u64
-    let var_14061: u64
-    let var_14080: u64
-    let var_14086: u64
-    let var_14104: u64
-    let var_14110: u64
-    let var_14129: u64
-    let var_14135: u64
-    let var_14159: u64
-    let var_14184: u64
-    let var_14208: u64
-    let var_14233: u64
-    let var_1425: u64
-    let var_14257: u64
-    let var_14282: u64
-    let var_1429: u64
-    let var_14300: u64
-    let var_14306: u64
-    let var_14327: u64
-    let var_14330: u64
-    let var_14338: u64
-    let var_14341: u64
-    let var_1443: u64
-    let var_1455: u64
-    let var_14580: u64
-    let var_14597: u64
-    let var_14598: u64
-    let var_14607: u64
-    let var_14623: u64
-    let var_14624: u64
-    let var_14625: u64
-    let var_14626: u64
-    let var_14627: u64
-    let var_14629: u64
-    let var_14631: u64
-    let var_14674: u64
-    let var_14675: u64
-    let var_14676: u64
-    let var_14677: u64
-    let var_1469: u64
-    let var_1470: u64
-    let var_14727: u64
-    let var_14728: u64
-    let var_14730: u64
-    let var_14774: u64
-    let var_14775: u64
-    let var_14776: u64
-    let var_148: u32
-    let var_14814: u64
-    let var_14820: u32
-    let var_14821: u32
-    let var_14823: u32
-    let var_14826: u64
-    let var_1488: u64
-    let var_1489: u64
-    let var_149: u32
-    let var_1491: u64
-    let var_14923: u64
-    let var_14924: u64
-    let var_14926: u64
-    let var_14927: u64
-    let var_14933: u64
-    let var_1495: u64
-    let var_150: u32
-    let var_1501: u64
-    let var_15063: u64
-    let var_15066: u64
-    let var_15067: u64
-    let var_15074: u64
-    let var_151: u64
-    let var_1510: u64
-    let var_1518: u64
-    let var_15285: u64
-    let var_15380: u64
-    let var_15388: u64
-    let var_154: u64
-    let var_15423: u64
-    let var_15424: u64
-    let var_15430: u64
-    let var_15431: u64
-    let var_15435: u64
-    let var_15440: u64
-    let var_15457: u64
-    let var_15490: u64
-    let var_15491: u64
-    let var_15519: u64
-    let var_15529: u64
-    let var_15530: u64
-    let var_15531: u32
-    let var_15532: u64
-    let var_15595: u64
-    let var_15609: u64
-    let var_15613: u64
-    let var_15614: u64
-    let var_15618: u64
-    let var_15633: u64
-    let var_1564: u64
-    let var_1565: u64
-    let var_15650: u64
-    let var_15660: u64
-    let var_15668: u64
-    let var_1567: u64
-    let var_15689: u64
-    let var_15690: u64
-    let var_15693: u64
-    let var_15694: u64
-    let var_15695: u64
-    let var_15697: u64
-    let var_15698: u64
-    let var_15699: u64
-    let var_157: u64
-    let var_15700: u64
-    let var_15708: i64
-    let var_15751: u64
-    let var_15799: u64
-    let var_15802: u64
-    let var_15804: u64
-    let var_15807: u64
-    let var_15820: u64
-    let var_15822: u64
-    let var_15824: u64
-    let var_15825: u64
-    let var_15914: u64
-    let var_15917: u64
-    let var_15919: u64
-    let var_15929: u32
-    let var_15930: u64
-    let var_15936: u64
-    let var_15937: u64
-    let var_15938: u64
-    let var_15939: u64
-    let var_15948: u64
-    let var_15949: u64
-    let var_15951: u64
-    let var_15992: u64
-    let var_15995: u64
-    let var_16000: u64
-    let var_16004: u64
-    let var_16010: u64
-    let var_16020: u64
-    let var_16023: u64
-    let var_16025: u64
-    let var_16029: u64
-    let var_16032: u64
-    let var_16033: u64
-    let var_16034: i64
-    let var_16036: u64
-    let var_16037: u64
-    let var_16048: u64
-    let var_16054: u64
-    let var_16057: u64
-    let var_16108: u64
-    let var_16109: u64
-    let var_16110: u64
-    let var_16111: u64
-    let var_16115: u64
-    let var_16117: u64
-    let var_16121: u64
-    let var_16139: u64
-    let var_16140: u64
-    let var_16144: u32
-    let var_16151: u32
-    let var_16187: u64
-    let var_16189: u64
-    let var_16190: u64
-    let var_16228: u64
-    let var_16231: u64
-    let var_16233: u64
-    let var_16243: u32
-    let var_16244: u64
-    let var_16282: u64
-    let var_16285: u64
-    let var_16287: u64
-    let var_16297: u32
-    let var_16298: u64
-    let var_16304: u64
-    let var_16305: u64
-    let var_16309: u64
-    let var_16326: u64
-    let var_16343: u64
-    let var_16365: u64
-    let var_16368: u64
-    let var_16392: u64
-    let var_16419: u64
-    let var_16445: u64
-    let var_16447: u64
-    let var_16448: u64
-    let var_16449: u64
-    let var_16807: u32
-    let var_16810: u32
-    let var_16828: u32
-    let var_16836: u32
-    let var_16840: u32
-    let var_16843: u32
-    let var_16846: u32
-    let var_16849: u32
-    let var_16852: u32
-    let var_16861: u32
-    let var_16941: u64
-    let var_16944: u64
-    let var_16950: u64
-    let var_16991: u64
-    let var_16992: u64
-    let var_16994: u64
-    let var_17046: u64
-    let var_17048: u64
-    let var_17055: u64
-    let var_17056: u64
-    let var_17057: u64
-    let var_17059: u64
-    let var_17066: u64
-    let var_17067: u64
-    let var_17074: u64
-    let var_17113: u64
-    let var_17115: u64
-    let var_17116: u64
-    let var_17117: u64
-    let var_17149: i64
-    let var_17152: u64
-    let var_17201: u64
-    let var_17203: u64
-    let var_17204: u64
-    let var_17218: u64
-    let var_17272: u64
-    let var_17297: u64
-    let var_17300: u64
-    let var_17334: u64
-    let var_17373: u64
-    let var_17387: u64
-    let var_17388: u64
     let var_17414: u64
     let var_17415: u64
-    let var_17460: u64
-    let var_17466: u64
-    let var_17467: u64
-    let var_17468: u64
-    let var_17471: u64
-    let var_17506: u64
-    let var_17507: u64
-    let var_17508: u64
-    let var_17509: u64
-    let var_17510: u64
-    let var_17513: u64
-    let var_17514: u64
-    let var_17515: u64
-    let var_17517: u64
-    let var_17521: u64
-    let var_17522: u64
-    let var_17524: u64
-    let var_17525: u64
-    let var_17530: u32
-    let var_17558: u64
-    let var_17559: u64
-    let var_17563: u64
-    let var_17564: u64
-    let var_17566: u64
-    let var_17571: u64
-    let var_17602: u64
-    let var_17611: u64
-    let var_17612: u64
-    let var_17653: u64
-    let var_17654: u64
-    let var_17695: u64
-    let var_17696: u64
-    let var_17698: u64
-    let var_17699: u64
-    let var_17700: u64
-    let var_17727: u64
-    let var_17728: u64
-    let var_17729: u64
-    let var_17730: u64
-    let var_17731: u64
-    let var_17732: u64
-    let var_17733: u64
-    let var_17782: u64
-    let var_17784: u64
-    let var_1782: u64
-    let var_1783: u64
-    let var_1784: u64
-    let var_17882: u64
-    let var_17884: u64
-    let var_17911: u64
-    let var_1792: u64
     let var_17922: u64
     let var_17925: u32
     let var_17940: u64
@@ -1242,883 +34,39 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     let var_17956: u64
     let var_17961: u64
     let var_17966: u32
-    let var_17971: u32
-    let var_17974: u64
-    let var_17975: u64
-    let var_17978: u64
     let var_17981: u64
-    let var_17982: u64
-    let var_17984: u32
     let var_18006: u64
     let var_18018: u64
     let var_18021: u64
     let var_18039: u32
     let var_18040: u64
-    let var_1805: u64
     let var_18054: u32
     let var_18057: u32
-    let var_1806: u64
     let var_18069: u64
     let var_18070: u64
     let var_18072: u64
     let var_18076: u64
     let var_18078: u32
-    let var_18080: u64
     let var_18082: u64
     let var_18083: u64
     let var_18085: u64
     let var_18099: u32
-    let var_1810: u64
     let var_18104: u64
-    let var_1811: u64
     let var_18114: u32
     let var_18116: u32
-    let var_18118: u64
     let var_18120: u64
     let var_18121: u64
-    let var_1813: u64
-    let var_1814: u64
     let var_18140: u32
     let var_18146: u64
-    let var_1816: u64
     let var_18170: u32
     let var_18171: u64
-    let var_1818: u64
     let var_18181: u32
-    let var_1819: u64
-    let var_18190: u64
-    let var_1820: u64
-    let var_18200: u64
-    let var_18201: u32
-    let var_18203: u64
-    let var_18204: u64
-    let var_18207: u32
-    let var_18208: u64
-    let var_18214: u32
-    let var_18215: u32
-    let var_18216: u32
-    let var_18218: u64
-    let var_1822: u64
-    let var_18220: u64
-    let var_18221: u64
-    let var_18224: u64
-    let var_18238: u64
-    let var_18241: u64
-    let var_18249: u64
-    let var_18252: u32
-    let var_18254: u64
-    let var_18257: u32
-    let var_18270: u64
-    let var_18272: u64
-    let var_18274: u64
-    let var_18277: u64
-    let var_18281: u64
-    let var_18302: u32
-    let var_18308: u64
-    let var_18320: u64
-    let var_18337: u32
-    let var_18338: u64
-    let var_18351: u32
-    let var_18367: u32
-    let var_18368: u32
-    let var_18374: u64
-    let var_18402: u32
-    let var_18403: u64
-    let var_18416: u32
-    let var_1844: u64
-    let var_18458: u64
-    let var_18460: u64
-    let var_18466: u64
-    let var_18467: u64
-    let var_18468: u64
-    let var_18484: u64
-    let var_18485: u64
-    let var_18492: u64
-    let var_18500: u64
-    let var_18523: u64
-    let var_18546: u64
-    let var_18549: u64
-    let var_18550: u64
-    let var_18551: u64
-    let var_18552: u64
-    let var_18558: u64
-    let var_18559: u64
-    let var_18562: u64
-    let var_18563: u64
-    let var_18564: u64
-    let var_18572: u64
-    let var_18578: u64
-    let var_18584: u64
-    let var_18585: u64
-    let var_18586: u64
-    let var_1859: u64
-    let var_18607: u64
-    let var_18611: u64
-    let var_18621: u64
-    let var_18624: u64
-    let var_18625: u64
-    let var_18631: u64
-    let var_18639: u64
-    let var_18667: u64
-    let var_18671: u64
-    let var_18701: u64
     let var_18732: u64
-    let var_18736: u64
-    let var_1874: u32
-    let var_18742: u32
-    let var_1875: u32
-    let var_1876: u32
-    let var_1877: u64
-    let var_1880: u64
-    let var_1882: u64
-    let var_1899: u64
-    let var_19: u64
-    let var_191: u32
-    let var_1915: u32
-    let var_1916: u32
-    let var_1917: u32
-    let var_1918: u64
-    let var_192: u32
-    let var_1922: u64
-    let var_1924: u64
-    let var_193: u32
-    let var_194: u64
-    let var_1943: u64
-    let var_196: u64
-    let var_198: u64
-    let var_1983: u64
-    let var_1984: u64
-    let var_2: u64
-    let var_2006: u64
-    let var_2023: u64
-    let var_2039: u32
-    let var_2040: u32
-    let var_2041: u32
-    let var_2042: u64
-    let var_2044: u64
-    let var_2046: u64
-    let var_2069: u32
-    let var_2070: u32
-    let var_2071: u32
-    let var_2072: u64
-    let var_2075: u64
-    let var_2078: u64
-    let var_2125: u64
-    let var_2126: u64
-    let var_2128: u64
-    let var_2171: u64
-    let var_2182: u64
-    let var_219: u64
-    let var_220: u64
-    let var_222: u64
-    let var_223: u64
-    let var_2234: u64
-    let var_2235: u64
-    let var_227: u64
-    let var_2276: u64
-    let var_2277: u64
-    let var_228: u64
-    let var_2309: u64
-    let var_2311: u64
-    let var_2312: u64
-    let var_249: u64
-    let var_250: u64
-    let var_252: u64
-    let var_256: u64
-    let var_2575: u64
-    let var_2580: u64
-    let var_2602: u64
-    let var_2604: u64
-    let var_2605: u64
-    let var_2606: u64
-    let var_2607: u64
-    let var_2708: u32
-    let var_2709: u32
-    let var_2710: u32
-    let var_2711: u64
-    let var_2713: u64
-    let var_2714: u64
-    let var_2726: u64
-    let var_2774: u64
-    let var_279: u64
-    let var_2803: u64
-    let var_2857: u64
-    let var_2879: u64
-    let var_2898: u64
-    let var_2916: u32
-    let var_2917: u32
-    let var_2918: u32
-    let var_2919: u64
-    let var_2921: u64
-    let var_2922: u64
-    let var_2923: u64
-    let var_2924: u64
-    let var_2927: u64
-    let var_2929: u64
-    let var_2935: u64
-    let var_2947: u32
-    let var_2948: u32
-    let var_2949: u32
-    let var_2950: u64
-    let var_2952: u64
-    let var_2954: u64
-    let var_2956: u64
-    let var_2994: u64
-    let var_2995: u64
-    let var_2996: u64
-    let var_3: u64
     let var_30: u64
-    let var_302: u64
-    let var_3020: u64
-    let var_305: u64
-    let var_3052: u32
-    let var_3053: u32
-    let var_3054: u32
-    let var_3055: u64
-    let var_3057: u64
-    let var_3058: u64
-    let var_306: u64
-    let var_308: u64
-    let var_3087: u64
-    let var_309: u64
-    let var_3103: u64
-    let var_3105: u64
-    let var_3115: u64
-    let var_3120: u64
-    let var_3126: u32
-    let var_3127: u32
-    let var_3128: u32
-    let var_3129: u64
-    let var_3130: u64
-    let var_3131: u64
-    let var_3133: u64
-    let var_3159: u64
-    let var_316: u64
-    let var_3167: u64
     let var_3169: u64
     let var_3170: u64
     let var_3171: u64
     let var_3172: u64
-    let var_3187: u32
-    let var_3188: u32
-    let var_3189: u32
-    let var_3190: u64
-    let var_3193: u64
-    let var_3195: u64
-    let var_32: u64
-    let var_3218: u32
-    let var_3219: u32
-    let var_3220: u32
-    let var_3221: u64
-    let var_3223: u64
-    let var_3235: u64
-    let var_3241: u64
-    let var_3247: u32
-    let var_3248: u32
-    let var_3249: u32
-    let var_3250: u64
-    let var_3252: u64
-    let var_3254: u64
-    let var_3267: u64
-    let var_3269: u64
-    let var_328: u64
-    let var_331: u64
-    let var_3312: u64
-    let var_3313: u64
-    let var_3314: u64
-    let var_3372: u64
-    let var_3395: u32
-    let var_3396: u32
-    let var_3397: u32
-    let var_3398: u64
-    let var_3400: u64
-    let var_3401: u64
-    let var_3402: u64
-    let var_3403: u64
-    let var_3458: u64
-    let var_3488: u64
-    let var_3532: u64
-    let var_3533: u64
-    let var_3534: u64
-    let var_357: u64
-    let var_3603: u32
-    let var_3604: u32
-    let var_3605: u32
-    let var_3606: u64
-    let var_3608: u64
-    let var_3610: u64
-    let var_3611: u64
-    let var_3612: u64
-    let var_3613: u64
-    let var_3633: u64
-    let var_3634: u64
-    let var_3635: u64
-    let var_3636: u64
-    let var_3637: u64
-    let var_3638: u64
-    let var_3645: u32
-    let var_3650: u64
-    let var_3657: u64
-    let var_3659: u64
-    let var_3663: u64
-    let var_3669: u64
-    let var_3672: u64
-    let var_3685: u64
-    let var_3688: u64
-    let var_3691: u64
-    let var_3697: u64
-    let var_3713: u64
-    let var_3714: u64
-    let var_3757: u64
-    let var_3759: u64
-    let var_3796: u32
-    let var_3797: u32
-    let var_3798: u32
-    let var_3799: u64
-    let var_3801: u64
-    let var_382: u64
-    let var_3821: u32
-    let var_3822: u32
-    let var_3823: u32
-    let var_3824: u64
-    let var_3827: u64
-    let var_3829: u64
-    let var_383: u64
-    let var_384: u64
-    let var_3846: u64
-    let var_3883: u64
-    let var_3884: u64
-    let var_3906: u64
-    let var_3908: u64
-    let var_3928: u64
-    let var_393: u64
-    let var_394: u32
-    let var_3941: u64
-    let var_3942: u64
-    let var_3943: u64
-    let var_3947: u64
-    let var_3948: u64
-    let var_3949: u64
-    let var_3956: u64
-    let var_3957: u64
-    let var_4066: u64
-    let var_4082: u64
-    let var_4084: u64
-    let var_4091: u64
-    let var_4102: u32
-    let var_4103: u32
-    let var_4104: u32
-    let var_4105: u64
-    let var_4107: u64
-    let var_4111: u64
-    let var_4134: u32
-    let var_4135: u32
-    let var_4136: u32
-    let var_4137: u64
-    let var_4139: u64
-    let var_4142: u64
-    let var_4161: u32
-    let var_4162: u32
-    let var_4167: u32
-    let var_4168: u64
-    let var_4200: u32
-    let var_4201: u32
-    let var_4202: u32
-    let var_4203: u64
-    let var_4207: u64
-    let var_421: u64
-    let var_4210: u64
-    let var_4253: u64
-    let var_4254: u64
-    let var_428: u64
-    let var_4288: u64
-    let var_429: u64
-    let var_4291: u64
-    let var_4310: u64
-    let var_4311: u64
-    let var_4312: u64
-    let var_4313: u64
-    let var_4314: u64
-    let var_4317: u64
-    let var_4318: u64
-    let var_4321: u64
-    let var_4322: u64
-    let var_4338: u64
-    let var_4339: u64
-    let var_4340: u64
-    let var_4345: u64
-    let var_4346: u64
-    let var_4348: u32
-    let var_4349: u64
-    let var_4353: u32
-    let var_4355: u64
-    let var_4359: u64
-    let var_436: u64
-    let var_4368: u64
-    let var_4379: u32
-    let var_438: u64
-    let var_4380: u32
-    let var_4381: u64
-    let var_4384: u32
-    let var_4386: u64
-    let var_4389: u64
-    let var_439: u64
-    let var_440: u64
-    let var_442: u64
-    let var_4420: u64
-    let var_4430: u64
-    let var_4432: u64
-    let var_4438: u64
-    let var_444: u64
-    let var_4443: u64
-    let var_445: u64
-    let var_4450: u64
-    let var_4469: u32
-    let var_4470: u32
-    let var_4471: u32
-    let var_4472: u64
-    let var_4475: u64
-    let var_4478: u64
-    let var_4484: u32
-    let var_4495: u64
-    let var_4506: u64
-    let var_4507: u64
-    let var_4510: u64
-    let var_4511: u64
-    let var_452: u64
-    let var_4521: u64
-    let var_4522: u64
-    let var_4523: u64
-    let var_4524: u64
-    let var_4525: u64
-    let var_4531: u32
-    let var_4532: u32
-    let var_4534: u32
-    let var_4537: u64
-    let var_4564: u32
-    let var_4565: u32
-    let var_4566: u32
-    let var_4567: u64
-    let var_4569: u64
-    let var_4570: u64
-    let var_4582: u64
-    let var_4625: u64
-    let var_4654: u64
-    let var_4708: u64
-    let var_4709: u64
-    let var_4737: u64
-    let var_4738: u64
-    let var_4739: u64
-    let var_4749: u64
-    let var_4750: u64
-    let var_4774: u64
-    let var_4776: u64
-    let var_4790: u64
-    let var_4796: u32
-    let var_4797: u32
-    let var_4798: u32
-    let var_4799: u64
-    let var_4801: u64
-    let var_4802: u64
-    let var_4816: u64
-    let var_4824: u64
-    let var_4830: u32
-    let var_4831: u32
-    let var_4832: u32
-    let var_4833: u64
-    let var_4835: u64
-    let var_4836: u64
-    let var_4908: u64
-    let var_4941: u64
-    let var_5007: u64
-    let var_506: u64
-    let var_5063: u64
-    let var_5064: u64
-    let var_508: u64
-    let var_509: u64
-    let var_5096: u64
-    let var_5123: u64
-    let var_5140: u64
-    let var_5150: u64
-    let var_5163: u64
-    let var_5165: u64
-    let var_517: u64
-    let var_520: u64
-    let var_521: u64
-    let var_5228: u64
-    let var_5292: u64
-    let var_5294: u64
-    let var_5322: u64
-    let var_5324: u64
-    let var_5422: u64
-    let var_5423: u64
-    let var_5521: u64
-    let var_5527: u32
-    let var_5528: u32
-    let var_5529: u64
-    let var_5531: u32
-    let var_5532: u64
-    let var_5533: u64
-    let var_5552: u64
-    let var_5565: u64
-    let var_5571: u32
-    let var_5572: u32
-    let var_5573: u64
-    let var_5575: u32
-    let var_5576: u64
-    let var_5577: u64
-    let var_5597: u64
-    let var_5622: u64
-    let var_5624: u64
-    let var_5634: u64
-    let var_5636: u32
-    let var_5637: u32
-    let var_5638: u32
-    let var_5639: u64
-    let var_5642: u64
-    let var_5645: u64
-    let var_5668: u32
-    let var_5669: u32
-    let var_5670: u32
-    let var_5671: u64
-    let var_5673: u64
-    let var_5682: u64
-    let var_5693: u32
-    let var_5694: u32
-    let var_5695: u32
-    let var_5696: u64
-    let var_5699: u64
-    let var_5701: u64
-    let var_5704: u64
-    let var_5725: u64
-    let var_5726: u64
-    let var_5727: u64
-    let var_5729: u64
-    let var_5730: u64
-    let var_5731: u64
-    let var_5755: u64
-    let var_5757: u64
-    let var_5801: u64
-    let var_5831: u64
-    let var_5861: u64
-    let var_5864: u64
-    let var_5891: u64
-    let var_5893: u64
-    let var_5926: u64
-    let var_5954: u64
-    let var_5956: u64
-    let var_5957: u64
-    let var_6035: u64
-    let var_6046: u64
-    let var_6047: u64
-    let var_6062: u64
-    let var_6063: u64
-    let var_6073: u64
-    let var_6097: u64
-    let var_6098: u64
-    let var_6099: u64
-    let var_6101: u64
-    let var_6105: u64
-    let var_6112: u64
-    let var_6117: u64
-    let var_6123: u32
-    let var_6124: u32
-    let var_6126: u32
-    let var_6129: u64
-    let var_6130: u64
-    let var_6137: u64
-    let var_6146: u64
-    let var_6147: u64
-    let var_6211: u64
-    let var_6212: u64
-    let var_6213: u64
-    let var_6220: u64
-    let var_6243: u64
-    let var_6278: u64
-    let var_6330: u64
-    let var_6343: u64
-    let var_6348: u64
-    let var_6357: u64
-    let var_6360: u64
-    let var_6362: u64
-    let var_6363: u64
-    let var_6378: u64
-    let var_6393: u64
-    let var_6405: u64
-    let var_6407: u64
-    let var_6408: u64
-    let var_6410: u64
-    let var_6505: u64
-    let var_6507: u64
-    let var_6536: u64
-    let var_6538: u64
-    let var_655: u64
-    let var_6565: u64
-    let var_657: u64
-    let var_6596: u64
-    let var_6602: u32
-    let var_6603: u32
-    let var_6604: u32
-    let var_6605: u64
-    let var_6607: u64
-    let var_6608: u64
-    let var_6627: u64
-    let var_664: u64
-    let var_6689: u64
-    let var_6691: u64
-    let var_6721: u64
-    let var_6724: u64
-    let var_6734: u64
-    let var_6735: u64
-    let var_6736: u64
-    let var_6738: u64
-    let var_6739: u64
-    let var_6752: u64
-    let var_6783: u64
-    let var_6785: u64
-    let var_6853: u64
-    let var_6889: u64
-    let var_6891: u64
-    let var_6925: u64
-    let var_6953: u64
-    let var_6959: u32
-    let var_6960: u32
-    let var_6961: u32
-    let var_6962: u64
-    let var_6964: u64
-    let var_6965: u64
-    let var_6986: u64
-    let var_7032: u64
-    let var_7062: u64
-    let var_7119: u64
-    let var_7120: u64
-    let var_713: u64
-    let var_714: u64
-    let var_715: u64
-    let var_716: u64
-    let var_717: u64
-    let var_718: u64
-    let var_719: u64
-    let var_722: u64
-    let var_7234: u64
-    let var_7236: u64
-    let var_7261: u64
-    let var_7263: u64
-    let var_735: u64
-    let var_736: u64
-    let var_740: u64
-    let var_7610: u64
-    let var_762: u64
-    let var_764: u64
-    let var_7658: u32
-    let var_7659: u32
-    let var_7660: u32
-    let var_7661: u64
-    let var_7663: u64
-    let var_7664: u64
-    let var_7665: u64
-    let var_7666: u64
-    let var_7679: u64
-    let var_7681: u64
-    let var_7744: u64
-    let var_7745: u64
-    let var_7781: u64
-    let var_7801: u64
-    let var_7837: u64
-    let var_7838: u64
-    let var_7867: u64
-    let var_8: u64
-    let var_8207: u64
-    let var_822: u64
-    let var_8222: u64
-    let var_8226: u64
-    let var_823: u64
-    let var_8232: u64
-    let var_824: u64
-    let var_825: u64
-    let var_8277: u64
-    let var_8278: u64
-    let var_8281: u64
-    let var_8282: u64
-    let var_8283: u64
-    let var_8286: u64
-    let var_8287: u64
-    let var_830: u64
-    let var_8305: u64
-    let var_8308: u64
-    let var_831: u64
-    let var_832: u64
-    let var_833: u64
-    let var_834: u32
-    let var_8344: u64
-    let var_8358: u64
-    let var_8362: u64
-    let var_8395: u64
-    let var_8396: u64
-    let var_8397: u64
-    let var_841: u64
-    let var_842: u64
-    let var_843: u64
-    let var_844: u64
-    let var_8441: u64
-    let var_8442: u64
-    let var_8468: u64
-    let var_8469: u64
-    let var_847: u64
-    let var_8472: u64
-    let var_8518: u64
-    let var_8519: u64
-    let var_8520: u64
-    let var_855: u64
-    let var_8555: u64
-    let var_856: u64
-    let var_857: u64
-    let var_8582: u64
-    let var_862: u64
-    let var_863: u64
-    let var_864: u64
-    let var_865: u64
-    let var_8698: u64
-    let var_870: u64
-    let var_872: u32
-    let var_873: u64
-    let var_874: u64
-    let var_876: u64
-    let var_8770: u64
-    let var_8772: u64
-    let var_8782: u64
-    let var_880: u64
-    let var_882: u64
-    let var_8830: u64
-    let var_8832: u64
-    let var_8836: u64
-    let var_8837: u64
-    let var_884: u64
-    let var_8841: u64
-    let var_8842: u64
-    let var_8846: u32
-    let var_8847: u64
-    let var_8859: u64
-    let var_8860: u64
-    let var_8865: u32
-    let var_887: u64
-    let var_8873: u32
-    let var_888: u64
-    let var_8888: u64
-    let var_8890: u64
-    let var_8909: u64
-    let var_893: u64
-    let var_8959: u64
-    let var_8961: u64
-    let var_8962: u64
-    let var_8969: u64
-    let var_8974: u64
-    let var_8976: u64
-    let var_8978: i64
-    let var_8981: i64
-    let var_8987: u32
-    let var_9001: u64
-    let var_9005: u64
-    let var_9007: u64
-    let var_9008: u64
-    let var_9010: u64
-    let var_9012: u64
-    let var_902: u64
-    let var_9024: u64
-    let var_9025: u64
-    let var_903: u64
-    let var_9030: u64
-    let var_9033: u64
-    let var_9034: u64
-    let var_9039: u32
-    let var_904: u64
-    let var_9073: u64
-    let var_9075: u64
-    let var_909: u64
-    let var_910: u64
-    let var_911: u64
-    let var_912: u64
-    let var_9120: u64
-    let var_9136: u64
-    let var_9137: u64
-    let var_9147: u64
-    let var_9165: u64
-    let var_9166: u64
-    let var_9167: u64
-    let var_9168: u64
-    let var_9169: u64
-    let var_917: u64
-    let var_9175: u32
-    let var_9176: u32
-    let var_9178: u32
-    let var_9185: u64
-    let var_9189: u64
-    let var_919: u64
-    let var_920: u64
-    let var_921: u64
-    let var_9244: u64
-    let var_9245: u64
-    let var_926: u64
-    let var_9260: u64
-    let var_927: u64
-    let var_928: u64
-    let var_929: u64
-    let var_934: u64
-    let var_936: u64
-    let var_937: u64
-    let var_938: u64
-    let var_9390: u64
-    let var_9421: u64
-    let var_943: u64
-    let var_944: u64
-    let var_945: u64
-    let var_946: u64
-    let var_951: u64
-    let var_9521: u64
-    let var_9523: u64
-    let var_9524: u64
-    let var_9525: u64
-    let var_953: u64
-    let var_9531: u32
-    let var_954: u64
-    let var_955: u64
-    let var_960: u64
-    let var_961: u64
-    let var_962: u64
-    let var_963: u64
-    let var_9668: u64
-    let var_9671: u64
-    let var_9672: u64
-    let var_9673: u64
-    let var_968: u64
-    let var_9680: u32
-    let var_970: u64
-    let var_971: u64
-    let var_972: u64
-    let var_977: u64
-    let var_9774: u64
-    let var_978: u64
-    let var_9786: u32
-    let var_979: u64
-    let var_980: u64
-    let var_9810: u64
-    let var_9811: u64
-    let var_9814: u64
-    let var_9815: u64
-    let var_9816: u64
-    let var_9817: u64
-    let var_985: u64
-    let var_9856: u64
-    let var_987: u64
-    let var_988: u64
-    let var_989: u64
-    let var_9924: u64
-    let var_994: u64
-    let var_995: u64
-    let var_996: u64
-    let var_9963: u64
-    let var_997: u64
-    let var_9992: u64
 
     var_10091 = 1240; jump 39682
 
@@ -2128,10 +76,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     let ptr_1065 = ptr_1113 - 608
     u64[ptr_1065 + 528] = 0
     r7 = ptr_1065 + 552
-    let ptr_1066 = ptr_1065 + 528
     r0 = 2240; jump 2191
-
-    ptr_1070 = ptr_674 - 112
 
     if (0x4F87 >>u ptr_675_0 & 1 != 0) {
         if (fetch() >=u var_16944) {
@@ -2150,7 +95,6 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
                 goto block_12480;
             } else {
                 if (var_16944 == 0) {
-                    let var_16960 = 0
                     u64[ptr_1071 + 0] = 1
                     goto block_155d7;
                 } else {
@@ -2159,14 +103,10 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
                     } else {
                         let ptr_922 = ptr_15 - 72
                         u64[ptr_922 + 40] = 0
-                        let var_15414 = ptr_922 + 56
                         u64[ptr_922 + 16] = 2
                         u64[ptr_922 + 32] = 1
-                        let ptr_923 = ptr_922 + 8
                         ptr_924 = ptr_922 - 72
                         u16[ptr_924 + 64] = 0
-                        var_15423 = ptr_924 + 48
-                        var_15424 = 2178
                         goto block_15d4d;
                     }
                 }
@@ -2194,7 +134,6 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     }
 
     block_15d4d:
-    let ptr_1105 = ptr_924 - 352
     log()
     r5 = 1
     u64[var_17401 + 264] = 0
@@ -2210,7 +149,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
     for (let r11 = ptr_1107_256; ptr_1107_256 >=u 255; r11 = ptr_1107_256 + ptr_1107) {
         r8 = ptr_1106 + 1
-        ptr_1107_256 = ptr_1107_256 + 1
+        let ptr_1107_256 = ptr_1107_256 + 1
     }
 
     r7 = 0
@@ -2221,14 +160,10 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
         let ptr_1073_0 = ptr_1073_0 | 1 << 32 >>s 32
     }
 
-    let var_16970 = var_16944 + 31 >>u 5
     r8 = 1
     r0 = 2246; jump 5372
 
     ptr_1141 = ptr_0 - 72
-    ptr_1141_64 = var_32
-    ptr_1141_56 = var_8
-    ptr_1141_48 = ptr_3
     ptr_1141_40 = 0
     var_17922 = 0x30038
 
@@ -2269,7 +204,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
                                     var_17951 = -1 << var_17941 + 1 & var_17940
 
                                     if (var_17951 == 0) {
-                                        var_17984 = var_30 >>u 6
+                                        let var_17984 = var_30 >>u 6
 
                                         if (var_17940 >>u var_17984 & 1 == 0) {
                                             if (-1 << var_17984 + 1 & var_17940 != 0) {
@@ -2336,14 +271,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                         if (ptr_1156_0 == 0) {
                                                                             u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                         }
                                                                     } else {
                                                                         r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                                     }
                                                                 }
                                                             } else {
-                                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                             }
                                                         } else {
                                                             u32[r8 + 12] = 0
@@ -2431,14 +366,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                 if (ptr_1156_0 == 0) {
                                                                     u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                 }
                                                             } else {
                                                                 r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                             }
                                                         }
                                                     } else {
-                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                     }
                                                 } else {
                                                     u32[r8 + 12] = 0
@@ -2527,14 +462,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                             if (ptr_1156_0 == 0) {
                                                                                 u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                             }
                                                                         } else {
                                                                             r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                                         }
                                                                     }
                                                                 } else {
-                                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                                 }
                                                             } else {
                                                                 u32[r8 + 12] = 0
@@ -2665,14 +600,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                 if (ptr_1156_0 == 0) {
                                                                     u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                 }
                                                             } else {
                                                                 r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                             }
                                                         }
                                                     } else {
-                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                     }
                                                 } else {
                                                     u32[r8 + 12] = 0
@@ -2760,14 +695,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                         if (ptr_1156_0 == 0) {
                                                             u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                         }
                                                     } else {
                                                         r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                     }
                                                 }
                                             } else {
-                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                             }
                                         } else {
                                             u32[r8 + 12] = 0
@@ -2856,14 +791,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                     if (ptr_1156_0 == 0) {
                                                                         u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                     }
                                                                 } else {
                                                                     r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                                 }
                                                             }
                                                         } else {
-                                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                         }
                                                     } else {
                                                         u32[r8 + 12] = 0
@@ -2993,14 +928,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                             if (ptr_1156_0 == 0) {
                                                                                 u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                             }
                                                                         } else {
                                                                             r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                                         }
                                                                     }
                                                                 } else {
-                                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                                 }
                                                             } else {
                                                                 u32[r8 + 12] = 0
@@ -3088,14 +1023,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                     if (ptr_1156_0 == 0) {
                                                                         u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                     }
                                                                 } else {
                                                                     r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                                 }
                                                             }
                                                         } else {
-                                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                         }
                                                     } else {
                                                         u32[r8 + 12] = 0
@@ -3184,14 +1119,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                                 if (ptr_1156_0 == 0) {
                                                                                     u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                                 }
                                                                             } else {
                                                                                 r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                                             }
                                                                         }
                                                                     } else {
-                                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                                     }
                                                                 } else {
                                                                     u32[r8 + 12] = 0
@@ -3326,14 +1261,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                             if (ptr_1156_0 == 0) {
                                                                 u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                             }
                                                         } else {
                                                             r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                         }
                                                     }
                                                 } else {
-                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                 }
                                             } else {
                                                 u32[r8 + 12] = 0
@@ -3421,14 +1356,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                     if (ptr_1156_0 == 0) {
                                                         u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                     }
                                                 } else {
                                                     r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                 }
                                             }
                                         } else {
-                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                         }
                                     } else {
                                         u32[r8 + 12] = 0
@@ -3517,14 +1452,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                 if (ptr_1156_0 == 0) {
                                                                     u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                 }
                                                             } else {
                                                                 r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                             }
                                                         }
                                                     } else {
-                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                     }
                                                 } else {
                                                     u32[r8 + 12] = 0
@@ -3654,14 +1589,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                         if (ptr_1156_0 == 0) {
                                                                             u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                         }
                                                                     } else {
                                                                         r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                                     }
                                                                 }
                                                             } else {
-                                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                             }
                                                         } else {
                                                             u32[r8 + 12] = 0
@@ -3749,14 +1684,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                 if (ptr_1156_0 == 0) {
                                                                     u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                 }
                                                             } else {
                                                                 r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                             }
                                                         }
                                                     } else {
-                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                     }
                                                 } else {
                                                     u32[r8 + 12] = 0
@@ -3845,14 +1780,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                             if (ptr_1156_0 == 0) {
                                                                                 u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                             }
                                                                         } else {
                                                                             r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                                         }
                                                                     }
                                                                 } else {
-                                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                                 }
                                                             } else {
                                                                 u32[r8 + 12] = 0
@@ -3998,14 +1933,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                     if (ptr_1156_0 == 0) {
                                                                         u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                     }
                                                                 } else {
                                                                     r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                                 }
                                                             }
                                                         } else {
-                                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                         }
                                                     } else {
                                                         u32[r8 + 12] = 0
@@ -4093,14 +2028,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                             if (ptr_1156_0 == 0) {
                                                                 u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                             }
                                                         } else {
                                                             r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                         }
                                                     }
                                                 } else {
-                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                 }
                                             } else {
                                                 u32[r8 + 12] = 0
@@ -4189,14 +2124,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                         if (ptr_1156_0 == 0) {
                                                                             u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                         }
                                                                     } else {
                                                                         r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                                     }
                                                                 }
                                                             } else {
-                                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                             }
                                                         } else {
                                                             u32[r8 + 12] = 0
@@ -4344,14 +2279,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                     if (ptr_1156_0 == 0) {
                                                                         u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                     }
                                                                 } else {
                                                                     r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                                 }
                                                             }
                                                         } else {
-                                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                         }
                                                     } else {
                                                         u32[r8 + 12] = 0
@@ -4439,14 +2374,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                             if (ptr_1156_0 == 0) {
                                                                 u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                             }
                                                         } else {
                                                             r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                         }
                                                     }
                                                 } else {
-                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                 }
                                             } else {
                                                 u32[r8 + 12] = 0
@@ -4535,14 +2470,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                         if (ptr_1156_0 == 0) {
                                                                             u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                         }
                                                                     } else {
                                                                         r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                                     }
                                                                 }
                                                             } else {
-                                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                             }
                                                         } else {
                                                             u32[r8 + 12] = 0
@@ -4684,14 +2619,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                 if (ptr_1156_0 == 0) {
                                                                     u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                 }
                                                             } else {
                                                                 r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                             }
                                                         }
                                                     } else {
-                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                     }
                                                 } else {
                                                     u32[r8 + 12] = 0
@@ -4779,14 +2714,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                         if (ptr_1156_0 == 0) {
                                                             u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                         }
                                                     } else {
                                                         r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                     }
                                                 }
                                             } else {
-                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                             }
                                         } else {
                                             u32[r8 + 12] = 0
@@ -4875,14 +2810,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                     if (ptr_1156_0 == 0) {
                                                                         u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                     }
                                                                 } else {
                                                                     r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                                 }
                                                             }
                                                         } else {
-                                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                         }
                                                     } else {
                                                         u32[r8 + 12] = 0
@@ -5012,14 +2947,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                             if (ptr_1156_0 == 0) {
                                                                 u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                             }
                                                         } else {
                                                             r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                         }
                                                     }
                                                 } else {
-                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                 }
                                             } else {
                                                 u32[r8 + 12] = 0
@@ -5107,14 +3042,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                     if (ptr_1156_0 == 0) {
                                                         u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                     }
                                                 } else {
                                                     r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                 }
                                             }
                                         } else {
-                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                         }
                                     } else {
                                         u32[r8 + 12] = 0
@@ -5203,14 +3138,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                                 if (ptr_1156_0 == 0) {
                                                                     u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                                 }
                                                             } else {
                                                                 r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                             }
                                                         }
                                                     } else {
-                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                     }
                                                 } else {
                                                     u32[r8 + 12] = 0
@@ -5350,14 +3285,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                         if (ptr_1156_0 == 0) {
                                                             u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                         }
                                                     } else {
                                                         r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                     }
                                                 }
                                             } else {
-                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                             }
                                         } else {
                                             u32[r8 + 12] = 0
@@ -5445,14 +3380,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                 if (ptr_1156_0 == 0) {
                                                     u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                 }
                                             } else {
                                                 r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                             }
                                         }
                                     } else {
-                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                     }
                                 } else {
                                     u32[r8 + 12] = 0
@@ -5541,14 +3476,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                             if (ptr_1156_0 == 0) {
                                                                 u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                             }
                                                         } else {
                                                             r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                         }
                                                     }
                                                 } else {
-                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                                 }
                                             } else {
                                                 u32[r8 + 12] = 0
@@ -5666,14 +3601,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                     if (ptr_1156_0 == 0) {
                                                         u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                     }
                                                 } else {
                                                     r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                 }
                                             }
                                         } else {
-                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                         }
                                     } else {
                                         u32[r8 + 12] = 0
@@ -5761,14 +3696,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                             if (ptr_1156_0 == 0) {
                                                 u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                             }
                                         } else {
                                             r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                         }
                                     }
                                 } else {
-                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                 }
                             } else {
                                 u32[r8 + 12] = 0
@@ -5857,14 +3792,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                         if (ptr_1156_0 == 0) {
                                                             u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                         }
                                                     } else {
                                                         r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                     }
                                                 }
                                             } else {
-                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                             }
                                         } else {
                                             u32[r8 + 12] = 0
@@ -5974,14 +3909,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                 if (ptr_1156_0 == 0) {
                                                     u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                 }
                                             } else {
                                                 r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                             }
                                         }
                                     } else {
-                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                     }
                                 } else {
                                     u32[r8 + 12] = 0
@@ -6069,14 +4004,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                         if (ptr_1156_0 == 0) {
                                             u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                         }
                                     } else {
                                         r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                     }
                                 }
                             } else {
-                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                             }
                         } else {
                             u32[r8 + 12] = 0
@@ -6165,14 +4100,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                     if (ptr_1156_0 == 0) {
                                                         u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                     }
                                                 } else {
                                                     r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                                 }
                                             }
                                         } else {
-                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                         }
                                     } else {
                                         u32[r8 + 12] = 0
@@ -6280,14 +4215,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                             if (ptr_1156_0 == 0) {
                                                 u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                             }
                                         } else {
                                             r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                         }
                                     }
                                 } else {
-                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                 }
                             } else {
                                 u32[r8 + 12] = 0
@@ -6375,14 +4310,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                     if (ptr_1156_0 == 0) {
                                         u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                     }
                                 } else {
                                     r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                 }
                             }
                         } else {
-                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                         }
                     } else {
                         u32[r8 + 12] = 0
@@ -6471,14 +4406,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                                 if (ptr_1156_0 == 0) {
                                                     u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                                 }
                                             } else {
                                                 r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                             }
                                         }
                                     } else {
-                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                     }
                                 } else {
                                     u32[r8 + 12] = 0
@@ -6568,14 +4503,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                 if (ptr_1156_0 == 0) {
                                     u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                 }
                             } else {
                                 r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                             }
                         }
                     } else {
-                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                     }
                 } else {
                     u32[r8 + 12] = 0
@@ -6664,14 +4599,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                             if (ptr_1156_0 == 0) {
                                                 u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                             }
                                         } else {
                                             r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                         }
                                     }
                                 } else {
-                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                                 }
                             } else {
                                 u32[r8 + 12] = 0
@@ -6768,14 +4703,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                         if (ptr_1156_0 == 0) {
                                             u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                         }
                                     } else {
                                         r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                     }
                                 }
                             } else {
-                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                             }
                         } else {
                             u32[r8 + 12] = 0
@@ -6868,14 +4803,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                     if (ptr_1156_0 == 0) {
                                         u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                     }
                                 } else {
                                     r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                                 }
                             }
                         } else {
-                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                         }
                     } else {
                         u32[r8 + 12] = 0
@@ -6960,14 +4895,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                                 if (ptr_1156_0 == 0) {
                                     u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                                 }
                             } else {
                                 r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                             }
                         }
                     } else {
-                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                     }
                 } else {
                     u32[r8 + 12] = 0
@@ -7056,14 +4991,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                             if (ptr_1156_0 == 0) {
                                 u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                             }
                         } else {
                             r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                         }
                     }
                 } else {
-                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
                 }
             } else {
                 u32[r8 + 12] = 0
@@ -7134,14 +5069,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                         if (ptr_1156_0 == 0) {
                             u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                         }
                     } else {
                         r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                     }
                 }
             } else {
-                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
             }
         } else {
             u32[r8 + 12] = 0
@@ -7221,14 +5156,14 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                     if (ptr_1156_0 == 0) {
                         u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                     }
                 } else {
                     r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
                 }
             }
         } else {
-            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
         }
     } else {
         u32[r8 + 12] = 0
@@ -7277,17 +5212,17 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
                 if (ptr_1156_0 == 0) {
                     u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
                 }
             } else {
                 r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
             }
         }
     } else {
-        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
     }
 
-    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 & var_18006 rotl var_17941
+    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 & var_18006 rotl var_17941
 
     block_16c69:
     cond_128 = ptr_1141_0 <u ptr_1141_8
@@ -7325,7 +5260,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
             if (ptr_1156_0 == 0) {
                 u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-                u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+                ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
             }
         } else {
             r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
@@ -7342,7 +5277,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
         if (ptr_1156_0 == 0) {
             u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-            u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+            ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
         }
     } else {
         r8 = ((ptr_1141_24 minu 0x2000000) >>u clz32(ptr_1141_24 minu 0x2000000) neg+ 24 & 127) - (clz32(ptr_1141_24 minu 0x2000000) << 7) + 3200
@@ -7359,11 +5294,11 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
     if (ptr_1156_0 == 0) {
         u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-        u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+        ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
     }
 
     u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544] = 1 << var_18040 | u64[(var_18039 << 3) + ptr_1141_16 + 0x2000 + 1544]
-    u64[ptr_1141_16 + 0x2738] = ptr_1141_16->field_10040 | 1 << var_18039
+    ptr_1141_16->field_10040 = ptr_1141_16->field_10040 | 1 << var_18039
 
     var_18054 = (ptr_1141_24 << 5) + var_18021
     var_18057 = ptr_1141_40 & cond_128
@@ -7420,7 +5355,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
                     r10 = ptr_1297 + 1
                 }
             } else {
-                var_18742 = (var_3171 << 56) mulhuu 0x101010100 << 32 | (var_3171 << 56) mulhuu 0x101010100
+                let var_18742 = (var_3171 << 56) mulhuu 0x101010100 << 32 | (var_3171 << 56) mulhuu 0x101010100
             }
         }
     }
@@ -7646,13 +5581,9 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     r0 = 2252; jump 5872
 
     ptr_1163 = ptr_0 - 24
-    ptr_1163_16 = var_19
-    ptr_1163_8 = var_8
-    ptr_1163_0 = ptr_3
     var_18069 = ptr_299_0 - 32
     var_18070 = 0x30038
     var_18072 = u64[var_18070 + 0x2600]
-    let ptr_1165 = var_18069 << 32 >>u 32
     var_18076 = ptr_1165_4 >>u 1
 
     if (var_18069 - var_18072 <=u 31) {
@@ -7724,7 +5655,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
                     let var_18128 = clz32(var_18121)
 
                     if (var_18116 == i32[var_18070 + ((var_18121 >>u var_18128 neg+ 24 & 127) - (var_18128 << 7) + 3199 << 32 >>u 30)]) {
-                        ptr_1174_0 = ptr_1173_8
+                        let ptr_1174_0 = ptr_1173_8
 
                         if (ptr_1173_8 == 0) {
                             var_18140 = ptr_1173_4 >>u 6
@@ -8268,7 +6199,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
             r7 = var_18069 - (ptr_1166_4 << 4)
         }
     } else {
-        ptr_1167_0 = ptr_1166_8
+        let ptr_1167_0 = ptr_1166_8
 
         if (ptr_1166_8 == 0) {
             var_18099 = var_18085 >>u 6
@@ -9082,38 +7013,8 @@ fn func_0(r1: u64, r5: u64) {
 }
 
 fn func_1(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
-    let ptr_0: ptr
-    let ptr_1: ptr
     let ptr_14: ptr
-    let ptr_14_16
-    let ptr_14_40
-    let ptr_14_48
-    let ptr_14_56
-    let ptr_14_64
-    let ptr_14_72
     let ptr_17: ptr
-    let ptr_17_16
-    let ptr_17_24
-    let ptr_17_32
-    let ptr_19: ptr
-    let ptr_19_0
-    let ptr_19_8
-    let ptr_20: ptr
-    let ptr_29: ptr
-    let ptr_34: ptr
-    let ptr_4: ptr
-    let ptr_41: ptr
-    let ptr_4_0
-    let ptr_4_16
-    let ptr_4_8
-    let ptr_52: ptr
-    let ptr_52_0
-    let ptr_52_16
-    let ptr_52_8
-    let ptr_53: ptr
-    let ptr_62: ptr
-    let ptr_65: ptr
-    let ptr_68: ptr
     let var_0: u64
     let var_1: u64
     let var_110: u64
@@ -9121,64 +7022,11 @@ fn func_1(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     let var_113: u64
     let var_114: u64
     let var_129: u64
-    let var_13: u64
     let var_133: u64
     let var_16: u64
-    let var_179: u64
-    let var_180: u64
-    let var_181: u64
-    let var_183: u64
-    let var_20: u64
     let var_21: u64
     let var_22: u64
     let var_23: u64
-    let var_234: u64
-    let var_235: u64
-    let var_237: u64
-    let var_24: u64
-    let var_244: u64
-    let var_25: u64
-    let var_26: u64
-    let var_260: u64
-    let var_261: u64
-    let var_264: u64
-    let var_27: u64
-    let var_271: u64
-    let var_30: u64
-    let var_306: u64
-    let var_311: u64
-    let var_312: u64
-    let var_313: u64
-    let var_314: u64
-    let var_321: u64
-    let var_330: u64
-    let var_331: u64
-    let var_332: u64
-    let var_339: u64
-    let var_35: u64
-    let var_353: u64
-    let var_359: u64
-    let var_360: u64
-    let var_361: u64
-    let var_368: u64
-    let var_375: u64
-    let var_376: u64
-    let var_377: u64
-    let var_384: u64
-    let var_393: u64
-    let var_394: u64
-    let var_395: u64
-    let var_398: u64
-    let var_448: u64
-    let var_449: u64
-    let var_457: u64
-    let var_467: u64
-    let var_468: u64
-    let var_476: u64
-    let var_486: u64
-    let var_487: u64
-    let var_495: u64
-    let var_53: u64
     let var_8: u64
     let var_81: u64
     let var_84: u64
@@ -9186,10 +7034,6 @@ fn func_1(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     let var_88: u64
     let var_89: u64
     let var_9: u64
-    let var_90: u64
-    let var_91: u64
-    let var_94: u64
-    let var_95: u64
     let var_97: u64
     let var_98: u64
     let var_99: u64
@@ -9212,13 +7056,11 @@ fn func_1(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     }
 
     while (var_11 != 0) {
-        let ptr_2 = var_8 + var_9
         r7 = (var_1 & 15) + 87
         if (cond_0 != 0) var_15 = var_13
         var_16 = var_8 - 1
     }
 
-    var_20 = var_9 + var_16 + 1
     var_21 = var_8 + 1 neg+ 129
     var_22 = 0x16701
     var_23 = 2
@@ -9229,10 +7071,9 @@ fn func_1(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     r0 = 0x110000
     var_84 = var_81 & 0x200000
     var_87 = var_21 + (var_84 >>u 21)
-    ptr_14_48 = var_23
 
     if (var_81 << 40 <s 0) {
-        ptr_14_40 = var_22
+        let ptr_14_40 = var_22
         var_98 = 0
 
         if (var_23 == 0) {
@@ -9240,21 +7081,21 @@ fn func_1(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
             if (var_84 != 0) r0 = var_106
 
             if (u16[r8 + 20] >=u var_87 + var_98) {
-                var_90 = u64[r8]
-                var_91 = u64[r8 + 8]
+                let var_90 = u64[r8]
+                let var_91 = u64[r8 + 8]
                 var_97 = 2100; jump 547
             } else {
                 if (var_81 << 39 <s 0) {
-                    ptr_14_56 = var_87
+                    let ptr_14_56 = var_87
                     u32[r8 + 16] = u64[r8 + 16] & -0x60200000 | 0x20000030
-                    ptr_14_72 = u64[r8]
-                    ptr_14_64 = u64[r8 + 8]
+                    let ptr_14_72 = u64[r8]
+                    let ptr_14_64 = u64[r8 + 8]
                     r0 = 2102; jump 356
                 } else {
                     var_110 = var_88 - var_87
                     var_112 = var_81 << 33 >>u 62
                     var_113 = var_81 << 43
-                    ptr_14_16 = var_89
+                    let ptr_14_16 = var_89
 
                     if (var_112 >s 1) {
                         if (var_112 != 2) {
@@ -9567,9 +7408,6 @@ fn func_1(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     var_97 = 2100; jump 547
 
     ptr_17 = ptr_14 - 40
-    ptr_17_32 = var_97
-    ptr_17_24 = var_88
-    ptr_17_16 = 43
 
     if (0x110000 == var_89) {
         if (ptr_14_40 == 0) {
@@ -9612,7 +7450,6 @@ fn func_2(r1: u64, r5: u64) {
 }
 
 fn func_3(r1: u64, r5: u64, r6: u64) {
-    let ptr_0 = u64[r1 + 16]
     r5 = u64[r1 + 32]
     r6 = u64[r1 + 24]
     r1 = r1 + 48
@@ -9637,9 +7474,6 @@ fn func_5(r7: u64, r8: u64) {
 }
 
 fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
-    let cond_3: bool
-    let ptr_10: ptr
-    let ptr_10_0
     let ptr_10_16
     let ptr_10_24
     let ptr_10_32
@@ -9647,45 +7481,18 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     let ptr_10_48
     let ptr_10_56
     let ptr_10_64
-    let ptr_10_72
-    let ptr_10_8
-    let ptr_10_80
-    let ptr_10_88
-    let ptr_12: ptr
-    let ptr_15: ptr
     let ptr_22: ptr
-    let ptr_25: ptr
-    let ptr_25_0
-    let ptr_25_104
-    let ptr_25_112
-    let ptr_25_120
-    let ptr_25_16
-    let ptr_25_40
-    let ptr_25_48
-    let ptr_25_56
-    let ptr_25_64
-    let ptr_25_8
-    let ptr_25_80
-    let ptr_25_88
-    let ptr_25_96
-    let ptr_31: ptr
     let var_0: u64
-    let var_1: u64
-    let var_100: u64
     let var_101: u64
-    let var_102: u64
     let var_106: u64
     let var_108: u64
     let var_109: u64
     let var_113: u64
     let var_114: u64
-    let var_115: u64
-    let var_116: u64
     let var_118: u64
     let var_123: u64
     let var_128: u64
     let var_130: u64
-    let var_131: u64
     let var_132: u64
     let var_137: u64
     let var_140: u64
@@ -9696,51 +7503,17 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     let var_165: u64
     let var_168: u64
     let var_169: u64
-    let var_171: u64
     let var_210: u64
     let var_211: u64
     let var_213: u64
     let var_215: u64
     let var_220: u64
     let var_224: u64
-    let var_237: u64
-    let var_241: u64
-    let var_257: u64
     let var_264: u32
-    let var_292: u64
-    let var_293: u64
-    let var_294: u64
-    let var_301: u64
-    let var_305: u64
-    let var_322: u64
-    let var_324: u64
-    let var_326: u64
-    let var_328: u64
-    let var_332: u64
-    let var_333: u64
-    let var_334: u64
-    let var_337: u64
-    let var_340: u64
-    let var_355: u64
-    let var_356: u64
-    let var_357: u64
-    let var_360: u64
-    let var_361: u64
-    let var_52: u64
-    let var_53: u64
-    let var_55: u64
-    let var_57: u64
-    let var_65: u64
-    let var_70: u64
-    let var_92: u64
     let var_97: u64
 
     var_0 = u64[r7 + 8]
-    var_1 = u64[r7 + 16]
 
-    ptr_10_88 = var_52
-    ptr_10_80 = r5
-    ptr_10_72 = r6
     var_97 = u32[r8 + 16]
     ptr_10_16 = var_0
 
@@ -9873,7 +7646,7 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
 
             break
         } else {
-            var_171 = var_168 >>u 2 << 5
+            let var_171 = var_168 >>u 2 << 5
         }
 
         while (var_171 - 32 != 0) {
@@ -9885,7 +7658,7 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     }
 
     ptr_22 = ptr_10_56 + ((ptr_10_48 & 252) << 3)
-    var_257 = var_154 << 3
+    let var_257 = var_154 << 3
 
     while (var_257 - 8 != 0) {
         r3 = ptr_22 + 8
@@ -9991,15 +7764,11 @@ fn func_8(r7: u64, r8: u64) {
 }
 
 fn func_9(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
-    let ptr_0: ptr
-
     if (u8[r7] != 8) {
-        let var_6 = u64[r8]
         r8 = 0x10B3A
         r9 = 3
         r0 = 66; jump_ind var_7
     } else {
-        let var_1 = u64[r8]
         r8 = 0x10B38
         r9 = 2
         r0 = 62; jump_ind var_2
@@ -10022,8 +7791,6 @@ fn func_11(r7: u64, r8: u64) {
 }
 
 fn func_12(r1: u64, r5: u64, r6: u64) {
-    let var_0 = r5 + r6
-    let ptr_0 = u64[r1 + 16]
     r5 = u64[r1 + 40]
     r6 = u64[r1 + 32]
     r1 = r1 + 56
@@ -10031,10 +7798,7 @@ fn func_12(r1: u64, r5: u64, r6: u64) {
 }
 
 fn func_13(r1: u64, r5: u64, r6: u64) {
-    let var_0 = u64[r1 + 32]
-    let var_1 = u64[r1 + 40]
     u64[r1 + 48] = r6 + r5
-    let ptr_0 = u64[r1 + 24]
     r5 = u64[r1 + 72]
     r6 = u64[r1 + 64]
     r1 = r1 + 88
@@ -10145,8 +7909,6 @@ fn func_29(r1: u64) {
 }
 
 fn func_30(r1: u64, r5: u64, r6: u64, r7: u64) {
-    let var_15: u64
-    let var_18: u64
 
     if (r7 == 0) {
         r8 = u64[r1 + 24]
@@ -10219,24 +7981,13 @@ fn func_33(r1: u64) {
 }
 
 fn func_34(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
-    let ptr_0: ptr
-    let ptr_0_16
-    let ptr_0_24
-    let ptr_0_32
     let ptr_1: ptr
-    let ptr_1_0
-    let var_1: u64
     let var_9: u64
 
-    ptr_0_32 = r0
-    ptr_0_24 = r5
-    ptr_0_16 = r6
     ptr_1 = u64[r7 + 16]
-    var_1 = u64[r7]
-    let ptr_2 = u64[r7 + 8]
 
     if (ptr_1_0 == 0) {
-        ptr_1_0 = !(var_9 - 10)
+        let ptr_1_0 = !(var_9 - 10)
         r1 = ptr_0 + 40
         call_indirect(r12)
     } else {
@@ -10266,7 +8017,6 @@ fn func_38() {
 }
 
 fn func_39(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
-    let var_0 = u64[r8]
     r8 = 39
     r0 = 2186; jump_ind var_1
 }
@@ -10276,11 +8026,9 @@ fn func_40(r1: u64, r5: u64, r6: u64) {
         let var_6 = u8[r1 + 30]
         r9 = u8[r1 + 31] - var_6
         r8 = var_6 + r6
-        let var_11 = u64[r1 + 8]
         r0 = 2192; jump_ind var_8
     } else {
         r8 = i32[r1 + 24]
-        let var_2 = u64[r1 + 8]
         r0 = 2190; jump_ind var_4
     }
 }
@@ -10373,7 +8121,6 @@ fn func_51(r1: u64, r5: u64) {
 }
 
 fn func_52(r1: u64) {
-    let ptr_0 = u64[r1 + 16]
     r5 = u64[r1 + 40]
     r6 = u64[r1 + 32]
     r1 = r1 + 56
@@ -10381,7 +8128,6 @@ fn func_52(r1: u64) {
 }
 
 fn func_53(r1: u64) {
-    let ptr_0 = u64[r1 + 8]
     r5 = u64[r1 + 32]
     r6 = u64[r1 + 24]
     r1 = r1 + 48
@@ -10389,15 +8135,11 @@ fn func_53(r1: u64) {
 }
 
 fn func_54(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r12: u64) {
-    let var_0 = u64[r1 + 264]
-    let var_2 = r1 + 8
     log()
     return
 }
 
 fn func_55(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
-    let ptr_1 = u64[r7]
-    let var_0 = u64[r8]
     r8 = 0x128D0
     r9 = 12
     r0 = 2316; jump_ind var_3
@@ -10411,11 +8153,8 @@ fn func_56(r1: u64) {
 }
 
 fn func_57(r0: u64, r1: u64, r7: u64, r8: u64) {
-    let ptr_0: ptr
-    let ptr_1: ptr
     let var_0: u64
     let var_27: u64
-    let var_28: u64
 
     u32[ptr_0 + 4] = 0
 
@@ -10423,21 +8162,12 @@ fn func_57(r0: u64, r1: u64, r7: u64, r8: u64) {
         if (r8 >>u 11 != 0) {
             if (r8 >>u 16 != 0) {
                 r9 = ptr_0 + 8
-                let var_21 = r8 >>u 18 | 240
-                let var_24 = r8 & 63 | 128
-                let var_25 = (r8 << 46 >>u 58) + 128
-                let var_26 = (r8 << 52 >>u 58) + 128
             } else {
                 r9 = ptr_0 + 7
-                let var_12 = r8 >>u 12 | 224
-                let var_14 = r8 & 63 | 128
-                let var_15 = (r8 << 52 >>u 58) + 128
                 goto block_15f5f;
             }
         } else {
             r9 = ptr_0 + 6
-            let var_5 = r8 >>u 6 | 192
-            let var_6 = r8 & 63 | 128
             goto block_15f5f;
         }
     } else {
@@ -10445,7 +8175,6 @@ fn func_57(r0: u64, r1: u64, r7: u64, r8: u64) {
     }
 
     block_15f5f:
-    ptr_1 = ptr_0 + 4
 
     for (let var_27 = u64[r7 + 256]; var_27 >=u 255; var_27 = var_27 + r7) {
         u64[r7 + 256] = u64[r7 + 256] + 1
@@ -10457,7 +8186,6 @@ fn func_57(r0: u64, r1: u64, r7: u64, r8: u64) {
 }
 
 fn func_58(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
-    let var_0 = u64[r8]
     r5 = u64[r7]
     r6 = u64[r7 + 8]
     r8 = 34
