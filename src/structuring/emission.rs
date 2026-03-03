@@ -268,8 +268,7 @@ impl StructuralAnalysis {
             // Emit label if this block has one (skip hidden/suppressed blocks).
             if !render_dispatch_loop && let Some(label) = em.labels.get(&block_pc) {
                 let should_hide = em.lifted.is_some_and(|l| {
-                    l.hidden_labels.contains(&block_pc)
-                        || l.suppressed_blocks.contains(&block_pc)
+                    l.hidden_labels.contains(&block_pc) || l.suppressed_blocks.contains(&block_pc)
                 });
                 if !should_hide {
                     let _ = writeln!(em.output, "{}:", label);
@@ -845,7 +844,11 @@ impl<'a, 'p> Emitter<'a, 'p> {
             && let Some(ref heap_alloc) = lifted.heap_alloc
             && block_pc == self.cfg.entry_pc
         {
-            let _ = writeln!(self.output, "{}heap_alloc({})", prefix, heap_alloc.alloc_size);
+            let _ = writeln!(
+                self.output,
+                "{}heap_alloc({})",
+                prefix, heap_alloc.alloc_size
+            );
         }
 
         // Emit return/halt for epilogue blocks (after all other instructions).
