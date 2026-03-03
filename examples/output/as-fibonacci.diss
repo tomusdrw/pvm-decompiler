@@ -13,60 +13,21 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
 fn func_1(r1: u64) {
     let ptr_0_112
-    let ptr_0_120
-    let ptr_0_192
-    let ptr_0_344
     let ptr_0_40
-    let ptr_0_400
     let ptr_0_520
-    let ptr_0_528
     let ptr_0_536
     let ptr_0_56
     let ptr_0_88
-    let var_103: u64
-    let var_104: u32
-    let var_81: u64
-    let var_82: u32
 
     ptr_0_40 = u64[r1] - 0x50000
     ptr_0_56 = HEAP_PTR
     let var_9 = HEAP_PTR + 4
     ptr_0_88 = var_9
     ptr_0_112 = var_9 + 268
-    let var_15 = HEAP_PAGES
-    ptr_0_120 = var_15
-    let var_27 = (var_15 << 16) + 15 & -16
-    ptr_0_192 = var_27
+    heap_alloc(272)
 
-    if (var_27 <u var_9 + 268) {
-        let var_64 = (ptr_0_112 - ptr_0_192 + 0xFFFF & -0x10000) >>u 16
-        ptr_0_344 = var_64
-        ptr_0_400 = var_64
-
-        if (var_64 >=s ptr_0_120) {
-            var_81 = HEAP_PAGES
-            var_82 = var_81 + ptr_0_400
-
-            if (var_81 <u var_82) {
-                r4 = -1
-            } else {
-                if (var_82 <u 256) {
-                    r4 = -1
-                } else {
-                    HEAP_PAGES = var_82
-                    let ptr_8 = sbrk(var_82 - var_81 << 16)
-                    goto block_0227;
-                }
-            }
-        } else {
-            ptr_0_400 = ptr_0_120
-        }
-    }
-
-    block_0268:
-    HEAP_PTR = ptr_0_112
     ptr_0_520 = 0
-    ptr_0_528 = 1
+    let ptr_0_528 = 1
     ptr_0_536 = ptr_0_40->field_327680
 
     while (ptr_0_536 >s 0) {
@@ -80,59 +41,6 @@ fn func_1(r1: u64) {
     RESULT_LEN = 4
 
     halt()
-
-    block_0227:
-    if (var_81 <s 0) {
-        var_103 = HEAP_PAGES
-        var_104 = var_103 + ptr_0_344
-
-        if (var_103 <u var_104) {
-            r4 = -1
-        } else {
-            if (var_104 <u 256) {
-                r4 = -1
-            } else {
-                HEAP_PAGES = var_104
-                let ptr_14 = sbrk(var_104 - var_103 << 16)
-                goto block_02d9;
-            }
-        }
-    } else {
-        goto block_0268;
-    }
-
-    var_103 = HEAP_PAGES
-    var_104 = var_103 + ptr_0_344
-
-    if (var_103 <u var_104) {
-        r4 = -1
-    } else {
-        if (var_104 <u 256) {
-            r4 = -1
-        } else {
-            HEAP_PAGES = var_104
-            ptr_14 = sbrk(var_104 - var_103 << 16)
-            goto block_02d9;
-        }
-    }
-
-    if (var_104 <u 256) {
-        r4 = -1
-    } else {
-        HEAP_PAGES = var_104
-        ptr_14 = sbrk(var_104 - var_103 << 16)
-        goto block_02d9;
-    }
-
-    HEAP_PAGES = var_104
-    ptr_14 = sbrk(var_104 - var_103 << 16)
-
-    r4 = -1
-
-    block_02d9:
-    if (var_103 <s 0) {
-        return
-    }
 
 }
 

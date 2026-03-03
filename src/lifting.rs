@@ -135,6 +135,10 @@ pub struct LiftedProgram {
     /// Linear memory base address (e.g. 0x50000 = 327680 for PVM).
     /// When set, expressions involving this constant are simplified.
     pub memory_base: Option<u64>,
+    /// Detected heap allocation boilerplate pattern (AssemblyScript).
+    pub heap_alloc: Option<crate::functions::HeapAllocPattern>,
+    /// Block labels to hide from output (e.g., convergence block after heap alloc suppression).
+    pub hidden_labels: HashSet<usize>,
 }
 
 impl LiftedProgram {
@@ -175,6 +179,8 @@ impl LiftedProgram {
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
             memory_base: None,
+            heap_alloc: None,
+            hidden_labels: HashSet::new(),
         };
 
         lifted.assign_variables(cfg, dataflow);
@@ -3631,6 +3637,8 @@ mod tests {
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
             memory_base: None,
+            heap_alloc: None,
+            hidden_labels: HashSet::new(),
         };
 
         // Set up two variables for the same register at different PCs
@@ -3711,6 +3719,8 @@ mod tests {
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
             memory_base: None,
+            heap_alloc: None,
+            hidden_labels: HashSet::new(),
         };
 
         lifted.variables.insert(
@@ -3778,6 +3788,8 @@ mod tests {
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
             memory_base: None,
+            heap_alloc: None,
+            hidden_labels: HashSet::new(),
         };
         lifted.variables.insert(
             (0, 1),
@@ -3813,6 +3825,8 @@ mod tests {
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
             memory_base: None,
+            heap_alloc: None,
+            hidden_labels: HashSet::new(),
         };
 
         lifted.variables.insert(
@@ -4217,6 +4231,8 @@ mod tests {
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
             memory_base: None,
+            heap_alloc: None,
+            hidden_labels: HashSet::new(),
         }
     }
 

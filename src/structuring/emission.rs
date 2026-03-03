@@ -265,9 +265,15 @@ impl StructuralAnalysis {
                 .as_ref()
                 .is_some_and(|(_, cases)| em.should_emit_dispatch_loop(block_pc, cases));
 
-            // Emit label if this block has one.
+            // Emit label if this block has one (skip hidden/suppressed blocks).
             if !render_dispatch_loop && let Some(label) = em.labels.get(&block_pc) {
-                let _ = writeln!(em.output, "{}:", label);
+                let should_hide = em.lifted.is_some_and(|l| {
+                    l.hidden_labels.contains(&block_pc)
+                        || l.suppressed_blocks.contains(&block_pc)
+                });
+                if !should_hide {
+                    let _ = writeln!(em.output, "{}:", label);
+                }
             }
 
             if let Some(Structure::Loop {
@@ -378,7 +384,13 @@ impl<'a, 'p> Emitter<'a, 'p> {
         for (idx, &block_pc) in chain.iter().enumerate() {
             if idx > 0 {
                 if let Some(label) = self.labels.get(&block_pc) {
-                    let _ = writeln!(self.output, "{}:", label);
+                    let should_hide = self.lifted.is_some_and(|l| {
+                        l.hidden_labels.contains(&block_pc)
+                            || l.suppressed_blocks.contains(&block_pc)
+                    });
+                    if !should_hide {
+                        let _ = writeln!(self.output, "{}:", label);
+                    }
                 }
             }
             // Chained blocks have a single predecessor in the chain, so they
@@ -828,6 +840,14 @@ impl<'a, 'p> Emitter<'a, 'p> {
                 }
             }
         }
+        // Emit synthetic heap_alloc() call for AS heap allocation pattern.
+        if let Some(lifted) = self.lifted
+            && let Some(ref heap_alloc) = lifted.heap_alloc
+            && block_pc == self.cfg.entry_pc
+        {
+            let _ = writeln!(self.output, "{}heap_alloc({})", prefix, heap_alloc.alloc_size);
+        }
+
         // Emit return/halt for epilogue blocks (after all other instructions).
         if let Some(lifted) = self.lifted
             && let Some(kind) = lifted.epilogue_blocks.get(&block_pc)
@@ -4134,6 +4154,8 @@ mod tests {
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
             memory_base: None,
+            heap_alloc: None,
+            hidden_labels: HashSet::new(),
         };
         let emission_eliminated = HashSet::new();
         assert!(

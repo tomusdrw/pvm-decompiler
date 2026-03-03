@@ -848,6 +848,185 @@ pub fn detect_prologue(cfg: &ControlFlowGraph, entry_pc: usize) -> Vec<usize> {
     eliminated
 }
 
+/// Detected heap allocation boilerplate pattern in AssemblyScript programs.
+///
+/// AS programs compiled to PVM contain ~100 lines of heap allocation boilerplate
+/// (HEAP_PTR/HEAP_PAGES reads, sbrk calls, retry/error paths) in every main function.
+/// This struct captures the pattern so the output can be collapsed.
+#[derive(Debug, Clone)]
+pub struct HeapAllocPattern {
+    /// Block PCs of sbrk retry/error blocks and intermediate jumps to suppress entirely.
+    pub sbrk_blocks: Vec<usize>,
+    /// PCs to eliminate: HEAP_PAGES computation, guard branch, HEAP_PTR store-back.
+    pub eliminated_pcs: Vec<usize>,
+    /// The convergence block PC (where HEAP_PTR is stored back, then user code begins).
+    pub convergence_block_pc: usize,
+    /// Allocation size in bytes (sum of AddImm/Add32 constants applied to HEAP_PTR).
+    pub alloc_size: u64,
+}
+
+/// Detect the AssemblyScript heap allocation boilerplate pattern.
+///
+/// Returns `None` if the pattern is not found (graceful fallback to original output).
+///
+/// Detection algorithm:
+/// 1. Find first `LoadImm(addr near memory_base)` → `LoadIndU32` in entry block (heap pointer load)
+/// 2. Find second such pair (heap pages load)
+/// 3. Find convergence block: any block (not entry) with `LoadImm(first_addr)` → `StoreIndU32`
+/// 4. BFS from entry block successors, collecting all blocks before convergence → sbrk blocks
+/// 5. Eliminate: heap pages computation PCs, guard branch, heap pointer store-back in convergence
+pub fn detect_heap_alloc_pattern(
+    cfg: &ControlFlowGraph,
+    entry_pc: usize,
+    memory_base: Option<u64>,
+) -> Option<HeapAllocPattern> {
+    let memory_base = memory_base?;
+    let mb_lo = memory_base as i64;
+    let mb_hi = (memory_base + 20) as i64;
+
+    let entry_block = cfg.blocks.get(&entry_pc)?;
+    let instrs = &entry_block.instructions;
+
+    // Helper: check if a LoadImm value is a global address near memory_base
+    let is_near_memory_base = |value: i32| {
+        let v = value as i64;
+        v >= mb_lo && v < mb_hi
+    };
+
+    // Step 1: Find first global load (LoadImm near memory_base + LoadIndU32) — heap pointer
+    let mut heap_ptr_load_idx = None;
+    let mut heap_ptr_addr: i32 = 0;
+    for (idx, (_, instr)) in instrs.iter().enumerate() {
+        if let Instruction::LoadImm { value, .. } = instr {
+            if is_near_memory_base(*value) {
+                if let Some((_, next_instr)) = instrs.get(idx + 1) {
+                    if matches!(next_instr, Instruction::LoadIndU32 { .. }) {
+                        heap_ptr_load_idx = Some(idx);
+                        heap_ptr_addr = *value;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    let heap_ptr_load_idx = heap_ptr_load_idx?;
+
+    // Step 2: Find second global load (different address near memory_base) — heap pages
+    let mut heap_pages_load_idx = None;
+    for (idx, (_, instr)) in instrs.iter().enumerate().skip(heap_ptr_load_idx + 2) {
+        if let Instruction::LoadImm { value, .. } = instr {
+            if is_near_memory_base(*value) && *value != heap_ptr_addr {
+                if let Some((_, next_instr)) = instrs.get(idx + 1) {
+                    if matches!(next_instr, Instruction::LoadIndU32 { .. }) {
+                        heap_pages_load_idx = Some(idx);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    let heap_pages_load_idx = heap_pages_load_idx?;
+
+    // Step 3: Find convergence block (block with LoadImm heap_ptr_addr → StoreIndU32)
+    let mut convergence_block_pc = None;
+    let mut heap_ptr_store_pcs = Vec::new();
+    for (&block_pc, block) in &cfg.blocks {
+        if block_pc == entry_pc {
+            continue;
+        }
+        for (idx, (pc, instr)) in block.instructions.iter().enumerate() {
+            if let Instruction::LoadImm { value, .. } = instr {
+                if *value == heap_ptr_addr && idx + 1 < block.instructions.len() {
+                    if let Instruction::StoreIndU32 { .. } = &block.instructions[idx + 1].1 {
+                        convergence_block_pc = Some(block_pc);
+                        // Also eliminate the LoadIndU64 that loads the value to store
+                        if idx > 0 {
+                            heap_ptr_store_pcs.push(block.instructions[idx - 1].0);
+                        }
+                        heap_ptr_store_pcs.push(*pc);
+                        heap_ptr_store_pcs.push(block.instructions[idx + 1].0);
+                        break;
+                    }
+                }
+            }
+        }
+        if convergence_block_pc.is_some() {
+            break;
+        }
+    }
+    let convergence_block_pc = convergence_block_pc?;
+
+    // Step 4a: Compute allocation size from LoadImm+Add32 chain between HEAP_PTR and HEAP_PAGES
+    let mut alloc_size: u64 = 0;
+    let mut pending_const: Option<i32> = None;
+    for (_, instr) in &instrs[heap_ptr_load_idx..heap_pages_load_idx] {
+        match instr {
+            Instruction::LoadImm { value, .. } => {
+                if *value > 0 {
+                    pending_const = Some(*value);
+                }
+            }
+            Instruction::Add32 { .. } => {
+                if let Some(c) = pending_const.take() {
+                    alloc_size += c as u64;
+                }
+            }
+            _ => {
+                pending_const = None;
+            }
+        }
+    }
+
+    // Step 4b: Collect eliminated PCs: HEAP_PAGES computation + guard branch
+    // (HEAP_PTR arithmetic is kept visible — variables there are referenced later)
+    let mut eliminated_pcs: Vec<usize> = instrs[heap_pages_load_idx..]
+        .iter()
+        .map(|(pc, _)| *pc)
+        .collect();
+
+    // Add HEAP_PTR store-back PCs from convergence block
+    eliminated_pcs.extend(&heap_ptr_store_pcs);
+
+    // Step 5: BFS from entry block successors to collect all blocks before convergence
+    let mut sbrk_blocks = Vec::new();
+    let mut visited = HashSet::new();
+    visited.insert(entry_pc);
+    visited.insert(convergence_block_pc);
+    let mut queue = VecDeque::new();
+
+    for &succ in &entry_block.successors {
+        if succ != convergence_block_pc {
+            queue.push_back(succ);
+        }
+    }
+
+    while let Some(bp) = queue.pop_front() {
+        if !visited.insert(bp) {
+            continue;
+        }
+        sbrk_blocks.push(bp);
+        if let Some(block) = cfg.blocks.get(&bp) {
+            for &succ in &block.successors {
+                if !visited.contains(&succ) {
+                    queue.push_back(succ);
+                }
+            }
+        }
+    }
+
+    // Sanity check: we should have found at least one sbrk block
+    if sbrk_blocks.is_empty() {
+        return None;
+    }
+
+    Some(HeapAllocPattern {
+        sbrk_blocks,
+        eliminated_pcs,
+        convergence_block_pc,
+        alloc_size,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

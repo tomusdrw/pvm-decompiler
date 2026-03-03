@@ -21,7 +21,7 @@ use cfg::ControlFlowGraph;
 use dataflow::DataFlowAnalysis;
 use functions::{
     build_call_graph, build_function_cfg, detect_direct_call_patterns, detect_epilogues,
-    detect_functions, detect_prologue,
+    detect_functions, detect_heap_alloc_pattern, detect_prologue,
 };
 use lifting::LiftedProgram;
 use structuring::{DominatorTree, FunctionSignature, StructuralAnalysis};
@@ -510,6 +510,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
             }
+        }
+
+        // Detect and suppress AssemblyScript heap allocation boilerplate
+        if let Some(heap_alloc) =
+            detect_heap_alloc_pattern(&func_cfg, func.entry_pc, program.memory_base)
+        {
+            for &pc in &heap_alloc.eliminated_pcs {
+                lifted.eliminated_pcs.insert(pc);
+            }
+            for &block_pc in &heap_alloc.sbrk_blocks {
+                lifted.suppressed_blocks.insert(block_pc);
+            }
+            lifted.hidden_labels.insert(heap_alloc.convergence_block_pc);
+            lifted.heap_alloc = Some(heap_alloc);
         }
 
         if verbosity >= Verbosity::Verbose {
