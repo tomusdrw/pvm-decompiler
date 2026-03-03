@@ -543,9 +543,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         lifted.expressions.get(&pc)
                     {
                         if let Expression::Var(base_name) = base.as_ref() {
-                            if let Some(name) = lifted
-                                .stack_vars
-                                .get(&(base_name.clone(), *offset))
+                            if let Some(name) = lifted.stack_vars.get(&(base_name.clone(), *offset))
                             {
                                 arith_vars.push(name.clone());
                             }

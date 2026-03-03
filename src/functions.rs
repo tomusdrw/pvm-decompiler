@@ -1063,8 +1063,9 @@ pub fn detect_heap_alloc_pattern(
                 | Instruction::LoadIndU64 { offset, .. } => Some(*offset as u64),
                 Instruction::StoreIndU16 { offset, .. }
                 | Instruction::LoadIndU16 { offset, .. } => Some(*offset as u64),
-                Instruction::StoreIndU8 { offset, .. }
-                | Instruction::LoadIndU8 { offset, .. } => Some(*offset as u64),
+                Instruction::StoreIndU8 { offset, .. } | Instruction::LoadIndU8 { offset, .. } => {
+                    Some(*offset as u64)
+                }
                 _ => None,
             };
             if let Some(o) = off {
