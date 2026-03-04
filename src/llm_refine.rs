@@ -1,7 +1,7 @@
 //! LLM Refinement Harness
 //!
-//! Implements a multi-round DeGPT/D-LiFT style refinement loop using the local
-//! `claude` CLI. Three roles cooperate to improve decompiled C:
+//! Implements a multi-round DeGPT/D-LiFT style refinement loop using
+//! OpenRouter's API. Three roles cooperate to improve decompiled C:
 //!   - **Referee**: Evaluates code quality and identifies issues
 //!   - **Advisor**: Suggests specific improvements (naming, comments, structure)
 //!   - **Operator**: Applies improvements while preserving semantics
@@ -160,51 +160,127 @@ Output the improved C code only, wrapped in ```c ... ```."#,
     extract_code_block(&response).ok_or_else(|| "Failed to extract code from LLM response".into())
 }
 
-/// Call the codex CLI with a prompt.
-fn call_llm(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
-    use std::io::Write;
-
-    let tmp = std::env::temp_dir().join(format!("pvm_codex_{}.txt", std::process::id()));
-    let tmp_path = tmp.to_str().unwrap().to_string();
-
-    let mut child = Command::new("codex")
-        .args([
-            "exec",
-            "--model",
-            "gpt-5.1-codex-mini",
-            "--color",
-            "never",
-            "-o",
-            &tmp_path,
-            "-",
-        ])
-        .env_remove("CLAUDECODE")
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-        .map_err(|e| {
-            format!(
-                "codex CLI not found. Install it with: npm install -g @openai/codex\nError: {}",
-                e
-            )
-        })?;
-
-    if let Some(ref mut stdin) = child.stdin {
-        stdin.write_all(prompt.as_bytes())?;
+/// Load the OpenRouter API key from .env file or environment.
+fn get_api_key() -> Result<String, Box<dyn std::error::Error>> {
+    // Check environment first
+    if let Ok(key) = std::env::var("OPENROUTER_API_KEY") {
+        if !key.is_empty() {
+            return Ok(key);
+        }
     }
-    drop(child.stdin.take());
 
-    let output = child.wait_with_output()?;
+    // Try loading from .env in the current directory or ancestors
+    let mut dir = std::env::current_dir()?;
+    loop {
+        let env_path = dir.join(".env");
+        if env_path.exists() {
+            let content = std::fs::read_to_string(&env_path)?;
+            for line in content.lines() {
+                let line = line.trim();
+                if let Some(val) = line.strip_prefix("OPENROUTER_API_KEY=") {
+                    let val = val.trim().trim_matches('"').trim_matches('\'');
+                    if !val.is_empty() {
+                        return Ok(val.to_string());
+                    }
+                }
+            }
+        }
+        if !dir.pop() {
+            break;
+        }
+    }
+
+    Err("OPENROUTER_API_KEY not found. Set it in environment or .env file.".into())
+}
+
+/// Call OpenRouter API with a prompt.
+fn call_llm(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let api_key = get_api_key()?;
+
+    // Build JSON payload - escape the prompt for JSON
+    let escaped_prompt = prompt
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t");
+
+    let json_body = format!(
+        r#"{{"model":"google/gemini-3.1-flash-lite-preview","messages":[{{"role":"user","content":"{}"}}]}}"#,
+        escaped_prompt
+    );
+
+    let output = Command::new("curl")
+        .args([
+            "-s",
+            "-X",
+            "POST",
+            "https://openrouter.ai/api/v1/chat/completions",
+            "-H",
+            &format!("Authorization: Bearer {}", api_key),
+            "-H",
+            "Content-Type: application/json",
+            "-d",
+            &json_body,
+        ])
+        .output()
+        .map_err(|e| format!("Failed to run curl: {}", e))?;
+
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("codex CLI failed: {}", stderr).into());
+        return Err(format!("curl failed: {}", stderr).into());
     }
 
-    let result = std::fs::read_to_string(&tmp_path)
-        .map_err(|e| format!("Failed to read codex output from {}: {}", tmp_path, e))?;
-    let _ = std::fs::remove_file(&tmp_path);
-    Ok(result)
+    let body = String::from_utf8_lossy(&output.stdout);
+
+    // Parse the response JSON to extract the message content.
+    // We do minimal JSON parsing to avoid adding a dependency.
+    extract_openrouter_content(&body)
+        .ok_or_else(|| format!("Failed to parse OpenRouter response: {}", body).into())
+}
+
+/// Extract the assistant message content from an OpenRouter JSON response.
+fn extract_openrouter_content(json: &str) -> Option<String> {
+    // Look for "content":"..." in the response
+    // The response format is: {"choices":[{"message":{"content":"..."}}]}
+    let marker = r#""content":""#;
+    let start = json.find(marker)? + marker.len();
+    let rest = &json[start..];
+
+    // Find the closing quote, handling escaped quotes
+    let mut result = String::new();
+    let mut chars = rest.chars();
+    loop {
+        match chars.next()? {
+            '\\' => match chars.next()? {
+                'n' => result.push('\n'),
+                'r' => result.push('\r'),
+                't' => result.push('\t'),
+                '"' => result.push('"'),
+                '\\' => result.push('\\'),
+                '/' => result.push('/'),
+                'u' => {
+                    let mut hex = String::new();
+                    for _ in 0..4 {
+                        hex.push(chars.next()?);
+                    }
+                    if let Ok(cp) = u32::from_str_radix(&hex, 16) {
+                        if let Some(c) = char::from_u32(cp) {
+                            result.push(c);
+                        }
+                    }
+                }
+                other => {
+                    result.push('\\');
+                    result.push(other);
+                }
+            },
+            '"' => break,
+            c => result.push(c),
+        }
+    }
+
+    Some(result)
 }
 
 /// Extract a code block from an LLM response.
@@ -233,7 +309,13 @@ fn extract_code_block(response: &str) -> Option<String> {
 
     // If no code block, return the whole response if it looks like code
     if (response.contains("int") || response.contains("fn ")) && response.contains("{") {
-        Some(response.trim().to_string())
+        // Strip any stray leading/trailing backtick fences
+        let cleaned: String = response
+            .lines()
+            .filter(|l| !l.trim().starts_with("```"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        Some(cleaned.trim().to_string())
     } else {
         None
     }
@@ -291,12 +373,7 @@ Pseudo-code to enhance:
     })
 }
 
-/// Check if the codex CLI is available.
-pub fn is_codex_available() -> bool {
-    Command::new("codex")
-        .arg("--version")
-        .env_remove("CLAUDECODE")
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+/// Check if the OpenRouter API is available (key is configured).
+pub fn is_llm_available() -> bool {
+    get_api_key().is_ok()
 }

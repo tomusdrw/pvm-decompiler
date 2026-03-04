@@ -1,5 +1,7 @@
 fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    // @0000
 
+    // @000a
     func_1(r1 - 16)
 
 }
@@ -11,24 +13,35 @@ fn func_1(r1: u64) {
     let ptr_0_536
     let ptr_0_88
 
+    // @0021
     ptr_0_40 = u64[r1]
     ptr_0_88 = heap_alloc(272)
 
+    // @0268
     ptr_0_520 = 0
     ptr_0_528 = 1
     ptr_0_536 = *ptr_0_40
 
     while (ptr_0_536 >s 0) {
+        // @0386
         let var_136 = ptr_0_528 + ptr_0_520
         ptr_0_520 = var_136 - ptr_0_520
         ptr_0_528 = var_136
         ptr_0_536 = ptr_0_536 - 1
     }
 
+    // @035f
+
+    // @040b
+
+    // @0410
+
+    // @0364
     *ptr_0_88 = ptr_0_520
     RESULT_PTR = ptr_0_88
     RESULT_LEN = 4
 
+    // @010d
     halt()
 
 }

@@ -56,7 +56,7 @@ fn print_usage(program: &str) {
     eprintln!("      --llvm       Emit LLVM IR instead of pseudo-code");
     eprintln!("      --decompile  Full LLVM pipeline: lift → decompile → C output");
     eprintln!(
-        "      --refine     Enable LLM refinement of pseudo-code or C output (requires codex CLI)"
+        "      --refine     Enable LLM refinement of pseudo-code or C output (requires OPENROUTER_API_KEY)"
     );
     eprintln!(
         "      --backend=X  Decompiler backend: retdec, rellic, rellic-docker, llvm-cbe, builtin"
@@ -133,6 +133,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     use std::fmt::Write as FmtWrite;
     let mut all_output = String::new();
+    let mut pending_refinements: Vec<(String, String)> = Vec::new();
 
     if verbosity >= Verbosity::Verbose {
         let _ = writeln!(all_output, "Reading {}...", filename);
@@ -252,7 +253,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         if enable_refine {
-            if llm_refine::is_codex_available() {
+            if llm_refine::is_llm_available() {
                 eprintln!("Running LLM refinement...");
                 let context = format!(
                     "PVM bytecode decompiled from {}. {} function(s) detected.",
@@ -284,7 +285,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             } else {
                 eprintln!(
-                    "Warning: --refine requires the 'codex' CLI. Outputting raw decompiler result."
+                    "Warning: --refine requires OPENROUTER_API_KEY. Outputting raw decompiler result."
                 );
                 print!("{}", result.c_code);
             }
@@ -608,38 +609,62 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         let pseudo = structural.pseudo_code(&func_cfg, Some(&lifted), Some(&sig));
-        let final_pseudo = if enable_refine {
-            if llm_refine::is_codex_available() {
-                eprint!("  Refining {}...", func.name);
-                let context = format!(
-                    "PVM bytecode decompiled from {}. Function {} of {}.",
-                    filename,
-                    func_idx + 1,
-                    total_funcs
-                );
-                match llm_refine::refine_pseudo_code(&pseudo, &func.name, &context) {
-                    Ok(refined) => {
-                        eprintln!(" done");
-                        refined
-                    }
-                    Err(e) => {
-                        eprintln!(" failed: {}", e);
-                        pseudo
-                    }
-                }
-            } else {
-                if func_idx == 0 {
-                    eprintln!(
-                        "Warning: --refine requires the 'codex' CLI. Outputting raw pseudo-code."
-                    );
-                }
-                pseudo
+        if enable_refine {
+            pending_refinements.push((func.name.clone(), pseudo));
+        } else {
+            all_output.push_str(&pseudo);
+            all_output.push('\n');
+        }
+    }
+
+    // Batch-refine all functions in parallel if --refine is enabled
+    if enable_refine {
+        if llm_refine::is_llm_available() {
+            let total = pending_refinements.len();
+            eprintln!("Refining {} functions in parallel...", total);
+            let filename_ref = &filename;
+            let results: Vec<String> = std::thread::scope(|s| {
+                let handles: Vec<_> = pending_refinements
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, (name, pseudo))| {
+                        let context = format!(
+                            "PVM bytecode decompiled from {}. Function {} of {}.",
+                            filename_ref,
+                            idx + 1,
+                            total
+                        );
+                        let name = name.clone();
+                        let pseudo = pseudo.clone();
+                        s.spawn(move || {
+                            match llm_refine::refine_pseudo_code(&pseudo, &name, &context) {
+                                Ok(refined) => {
+                                    eprintln!("  Refined {}", name);
+                                    refined
+                                }
+                                Err(e) => {
+                                    eprintln!("  Failed {}: {}", name, e);
+                                    pseudo
+                                }
+                            }
+                        })
+                    })
+                    .collect();
+                handles.into_iter().map(|h| h.join().unwrap()).collect()
+            });
+            for result in results {
+                all_output.push_str(&result);
+                all_output.push('\n');
             }
         } else {
-            pseudo
-        };
-        all_output.push_str(&final_pseudo);
-        all_output.push('\n');
+            eprintln!(
+                "Warning: --refine requires OPENROUTER_API_KEY. Outputting raw pseudo-code."
+            );
+            for (_, pseudo) in &pending_refinements {
+                all_output.push_str(pseudo);
+                all_output.push('\n');
+            }
+        }
     }
 
     // Clear the progress line

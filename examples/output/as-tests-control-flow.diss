@@ -1,5 +1,7 @@
 fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    // @0000
 
+    // @000a
     func_1(r1 - 16)
 
 }
@@ -7,58 +9,83 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 fn func_1(r1: u64) {
     let ptr_0_40
     let ptr_0_512
-    let ptr_0_568
     let ptr_0_576
+    let ptr_0_680
     let ptr_0_688
     let ptr_0_768
     let ptr_0_88
 
+    // @0021
     ptr_0_40 = u64[r1]
     ptr_0_88 = heap_alloc(272)
 
+    // @0268
     RESULT_PTR = ptr_0_88
     let ptr_0_464 = *ptr_0_40
     ptr_0_512 = 2
 
     if (*ptr_0_40 <=s 10) {
-        ptr_0_568 = 0
+        // @02d9
+        let ptr_0_568 = 0
         ptr_0_576 = ptr_0_512
         goto block_0376;
     } else {
+        // @02d1
         ptr_0_512 = 1
     }
 
+    // @02d1
     ptr_0_512 = 1
 
+    // @02d9
     ptr_0_568 = 0
     ptr_0_576 = ptr_0_512
 
     block_0376:
     while (ptr_0_568 <s ptr_0_464) {
+        // @03d3
         ptr_0_568 = ptr_0_568 + 1
         ptr_0_576 = ptr_0_576 + 1
     }
 
-    let ptr_0_680 = 0
+    // @03bb
+
+    // @0418
+
+    // @041d
+
+    // @03c0
+    ptr_0_680 = 0
     ptr_0_688 = ptr_0_576
 
     while (ptr_0_680 <s 5) {
+        // @0496
         let ptr_0_760 = 0
         ptr_0_768 = ptr_0_688
 
         while (ptr_0_760 <s 5 & ptr_0_760 <=s 2) {
+            // @055f
             ptr_0_760 = ptr_0_760 + 1
             ptr_0_768 = ptr_0_768 + 1
         }
 
+        // @0534
         ptr_0_680 = ptr_0_680 + 1
         ptr_0_688 = ptr_0_768
     }
 
+    // @0458
+
+    // @04a9
+
+    // @04ae
+
+    // @045d
     u32[RESULT_PTR + 0x50000] = ptr_0_688
     RESULT_LEN = RESULT_PTR
     HEAP_PTR = 4
 
+    // @010d
     halt()
 
 }

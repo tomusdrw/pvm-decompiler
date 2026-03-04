@@ -684,6 +684,9 @@ impl<'a, 'p> Emitter<'a, 'p> {
             return;
         }
         let prefix = "    ".repeat(indent);
+        let pc_comment = format!("{}// @{:04x}\n", prefix, block_pc);
+        let pc_comment_pos = self.output.len();
+        self.output.push_str(&pc_comment);
         let len_before = self.output.len();
         let mut block_reg_values: HashMap<u8, String> = HashMap::new();
         if let Some(block) = self.cfg.blocks.get(&block_pc) {
@@ -873,8 +876,13 @@ impl<'a, 'p> Emitter<'a, 'p> {
             }
         }
 
-        // Blank line between basic blocks when content was emitted.
-        if self.output.len() > len_before {
+        // If the block produced no visible instructions, remove the PC comment.
+        let emitted = &self.output[len_before..];
+        let has_content = emitted.chars().any(|c| !c.is_whitespace());
+        if !has_content {
+            self.output.truncate(pc_comment_pos);
+        } else {
+            // Blank line between basic blocks when content was emitted.
             self.output.push('\n');
         }
     }
@@ -3236,6 +3244,7 @@ fn has_probable_call(expr: &str) -> bool {
         if bytes[i] != b'(' {
             continue;
         }
+        // Walk back past whitespace to find the token before '('
         let mut j = i;
         while j > 0 && bytes[j - 1].is_ascii_whitespace() {
             j -= 1;
@@ -3243,7 +3252,15 @@ fn has_probable_call(expr: &str) -> bool {
         if j == 0 {
             continue;
         }
-        if is_ident_byte(bytes[j - 1]) {
+        // Measure the identifier length before '('
+        let end = j;
+        while j > 0 && is_ident_byte(bytes[j - 1]) {
+            j -= 1;
+        }
+        let ident_len = end - j;
+        // Require at least 2 chars — single-letter tokens like 'u' in '>>u ('
+        // or 's' in '/s (' are operator suffixes, not function calls.
+        if ident_len >= 2 {
             return true;
         }
     }
@@ -6398,6 +6415,92 @@ halt()
             "Effectful let bindings must be preserved even if unused: {}",
             output
         );
+    }
+
+    #[test]
+    fn test_prune_unused_let_with_pc_comments() {
+        let input = "\
+fn main() {
+    let var_4913
+
+    // @0000
+    let var_4913 = 32 >>u (32 << 12)
+
+    // @000a
+    r0 = 42
+}
+";
+        let output = fix_blank_lines(input);
+
+        assert!(
+            !output.contains("var_4913"),
+            "Unused let binding (both declaration and assignment) should be removed: {}",
+            output
+        );
+        assert!(
+            output.contains("r0 = 42"),
+            "Used assignment must be preserved: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_prune_unused_hoisted_decl_when_assignment_used() {
+        let input = "\
+fn main() {
+    let counter
+
+    // @0000
+    counter = 0
+
+    // @000a
+    r0 = counter
+}
+";
+        let output = fix_blank_lines(input);
+
+        assert!(
+            output.contains("counter"),
+            "Used variable must be preserved: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_prune_unused_let_with_operator_suffix_parens() {
+        // Expressions like `32 >>u (...)`, `3 /s (...)`, `x <u (...)` must be
+        // recognized as pure (the single-letter `u`/`s` is an operator suffix,
+        // NOT a function call).
+        let input = "\
+fn main() {
+    // @0000
+    let a = 32 >>u (32 << 12)
+    let b = 3 /s (r0 + 1)
+    let c = sbrk(42)
+    r0 = 1
+}
+";
+        let output = fix_blank_lines(input);
+        assert!(!output.contains("let a"), ">>u (...) should be pure: {}", output);
+        assert!(!output.contains("let b"), "/s (...) should be pure: {}", output);
+        assert!(output.contains("let c = sbrk(42)"), "sbrk() is effectful: {}", output);
+    }
+
+    #[test]
+    fn test_prune_cascading_removal() {
+        // If var_b's only use is in the RHS of unused var_a, removing var_a
+        // should then allow var_b to be removed in the next iteration.
+        let input = "\
+fn main() {
+    // @0000
+    let var_b = 42
+    let var_a = var_b + 1
+    r0 = 99
+}
+";
+        let output = fix_blank_lines(input);
+        assert!(!output.contains("var_a"), "Unused var_a should be removed: {}", output);
+        assert!(!output.contains("var_b"), "Cascading unused var_b should be removed: {}", output);
     }
 
     #[test]
