@@ -6481,9 +6481,21 @@ fn main() {
 }
 ";
         let output = fix_blank_lines(input);
-        assert!(!output.contains("let a"), ">>u (...) should be pure: {}", output);
-        assert!(!output.contains("let b"), "/s (...) should be pure: {}", output);
-        assert!(output.contains("let c = sbrk(42)"), "sbrk() is effectful: {}", output);
+        assert!(
+            !output.contains("let a"),
+            ">>u (...) should be pure: {}",
+            output
+        );
+        assert!(
+            !output.contains("let b"),
+            "/s (...) should be pure: {}",
+            output
+        );
+        assert!(
+            output.contains("let c = sbrk(42)"),
+            "sbrk() is effectful: {}",
+            output
+        );
     }
 
     #[test]
@@ -6499,8 +6511,16 @@ fn main() {
 }
 ";
         let output = fix_blank_lines(input);
-        assert!(!output.contains("var_a"), "Unused var_a should be removed: {}", output);
-        assert!(!output.contains("var_b"), "Cascading unused var_b should be removed: {}", output);
+        assert!(
+            !output.contains("var_a"),
+            "Unused var_a should be removed: {}",
+            output
+        );
+        assert!(
+            !output.contains("var_b"),
+            "Cascading unused var_b should be removed: {}",
+            output
+        );
     }
 
     #[test]

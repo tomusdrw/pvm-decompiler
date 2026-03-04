@@ -657,9 +657,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 all_output.push('\n');
             }
         } else {
-            eprintln!(
-                "Warning: --refine requires OPENROUTER_API_KEY. Outputting raw pseudo-code."
-            );
+            eprintln!("Warning: --refine requires OPENROUTER_API_KEY. Outputting raw pseudo-code.");
             for (_, pseudo) in &pending_refinements {
                 all_output.push_str(pseudo);
                 all_output.push('\n');
