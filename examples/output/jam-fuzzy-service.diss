@@ -9950,7 +9950,6 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     let ptr_10_16
     let ptr_10_24
     let ptr_10_32
-    let ptr_10_40
     let ptr_10_48
     let ptr_10_56
     let ptr_10_64
@@ -10029,7 +10028,7 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
 
                 if (ptr_10_40 == 0) {
                     // @12e61
-                    ptr_10_40 = ptr_10_40
+                    let ptr_10_40 = ptr_10_40
 
                     if (u16[r8 + 20] >=u var_101) {
                         // @12f82

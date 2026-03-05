@@ -1,0 +1,12 @@
+[book]
+title = "PVM Decompiler - Simple Notes"
+authors = ["pvm-decompiler maintainers"]
+language = "en"
+src = "book-src"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+
+[build]
+build-dir = "book"

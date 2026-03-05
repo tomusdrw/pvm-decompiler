@@ -158,11 +158,19 @@ git config core.hooksPath .githooks
 
 ## Documentation Index
 
+- `book/`: mdBook user guide and worked examples
 - `ROADMAP.md`: project roadmap and milestones
 - `docs/output-baseline.md`: output quality baseline metrics
 - `docs/release-checklist.md`: pre-release verification checklist
 - `CONTRIBUTING.md`: contributor workflow and expectations
 - `CHANGELOG.md`: release and change history
+
+Build the book locally:
+
+```bash
+mdbook build
+mdbook serve -p 3000
+```
 
 ## Community
 
