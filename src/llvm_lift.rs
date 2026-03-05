@@ -984,10 +984,11 @@ fn emit_indirect_jump(
     tmp: &mut u64,
 ) {
     let trunc = next_tmp(tmp);
+    let sw_default = next_label("sw_default", tmp);
     writeln!(out, "  {} = trunc i64 {} to i32", trunc, reg_val).unwrap();
 
     // Build switch over jump table entries
-    write!(out, "  switch i32 {}, label %sw_default [", trunc).unwrap();
+    write!(out, "  switch i32 {}, label %{} [", trunc, sw_default).unwrap();
 
     for (idx, &target_pc) in program.jump_table.iter().enumerate() {
         let target = target_pc as usize;
@@ -998,7 +999,7 @@ fn emit_indirect_jump(
     writeln!(out, " ]").unwrap();
 
     // Default case: return
-    writeln!(out, "\nsw_default:").unwrap();
+    writeln!(out, "\n{}:", sw_default).unwrap();
     let t = next_tmp(tmp);
     writeln!(out, "  {} = load i64, ptr %r0, align 8", t).unwrap();
     writeln!(out, "  ret i64 {}", t).unwrap();
@@ -1028,6 +1029,13 @@ fn next_tmp(counter: &mut u64) -> String {
     name
 }
 
+/// Generate a unique block label name.
+fn next_label(prefix: &str, counter: &mut u64) -> String {
+    let name = format!("{}_{}", prefix, counter);
+    *counter += 1;
+    name
+}
+
 /// Sanitize a name for use as an LLVM identifier.
 fn sanitize_name(name: &str) -> String {
     name.chars()
@@ -1039,4 +1047,51 @@ fn sanitize_name(name: &str) -> String {
             }
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::decoder::DecodedProgram;
+    use std::collections::HashSet;
+
+    #[test]
+    fn emit_indirect_jump_uses_unique_default_labels() {
+        let program = DecodedProgram {
+            jump_table: vec![0x10, 0x20],
+            instructions: vec![],
+            code_len: 0,
+            memory_base: None,
+        };
+        let func_block_pcs: HashSet<usize> = [0x10usize, 0x20usize].into_iter().collect();
+
+        let mut out = String::new();
+        let mut tmp = 0;
+
+        emit_indirect_jump(&mut out, "%r1", &program, &func_block_pcs, &mut tmp);
+        emit_indirect_jump(&mut out, "%r2", &program, &func_block_pcs, &mut tmp);
+
+        let mut labels: Vec<String> = out
+            .lines()
+            .filter_map(|line| line.strip_suffix(':'))
+            .filter(|line| line.starts_with("sw_default_"))
+            .map(|line| line.to_string())
+            .collect();
+        labels.sort();
+        labels.dedup();
+
+        assert_eq!(labels.len(), 2, "expected unique labels, got:\n{out}");
+        for label in labels {
+            assert_eq!(
+                out.matches(&format!("label %{}", label)).count(),
+                1,
+                "switch should reference each default label once"
+            );
+            assert_eq!(
+                out.matches(&format!("{}:", label)).count(),
+                1,
+                "each default label should be emitted once"
+            );
+        }
+    }
 }
