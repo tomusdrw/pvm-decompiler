@@ -2557,7 +2557,6 @@ fn fix_blank_lines(input: &str) -> String {
         }
         text = next;
     }
-    let mut text = text;
     for _ in 0..3 {
         let next = normalize_empty_else_fallthrough_assignment(&text);
         let next = elide_redundant_assignments(&next);

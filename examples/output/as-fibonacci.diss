@@ -8,7 +8,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 fn func_1(r1: u64) {
     let ptr_0_40
     let ptr_0_520
-    let ptr_0_528
     let ptr_0_536
     let ptr_0_88
 
@@ -18,7 +17,7 @@ fn func_1(r1: u64) {
 
     // @0268
     ptr_0_520 = 0
-    ptr_0_528 = 1
+    let ptr_0_528 = 1
     ptr_0_536 = *ptr_0_40
 
     while (ptr_0_536 >s 0) {

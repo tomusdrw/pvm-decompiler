@@ -2053,7 +2053,7 @@ fn expression_depth(expr: &Expression) -> usize {
 fn collect_live_loads(expr: &Expression, ctx: &FormatContext, live: &mut HashSet<(String, i32)>) {
     match expr {
         Expression::Load { base, offset, .. } => {
-            live.insert((format_expression(base, &ctx), *offset));
+            live.insert((format_expression(base, ctx), *offset));
             collect_live_loads(base, ctx, live);
         }
         Expression::BinOp { lhs, rhs, .. } => {
