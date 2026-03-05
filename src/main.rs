@@ -7,10 +7,13 @@ use wasm_pvm::pvm::Instruction;
 mod cfg;
 mod dataflow;
 mod decoder;
+mod decompile;
 mod functions;
 mod instruction;
 mod ir;
 mod lifting;
+mod llm_refine;
+mod llvm_lift;
 mod structuring;
 mod varint;
 
@@ -18,9 +21,9 @@ use cfg::ControlFlowGraph;
 use dataflow::DataFlowAnalysis;
 use functions::{
     build_call_graph, build_function_cfg, detect_direct_call_patterns, detect_epilogues,
-    detect_functions, detect_prologue,
+    detect_functions, detect_heap_alloc_pattern, detect_prologue,
 };
-use lifting::LiftedProgram;
+use lifting::{Expression, LiftedProgram};
 use structuring::{DominatorTree, FunctionSignature, StructuralAnalysis};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -33,14 +36,33 @@ enum Verbosity {
     Debug,
 }
 
+/// Output mode selection.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum OutputMode {
+    /// Default: emit pseudo-code via the existing pipeline
+    PseudoCode,
+    /// Emit LLVM IR text
+    LlvmIr,
+    /// Full pipeline: LLVM IR → decompile to C → optional LLM refinement
+    Decompile,
+}
+
 fn print_usage(program: &str) {
     eprintln!("Usage: {} [OPTIONS] <file.pvm>", program);
     eprintln!();
     eprintln!("Options:");
-    eprintln!("  -v, --verbose  Show CFG, dataflow, and structural analysis");
-    eprintln!("      --debug    Show raw instructions and all diagnostics");
-    eprintln!("  -V, --version  Show version");
-    eprintln!("  -h, --help     Show this help message");
+    eprintln!("  -v, --verbose    Show CFG, dataflow, and structural analysis");
+    eprintln!("      --debug      Show raw instructions and all diagnostics");
+    eprintln!("      --llvm       Emit LLVM IR instead of pseudo-code");
+    eprintln!("      --decompile  Full LLVM pipeline: lift → decompile → C output");
+    eprintln!(
+        "      --refine     Enable LLM refinement of pseudo-code or C output (requires OPENROUTER_API_KEY)"
+    );
+    eprintln!(
+        "      --backend=X  Decompiler backend: retdec, rellic, rellic-docker, llvm-cbe, builtin"
+    );
+    eprintln!("  -V, --version    Show version");
+    eprintln!("  -h, --help       Show this help message");
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -48,12 +70,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Parse flags
     let mut verbosity = Verbosity::Normal;
+    let mut output_mode = OutputMode::PseudoCode;
+    let mut enable_refine = false;
+    let mut backend_choice: Option<decompile::DecompilerBackend> = None;
     let mut filename = None;
 
     for arg in &args[1..] {
         match arg.as_str() {
             "-v" | "--verbose" => verbosity = Verbosity::Verbose,
             "--debug" => verbosity = Verbosity::Debug,
+            "--llvm" => output_mode = OutputMode::LlvmIr,
+            "--decompile" => output_mode = OutputMode::Decompile,
+            "--refine" => enable_refine = true,
             "-V" | "--version" => {
                 println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
                 return Ok(());
@@ -61,6 +89,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "-h" | "--help" => {
                 print_usage(&args[0]);
                 return Ok(());
+            }
+            _ if arg.starts_with("--backend=") => {
+                let val = &arg["--backend=".len()..];
+                backend_choice = Some(match val {
+                    "retdec" => decompile::DecompilerBackend::RetDec,
+                    "rellic" => decompile::DecompilerBackend::Rellic,
+                    "rellic-docker" => decompile::DecompilerBackend::RellicDocker,
+                    "llvm-cbe" => decompile::DecompilerBackend::LlvmCbe,
+                    "builtin" => decompile::DecompilerBackend::Builtin,
+                    _ => {
+                        eprintln!(
+                            "Unknown backend: {}. Options: retdec, rellic, rellic-docker, llvm-cbe, builtin",
+                            val
+                        );
+                        std::process::exit(2);
+                    }
+                });
             }
             _ => {
                 if arg.starts_with('-') {
@@ -88,6 +133,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     use std::fmt::Write as FmtWrite;
     let mut all_output = String::new();
+    let mut pending_refinements: Vec<(String, String)> = Vec::new();
 
     if verbosity >= Verbosity::Verbose {
         let _ = writeln!(all_output, "Reading {}...", filename);
@@ -174,6 +220,80 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 sorted_blocks
             );
         }
+    }
+
+    // === LLVM Pipeline Hook ===
+    // If --llvm or --decompile, branch into the LLVM IR path
+    if output_mode == OutputMode::LlvmIr || output_mode == OutputMode::Decompile {
+        eprintln!("Generating LLVM IR...");
+        let llvm_ir = llvm_lift::lift_program(&program, &cfg, &detected_functions);
+
+        if output_mode == OutputMode::LlvmIr {
+            // Just output the LLVM IR
+            print!("{}", llvm_ir);
+            return Ok(());
+        }
+
+        // Full decompile pipeline
+        eprintln!("Running decompiler...");
+        let available = decompile::detect_available_backends();
+        eprintln!(
+            "  Available backends: {}",
+            available
+                .iter()
+                .map(|b| b.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+
+        let result = decompile::decompile(&llvm_ir, backend_choice)?;
+        eprintln!("  Used backend: {}", result.backend_used);
+        for w in &result.warnings {
+            eprintln!("  Warning: {}", w);
+        }
+
+        if enable_refine {
+            if llm_refine::is_llm_available() {
+                eprintln!("Running LLM refinement...");
+                let context = format!(
+                    "PVM bytecode decompiled from {}. {} function(s) detected.",
+                    filename,
+                    detected_functions.len()
+                );
+                match llm_refine::refine(&result.c_code, &context) {
+                    Ok(refined) => {
+                        eprintln!(
+                            "  Completed {} refinement round(s)",
+                            refined.rounds_completed
+                        );
+                        for imp in &refined.improvements {
+                            eprintln!("  - {}", imp);
+                        }
+
+                        // Output both raw and refined
+                        println!("// === Raw Decompiler Output ({}) ===", result.backend_used);
+                        println!("{}", refined.raw_decompiler_output);
+                        println!();
+                        println!("// === LLM-Refined Output ===");
+                        println!("{}", refined.refined_code);
+                    }
+                    Err(e) => {
+                        eprintln!("  LLM refinement failed: {}", e);
+                        eprintln!("  Falling back to raw decompiler output");
+                        print!("{}", result.c_code);
+                    }
+                }
+            } else {
+                eprintln!(
+                    "Warning: --refine requires OPENROUTER_API_KEY. Outputting raw decompiler result."
+                );
+                print!("{}", result.c_code);
+            }
+        } else {
+            print!("{}", result.c_code);
+        }
+
+        return Ok(());
     }
 
     // Build call graph
@@ -392,6 +512,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
+        unsuppress_blocks_with_live_incoming_edges(&mut lifted, &func_cfg, &direct_call_patterns);
+
+        // Detect and suppress AssemblyScript heap allocation boilerplate.
+        apply_heap_alloc_suppression(&mut lifted, &func_cfg, func.entry_pc, program.memory_base);
 
         if verbosity >= Verbosity::Verbose {
             eprintln!("  Running structural analysis...");
@@ -433,8 +557,101 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let _ = writeln!(all_output, "{}", structural.summarize());
         }
 
-        all_output.push_str(&structural.pseudo_code(&func_cfg, Some(&lifted), Some(&sig)));
-        all_output.push('\n');
+        let pseudo = structural.pseudo_code(&func_cfg, Some(&lifted), Some(&sig));
+        if enable_refine {
+            pending_refinements.push((func.name.clone(), pseudo));
+        } else {
+            all_output.push_str(&pseudo);
+            all_output.push('\n');
+        }
+    }
+
+    // Batch-refine all functions in parallel if --refine is enabled
+    if enable_refine {
+        if llm_refine::is_llm_available() {
+            let total = pending_refinements.len();
+            eprintln!("Refining {} functions in parallel...", total);
+            let filename_ref = &filename;
+            if total > 0 {
+                let mut results_by_index: Vec<Option<String>> = vec![None; total];
+                let max_workers = std::thread::available_parallelism()
+                    .map(|n| n.get())
+                    .unwrap_or(1)
+                    .clamp(1, 4)
+                    .min(total);
+
+                for chunk_start in (0..total).step_by(max_workers) {
+                    let chunk_end = (chunk_start + max_workers).min(total);
+                    let chunk_results: Vec<(usize, String)> = std::thread::scope(|s| {
+                        let mut handles = Vec::new();
+                        for (idx, (name, pseudo)) in pending_refinements
+                            .iter()
+                            .enumerate()
+                            .take(chunk_end)
+                            .skip(chunk_start)
+                        {
+                            let context = format!(
+                                "PVM bytecode decompiled from {}. Function {} of {}.",
+                                filename_ref,
+                                idx + 1,
+                                total
+                            );
+                            let name = name.clone();
+                            let pseudo = pseudo.clone();
+                            handles.push(s.spawn(move || {
+                                let refined =
+                                    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                                        llm_refine::refine_pseudo_code(&pseudo, &name, &context)
+                                    }));
+                                match refined {
+                                    Ok(Ok(code)) => {
+                                        eprintln!("  Refined {}", name);
+                                        (idx, code)
+                                    }
+                                    Ok(Err(e)) => {
+                                        eprintln!("  Failed {}: {}", name, e);
+                                        (idx, pseudo)
+                                    }
+                                    Err(_) => {
+                                        eprintln!("  Panic while refining {}", name);
+                                        (idx, pseudo)
+                                    }
+                                }
+                            }));
+                        }
+
+                        let mut out = Vec::new();
+                        for handle in handles {
+                            match handle.join() {
+                                Ok(result) => out.push(result),
+                                Err(_) => {
+                                    eprintln!(
+                                        "  Worker panicked before returning refinement output"
+                                    );
+                                }
+                            }
+                        }
+                        out
+                    });
+
+                    for (idx, refined) in chunk_results {
+                        results_by_index[idx] = Some(refined);
+                    }
+                }
+
+                for (idx, refined) in results_by_index.into_iter().enumerate() {
+                    let text = refined.unwrap_or_else(|| pending_refinements[idx].1.clone());
+                    all_output.push_str(&text);
+                    all_output.push('\n');
+                }
+            }
+        } else {
+            eprintln!("Warning: --refine requires OPENROUTER_API_KEY. Outputting raw pseudo-code.");
+            for (_, pseudo) in &pending_refinements {
+                all_output.push_str(pseudo);
+                all_output.push('\n');
+            }
+        }
     }
 
     // Clear the progress line
@@ -585,6 +802,9 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
                 }
             }
         }
+        unsuppress_blocks_with_live_incoming_edges(&mut lifted, &func_cfg, &direct_call_patterns);
+
+        apply_heap_alloc_suppression(&mut lifted, &func_cfg, func.entry_pc, program.memory_base);
 
         let structural = structuring::StructuralAnalysis::analyze_with_dom_tree(
             &func_cfg,
@@ -828,6 +1048,99 @@ fn redundant_halt_setup_pcs_for_function(
     eliminated
 }
 
+fn apply_heap_alloc_suppression(
+    lifted: &mut LiftedProgram,
+    func_cfg: &ControlFlowGraph,
+    func_entry_pc: usize,
+    memory_base: Option<u64>,
+) {
+    if let Some(heap_alloc) = detect_heap_alloc_pattern(func_cfg, func_entry_pc, memory_base) {
+        for &pc in &heap_alloc.eliminated_pcs {
+            lifted.eliminated_pcs.insert(pc);
+        }
+        for &pc in &heap_alloc.heap_ptr_arithmetic_pcs {
+            lifted.eliminated_pcs.insert(pc);
+        }
+        for &pc in &heap_alloc.header_write_pcs {
+            lifted.eliminated_pcs.insert(pc);
+        }
+        for &block_pc in &heap_alloc.sbrk_blocks {
+            lifted.suppressed_blocks.insert(block_pc);
+        }
+        lifted.hidden_labels.insert(heap_alloc.convergence_block_pc);
+        lifted.linear_memory_offset = heap_alloc.linear_memory_offset;
+
+        // Resolve the data pointer variable name: find the stack variable from
+        // the eliminated arithmetic range that is still referenced in non-eliminated code.
+        let arith_pcs: HashSet<usize> =
+            heap_alloc.heap_ptr_arithmetic_pcs.iter().copied().collect();
+        let mut arith_vars: Vec<String> = Vec::new();
+        for &pc in &heap_alloc.heap_ptr_arithmetic_pcs {
+            if let Some(Expression::Store { base, offset, .. }) = lifted.expressions.get(&pc)
+                && let Expression::Var(base_name) = base.as_ref()
+                && let Some(name) = lifted.stack_vars.get(&(base_name.clone(), *offset))
+            {
+                arith_vars.push(name.clone());
+            }
+        }
+        'outer: for var_name in &arith_vars {
+            for (pc, expr) in &lifted.expressions {
+                if arith_pcs.contains(pc) || lifted.eliminated_pcs.contains(pc) {
+                    continue;
+                }
+                if expr_uses_var(expr, var_name) {
+                    lifted.heap_alloc_data_ptr = Some(var_name.clone());
+                    break 'outer;
+                }
+            }
+        }
+
+        lifted.heap_alloc = Some(heap_alloc);
+    }
+}
+
+fn unsuppress_blocks_with_live_incoming_edges(
+    lifted: &mut LiftedProgram,
+    func_cfg: &ControlFlowGraph,
+    direct_call_patterns: &[functions::DirectCallPattern],
+) {
+    if lifted.suppressed_blocks.is_empty() {
+        return;
+    }
+
+    let allowed_call_edges: HashSet<(usize, usize)> = direct_call_patterns
+        .iter()
+        .map(|pat| (pat.caller_block_pc, pat.jump_target_pc))
+        .collect();
+
+    let mut queue = std::collections::VecDeque::new();
+    for &block_pc in &lifted.suppressed_blocks {
+        let Some(block) = func_cfg.blocks.get(&block_pc) else {
+            continue;
+        };
+        let has_live_incoming_edge = block.predecessors.iter().any(|pred| {
+            !lifted.suppressed_blocks.contains(pred)
+                && !allowed_call_edges.contains(&(*pred, block_pc))
+        });
+        if has_live_incoming_edge {
+            queue.push_back(block_pc);
+        }
+    }
+
+    while let Some(block_pc) = queue.pop_front() {
+        if !lifted.suppressed_blocks.remove(&block_pc) {
+            continue;
+        }
+        if let Some(block) = func_cfg.blocks.get(&block_pc) {
+            for &succ in &block.successors {
+                if lifted.suppressed_blocks.contains(&succ) {
+                    queue.push_back(succ);
+                }
+            }
+        }
+    }
+}
+
 fn is_halt_setup_side_effecting(shape: &crate::instruction::InstructionShape) -> bool {
     use crate::instruction::InstructionShape;
     matches!(
@@ -864,6 +1177,24 @@ fn is_eliminable_halt_setup_shape(shape: &crate::instruction::InstructionShape) 
             | InstructionShape::CmovReg { .. }
             | InstructionShape::CmovImm { .. }
     )
+}
+
+/// Check if an expression tree references a variable by name.
+fn expr_uses_var(expr: &Expression, name: &str) -> bool {
+    match expr {
+        Expression::Var(n) => n == name,
+        Expression::BinOp { lhs, rhs, .. } => expr_uses_var(lhs, name) || expr_uses_var(rhs, name),
+        Expression::UnaryOp { operand, .. } => expr_uses_var(operand, name),
+        Expression::Load { base, .. } => expr_uses_var(base, name),
+        Expression::Store { base, value, .. } => {
+            expr_uses_var(base, name) || expr_uses_var(value, name)
+        }
+        Expression::Call { args, .. } => args.iter().any(|a| expr_uses_var(a, name)),
+        Expression::Raw(text) => text
+            .split(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+            .any(|tok| tok == name),
+        Expression::Const(_) => false,
+    }
 }
 
 #[cfg(test)]
@@ -1065,8 +1396,10 @@ mod integration_tests {
             output
         );
         assert!(
-            output.contains("if (var_1 == 0)") && output.contains("if (var_1 == 2)"),
-            "br-table should preserve selector-based branching flow: {}",
+            output.contains("switch (var_1)")
+                && output.contains("case 0:")
+                && output.contains("case 2:"),
+            "br-table should produce switch/case from selector-based branching: {}",
             output
         );
     }
@@ -1357,27 +1690,43 @@ mod integration_tests {
             .expect("as-fibonacci.pvm fixture should exist");
         let output = decompile_bytes(&buffer).expect("decompilation should succeed");
 
-        let decl_pos = output
-            .find("let ptr_0_344")
-            .expect("ptr_0_344 should be hoisted to the function prologue");
-        let guard_pos = output
-            .find("if (var_27 <u var_9 + 268)")
-            .expect("expected heap-ensure guard in as-fibonacci");
-
-        assert!(
-            decl_pos < guard_pos,
-            "ptr_0_344 declaration must appear before its guarded definition:\n{}",
-            output
-        );
-        assert!(
-            !output.contains("let ptr_0_344 ="),
-            "ptr_0_344 should not be redeclared inside the guarded block:\n{}",
-            output
-        );
-        assert!(
-            output.contains("ptr_0_344 = var_64"),
-            "ptr_0_344 assignment should remain after hoisting:\n{}",
-            output
-        );
+        if let (Some(decl_pos), Some(guard_pos)) = (
+            output.find("let ptr_0_344"),
+            output.find("if (var_27 <u var_9 + 268)"),
+        ) {
+            assert!(
+                decl_pos < guard_pos,
+                "ptr_0_344 declaration must appear before its guarded definition:\n{}",
+                output
+            );
+            assert!(
+                !output.contains("let ptr_0_344 ="),
+                "ptr_0_344 should not be redeclared inside the guarded block:\n{}",
+                output
+            );
+            assert!(
+                output.contains("ptr_0_344 = var_64"),
+                "ptr_0_344 assignment should remain after hoisting:\n{}",
+                output
+            );
+        } else {
+            // In the shared suppression pipeline we may emit the compact heap_alloc helper
+            // form instead of explicit guard boilerplate.
+            assert!(
+                output.contains("heap_alloc("),
+                "expected either guarded hoisted form or compact heap_alloc form:\n{}",
+                output
+            );
+            assert!(
+                output.contains("RESULT_PTR ="),
+                "optimized form should still set RESULT_PTR:\n{}",
+                output
+            );
+            assert!(
+                output.contains("RESULT_LEN ="),
+                "optimized form should still set RESULT_LEN:\n{}",
+                output
+            );
+        }
     }
 }

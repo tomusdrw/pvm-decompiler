@@ -23,12 +23,28 @@ pub struct FormatContext {
     /// When set, expressions involving this constant are simplified
     /// (e.g. `addr + MEMORY_BASE` → `pvm_addr(addr)`).
     pub memory_base: Option<u64>,
+    /// Linear memory offset for heap accesses (e.g. 0x50000 for AS programs).
+    /// When set, pointer dereferences through this offset render as `*ptr`.
+    pub linear_memory_offset: Option<u64>,
+    /// Whether formatting currently occurs in memory-dereference context.
+    /// Some simplifications are only semantics-safe in this context.
+    pub deref_context: bool,
 }
 
 impl FormatContext {
     /// Create a context with the given memory base.
     pub fn new(memory_base: Option<u64>) -> Self {
-        Self { memory_base }
+        Self {
+            memory_base,
+            linear_memory_offset: None,
+            deref_context: false,
+        }
+    }
+
+    fn with_deref_context(&self) -> Self {
+        let mut next = self.clone();
+        next.deref_context = true;
+        next
     }
 }
 
@@ -135,12 +151,23 @@ pub struct LiftedProgram {
     /// Linear memory base address (e.g. 0x50000 = 327680 for PVM).
     /// When set, expressions involving this constant are simplified.
     pub memory_base: Option<u64>,
+    /// Detected heap allocation boilerplate pattern (AssemblyScript).
+    pub heap_alloc: Option<crate::functions::HeapAllocPattern>,
+    /// Block labels to hide from output (e.g., convergence block after heap alloc suppression).
+    pub hidden_labels: HashSet<usize>,
+    /// Linear memory offset for heap accesses (e.g. 0x50000 for AS programs).
+    pub linear_memory_offset: Option<u64>,
+    /// Variable name for the data pointer in heap allocation (e.g. "ptr_0_88").
+    /// When set, heap_alloc() is emitted as `data_ptr = heap_alloc(size)`.
+    pub heap_alloc_data_ptr: Option<String>,
 }
 
 impl LiftedProgram {
     /// Build a `FormatContext` from this program's settings.
     pub fn format_context(&self) -> FormatContext {
-        FormatContext::new(self.memory_base)
+        let mut ctx = FormatContext::new(self.memory_base);
+        ctx.linear_memory_offset = self.linear_memory_offset;
+        ctx
     }
 }
 
@@ -175,6 +202,10 @@ impl LiftedProgram {
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
             memory_base: None,
+            heap_alloc: None,
+            hidden_labels: HashSet::new(),
+            linear_memory_offset: None,
+            heap_alloc_data_ptr: None,
         };
 
         lifted.assign_variables(cfg, dataflow);
@@ -1134,29 +1165,133 @@ impl LiftedProgram {
     /// Dead store elimination: remove stores to stack locations that are never
     /// read by any remaining load in the program.
     fn eliminate_dead_stores(&mut self) {
+        let ctx = self.format_context();
         // Collect all (base_str, offset) pairs that appear in remaining Load expressions.
         let mut live_loads: HashSet<(String, i32)> = HashSet::new();
         for (pc, expr) in &self.expressions {
             if self.eliminated_pcs.contains(pc) {
                 continue;
             }
-            collect_live_loads(expr, &mut live_loads);
+            collect_live_loads(expr, &ctx, &mut live_loads);
         }
 
         // Eliminate stores whose target is not in any live load and whose base
-        // looks like a stack pointer (ptr_* variable).
+        // has proven stack-slot provenance.
         let pcs: Vec<usize> = self.expressions.keys().copied().collect();
         for pc in pcs {
             if self.eliminated_pcs.contains(&pc) {
                 continue;
             }
             if let Some(Expression::Store { base, offset, .. }) = self.expressions.get(&pc) {
-                let base_str = format_expression(base, &self.format_context());
-                // Only eliminate stores to known stack slots (ptr_* base).
-                if base_str.starts_with("ptr_") && !live_loads.contains(&(base_str, *offset)) {
+                let base_str = format_expression(base, &ctx);
+                // Keep stores unless the base expression can be traced back to
+                // stack-pointer-derived address arithmetic. This avoids dropping
+                // writes through pointers loaded from stack slots.
+                if self.has_stack_slot_provenance(base)
+                    && (*offset >= 0 && *offset < 0x10000)
+                    && !live_loads.contains(&(base_str, *offset))
+                {
                     self.eliminated_pcs.insert(pc);
                 }
             }
+        }
+    }
+
+    fn has_stack_slot_provenance(&self, base: &Expression) -> bool {
+        let mut visiting = HashSet::new();
+        self.expression_has_stack_slot_provenance(base, &mut visiting, 0)
+    }
+
+    fn expression_has_stack_slot_provenance(
+        &self,
+        expr: &Expression,
+        visiting: &mut HashSet<String>,
+        depth: usize,
+    ) -> bool {
+        if depth > 20 {
+            return false;
+        }
+        match expr {
+            Expression::Var(name) => {
+                self.variable_has_stack_slot_provenance(name, visiting, depth + 1)
+            }
+            Expression::BinOp { op, lhs, rhs } => {
+                (matches!(op, BinOp::Add | BinOp::Sub)
+                    && self.expression_has_stack_slot_provenance(lhs, visiting, depth + 1)
+                    && self.expression_is_constant_like(rhs, visiting, depth + 1))
+                    || (*op == BinOp::Add
+                        && self.expression_has_stack_slot_provenance(rhs, visiting, depth + 1)
+                        && self.expression_is_constant_like(lhs, visiting, depth + 1))
+            }
+            _ => false,
+        }
+    }
+
+    fn variable_has_stack_slot_provenance(
+        &self,
+        name: &str,
+        visiting: &mut HashSet<String>,
+        depth: usize,
+    ) -> bool {
+        if !visiting.insert(name.to_string()) {
+            return false;
+        }
+
+        let result = self
+            .var_name_to_def_pc
+            .get(name)
+            .copied()
+            .is_some_and(|def_pc| {
+                // SP is register 1 in the PVM ABI.
+                let is_sp_def = self
+                    .variables
+                    .iter()
+                    .any(|(&(pc, reg), var)| pc == def_pc && var.name == name && reg == 1);
+                if is_sp_def {
+                    return true;
+                }
+                self.expressions.get(&def_pc).is_some_and(|expr| {
+                    self.expression_has_stack_slot_provenance(expr, visiting, depth + 1)
+                })
+            });
+
+        visiting.remove(name);
+        result
+    }
+
+    fn expression_is_constant_like(
+        &self,
+        expr: &Expression,
+        visiting: &mut HashSet<String>,
+        depth: usize,
+    ) -> bool {
+        if depth > 20 {
+            return false;
+        }
+        match expr {
+            Expression::Const(_) => true,
+            Expression::UnaryOp { operand, .. } => {
+                self.expression_is_constant_like(operand, visiting, depth + 1)
+            }
+            Expression::BinOp { lhs, rhs, .. } => {
+                self.expression_is_constant_like(lhs, visiting, depth + 1)
+                    && self.expression_is_constant_like(rhs, visiting, depth + 1)
+            }
+            Expression::Var(name) => {
+                if !visiting.insert(name.clone()) {
+                    return false;
+                }
+                let result = self
+                    .var_name_to_def_pc
+                    .get(name)
+                    .and_then(|def_pc| self.expressions.get(def_pc))
+                    .is_some_and(|def_expr| {
+                        self.expression_is_constant_like(def_expr, visiting, depth + 1)
+                    });
+                visiting.remove(name);
+                result
+            }
+            _ => false,
         }
     }
 
@@ -1291,6 +1426,16 @@ impl LiftedProgram {
                 {
                     Some((
                         format!("{} = {}", mem_access, format_expression(value, &ctx)),
+                        None,
+                    ))
+                } else if let Some(field) = format_struct_field(base, *offset, *width, &ctx) {
+                    Some((
+                        format!("{} = {}", field, format_expression(value, &ctx)),
+                        None,
+                    ))
+                } else if let Some(arr) = format_array_access(base, *offset, *width, &ctx) {
+                    Some((
+                        format!("{} = {}", arr, format_expression(value, &ctx)),
                         None,
                     ))
                 } else {
@@ -1905,28 +2050,26 @@ fn expression_depth(expr: &Expression) -> usize {
 }
 
 /// Recursively collect all (base_str, offset) pairs from Load expressions in an expression tree.
-fn collect_live_loads(expr: &Expression, live: &mut HashSet<(String, i32)>) {
-    // Use default context (no memory base) since we only need consistent string keys.
-    let ctx = FormatContext::default();
+fn collect_live_loads(expr: &Expression, ctx: &FormatContext, live: &mut HashSet<(String, i32)>) {
     match expr {
         Expression::Load { base, offset, .. } => {
-            live.insert((format_expression(base, &ctx), *offset));
-            collect_live_loads(base, live);
+            live.insert((format_expression(base, ctx), *offset));
+            collect_live_loads(base, ctx, live);
         }
         Expression::BinOp { lhs, rhs, .. } => {
-            collect_live_loads(lhs, live);
-            collect_live_loads(rhs, live);
+            collect_live_loads(lhs, ctx, live);
+            collect_live_loads(rhs, ctx, live);
         }
         Expression::UnaryOp { operand, .. } => {
-            collect_live_loads(operand, live);
+            collect_live_loads(operand, ctx, live);
         }
         Expression::Store { base, value, .. } => {
-            collect_live_loads(base, live);
-            collect_live_loads(value, live);
+            collect_live_loads(base, ctx, live);
+            collect_live_loads(value, ctx, live);
         }
         Expression::Call { args, .. } => {
             for arg in args {
-                collect_live_loads(arg, live);
+                collect_live_loads(arg, ctx, live);
             }
         }
         Expression::Const(_) | Expression::Var(_) | Expression::Raw(_) => {}
@@ -2128,6 +2271,14 @@ pub fn format_expression(expr: &Expression, ctx: &FormatContext) -> String {
                     let lhs_str = format_expression(lhs, ctx);
                     return format!("wasm_ptr({})", lhs_str);
                 }
+                // If subtracting the linear memory offset, strip it entirely —
+                // the matching *ptr dereference already hides the addition.
+                if let Some(lmo) = ctx.linear_memory_offset
+                    && ctx.deref_context
+                    && (-*v) as u64 == lmo
+                {
+                    return format_expression(lhs, ctx);
+                }
                 let lhs_str = format_expression_maybe_parens(lhs, BinOp::Sub, true, ctx);
                 return format!("{} - {}", lhs_str, format_const(-v));
             }
@@ -2229,6 +2380,7 @@ fn format_mem_base_access(
     ctx: &FormatContext,
 ) -> Option<String> {
     let mem_base = ctx.memory_base? as i64;
+    let deref_ctx = ctx.with_deref_context();
 
     // Pattern 1: base = BinOp(var, Add, Const(MEMORY_BASE)), offset = 0
     if offset == 0
@@ -2241,19 +2393,31 @@ fn format_mem_base_access(
         if let Expression::Const(v) = rhs.as_ref()
             && *v == mem_base
         {
-            return Some(format!("{}[{}]", width, format_expression(lhs, ctx)));
+            return Some(format!("{}[{}]", width, format_expression(lhs, &deref_ctx)));
         }
         if let Expression::Const(v) = lhs.as_ref()
             && *v == mem_base
         {
-            return Some(format!("{}[{}]", width, format_expression(rhs, ctx)));
+            return Some(format!("{}[{}]", width, format_expression(rhs, &deref_ctx)));
         }
     }
 
     // Pattern 2: base = var, offset = MEMORY_BASE (e.g., LoadInd { base: var, offset: 0x50000 })
+    // For pointer variables with linear_memory_offset, render as *ptr dereference.
+    if let Some(lmo) = ctx.linear_memory_offset
+        && offset as u64 == lmo
+        && let Expression::Var(name) = base
+        && name.starts_with("ptr_")
+    {
+        return Some(format!("*{}", name));
+    }
     // Preserve the access width in the rendered syntax.
     if offset as i64 == mem_base {
-        return Some(format!("{}[{}]", width, format_expression(base, ctx)));
+        return Some(format!(
+            "{}[{}]",
+            width,
+            format_expression(base, &deref_ctx)
+        ));
     }
 
     None
@@ -2264,18 +2428,24 @@ fn format_mem_base_access(
 fn format_struct_field(
     base: &Expression,
     offset: i32,
-    width: MemWidth,
+    _width: MemWidth,
     ctx: &FormatContext,
 ) -> Option<String> {
     if let Expression::Var(name) = base
         && name.starts_with("ptr_")
         && offset >= 0
     {
-        // If offset equals the memory base, this is a linear memory access
+        // Check linear memory offset first (e.g., 0x50000 for AS programs)
+        if let Some(lmo) = ctx.linear_memory_offset
+            && offset as u64 == lmo
+        {
+            return Some(format!("*{}", name));
+        }
+        // Check memory_base (for non-AS programs)
         if let Some(mem_base) = ctx.memory_base
             && offset as u64 == mem_base
         {
-            return Some(format!("{}[{}]", width, name));
+            return Some(format!("*{}", name));
         }
         return Some(format!("{}->field_{}", name, offset));
     }
@@ -2386,23 +2556,24 @@ fn resolve_named_global(
 
 /// Format a memory address `base + offset` with clean output.
 fn format_mem_address(base: &Expression, offset: i32, ctx: &FormatContext) -> String {
+    let deref_ctx = ctx.with_deref_context();
     match (base, offset) {
         // Pure constant address: base is 0 → just show offset
         (Expression::Const(0), off) => format_const(off as i64),
         // Constant base + offset → fold them
         (Expression::Const(b), off) => format_const((*b).wrapping_add(off as i64)),
         // Zero offset → just base
-        (_, 0) => format_expression(base, ctx),
+        (_, 0) => format_expression(base, &deref_ctx),
         // Negative offset
         (_, off) if off < 0 => format!(
             "{} - {}",
-            format_expression(base, ctx),
+            format_expression(base, &deref_ctx),
             format_const((-off) as i64)
         ),
         // Positive offset
         (_, off) => format!(
             "{} + {}",
-            format_expression(base, ctx),
+            format_expression(base, &deref_ctx),
             format_const(off as i64)
         ),
     }
@@ -3384,29 +3555,34 @@ mod tests {
 
     #[test]
     fn test_dead_store_elimination() {
-        // r0 = 100 (ptr); store u64[r0+8] = r1; store u64[r0+16] = r1; trap
-        // Both stores are never loaded, so they should be eliminated.
-        // Two stores so r0 has multiple uses and isn't constant-propagated.
+        // r1 = 4096 (SP-like base); store u64[r1+8] = r2; store u64[r1+16] = r2; trap
+        // Both stores are never loaded, so they should be eliminated as dead stack-slot stores.
         let cfg = build_test_cfg(
             0,
             vec![(
                 0,
                 vec![
-                    (0, Instruction::LoadImm { reg: 0, value: 100 }),
-                    (4, Instruction::LoadImm { reg: 1, value: 42 }),
+                    (
+                        0,
+                        Instruction::LoadImm {
+                            reg: 1,
+                            value: 4096,
+                        },
+                    ),
+                    (4, Instruction::LoadImm { reg: 2, value: 42 }),
                     (
                         8,
                         Instruction::StoreIndU64 {
-                            base: 0,
-                            src: 1,
+                            base: 1,
+                            src: 2,
                             offset: 8,
                         },
                     ),
                     (
                         12,
                         Instruction::StoreIndU64 {
-                            base: 0,
-                            src: 1,
+                            base: 1,
+                            src: 2,
                             offset: 16,
                         },
                     ),
@@ -3418,8 +3594,8 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let lifted = LiftedProgram::analyze(&cfg, &dataflow);
 
-        // r0 is used as a base in stores, so it should be inferred as a pointer (ptr_*).
-        let var = lifted.variables.get(&(0, 0)).unwrap();
+        // r1 is used as a base in stores, so it should be inferred as a pointer (ptr_*).
+        let var = lifted.variables.get(&(0, 1)).unwrap();
         assert!(
             var.name.starts_with("ptr_"),
             "Base register should be a pointer, got: {}",
@@ -3439,12 +3615,74 @@ mod tests {
     }
 
     #[test]
+    fn test_dead_store_elimination_uses_shared_format_context_for_live_load_keys() {
+        let mut lifted = LiftedProgram {
+            variables: HashMap::new(),
+            expressions: HashMap::new(),
+            eliminated_pcs: HashSet::new(),
+            var_at_use: HashMap::new(),
+            declared_vars: HashSet::new(),
+            stack_vars: HashMap::new(),
+            call_targets: HashMap::new(),
+            direct_call_sites: HashMap::new(),
+            call_param_regs: HashMap::new(),
+            var_name_to_def_pc: HashMap::new(),
+            epilogue_blocks: HashMap::new(),
+            suppressed_blocks: HashSet::new(),
+            memory_base: Some(0x50000),
+            heap_alloc: None,
+            hidden_labels: HashSet::new(),
+            linear_memory_offset: None,
+            heap_alloc_data_ptr: None,
+        };
+        lifted.variables.insert(
+            (1, 1),
+            Variable {
+                name: "ptr_0".to_string(),
+                var_type: VarType::Pointer,
+            },
+        );
+        lifted.var_name_to_def_pc.insert("ptr_0".to_string(), 1);
+        lifted.expressions.insert(1, Expression::Const(0));
+
+        let base_expr = Expression::BinOp {
+            op: BinOp::Add,
+            lhs: Box::new(Expression::Var("ptr_0".to_string())),
+            rhs: Box::new(Expression::Const(0x50000)),
+        };
+        lifted.expressions.insert(
+            2,
+            Expression::Store {
+                width: MemWidth::U64,
+                base: Box::new(base_expr.clone()),
+                offset: 0,
+                value: Box::new(Expression::Const(7)),
+            },
+        );
+        lifted.expressions.insert(
+            3,
+            Expression::Load {
+                width: MemWidth::U64,
+                base: Box::new(base_expr),
+                offset: 0,
+            },
+        );
+
+        lifted.eliminate_dead_stores();
+
+        assert!(
+            !lifted.eliminated_pcs.contains(&2),
+            "Store with matching live load should be retained when keying uses a shared context"
+        );
+    }
+
+    #[test]
     fn test_store_load_forward_then_dead_store() {
-        // r0 = 100 (ptr); r1 = 7; store u64[r0+16] = r1; r2 = load u64[r0+16];
+        // r1 = 4096 (SP-like base); r2 = 7; store u64[r1+16] = r2; r3 = load u64[r1+16];
         // r3 = r2 + r4; store u64[r0+32] = r3; trap
-        // r2 is used at PC 20 (different reg from r4), and r4 used at PC 20.
-        // r0 has multiple uses (base in 3 stores/loads), not constant-propagated.
-        // r2 has uses at PC 20 and PC 24 (two distinct use sites via different instructions),
+        // r3 is used at PC 20 (different reg from r4), and r4 used at PC 20.
+        // r1 has multiple uses (base in load/store), not constant-propagated.
+        // r3 has uses at PC 20 and PC 24 (two distinct use sites via different instructions),
         // preventing fold. After forwarding, load at PC 12 replaced. After DSE, store at PC 8 removed.
         let cfg = build_test_cfg(
             0,
@@ -3452,21 +3690,27 @@ mod tests {
                 (
                     0,
                     vec![
-                        (0, Instruction::LoadImm { reg: 0, value: 100 }),
-                        (4, Instruction::LoadImm { reg: 1, value: 7 }),
+                        (
+                            0,
+                            Instruction::LoadImm {
+                                reg: 1,
+                                value: 4096,
+                            },
+                        ),
+                        (4, Instruction::LoadImm { reg: 2, value: 7 }),
                         (
                             8,
                             Instruction::StoreIndU64 {
-                                base: 0,
-                                src: 1,
+                                base: 1,
+                                src: 2,
                                 offset: 16,
                             },
                         ),
                         (
                             12,
                             Instruction::LoadIndU64 {
-                                dst: 2,
-                                base: 0,
+                                dst: 3,
+                                base: 1,
                                 offset: 16,
                             },
                         ),
@@ -3479,16 +3723,16 @@ mod tests {
                         (
                             20,
                             Instruction::AddImm32 {
-                                dst: 3,
-                                src: 2,
+                                dst: 5,
+                                src: 3,
                                 value: 1,
                             },
                         ),
                         (
                             24,
                             Instruction::AddImm32 {
-                                dst: 4,
-                                src: 2,
+                                dst: 6,
+                                src: 3,
                                 value: 2,
                             },
                         ),
@@ -3515,6 +3759,66 @@ mod tests {
         assert!(
             lifted.eliminated_pcs.contains(&8),
             "Store at PC 8 should be a dead store after forwarding"
+        );
+    }
+
+    #[test]
+    fn test_dead_store_elimination_keeps_store_through_loaded_pointer() {
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (
+                        0,
+                        Instruction::LoadImm {
+                            reg: 1,
+                            value: 4096,
+                        },
+                    ),
+                    (
+                        4,
+                        Instruction::LoadImm {
+                            reg: 2,
+                            value: 8192,
+                        },
+                    ),
+                    (
+                        8,
+                        Instruction::StoreIndU64 {
+                            base: 1,
+                            src: 2,
+                            offset: 16,
+                        },
+                    ),
+                    (
+                        12,
+                        Instruction::LoadIndU64 {
+                            dst: 3,
+                            base: 1,
+                            offset: 16,
+                        },
+                    ),
+                    (16, Instruction::LoadImm { reg: 4, value: 123 }),
+                    (
+                        20,
+                        Instruction::StoreIndU64 {
+                            base: 3,
+                            src: 4,
+                            offset: 0,
+                        },
+                    ),
+                    (24, Instruction::Trap),
+                ],
+                vec![],
+            )],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        assert!(
+            !lifted.eliminated_pcs.contains(&20),
+            "Store through stack-loaded pointer must not be treated as dead stack-slot store"
         );
     }
 
@@ -3631,6 +3935,10 @@ mod tests {
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
             memory_base: None,
+            heap_alloc: None,
+            hidden_labels: HashSet::new(),
+            linear_memory_offset: None,
+            heap_alloc_data_ptr: None,
         };
 
         // Set up two variables for the same register at different PCs
@@ -3711,6 +4019,10 @@ mod tests {
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
             memory_base: None,
+            heap_alloc: None,
+            hidden_labels: HashSet::new(),
+            linear_memory_offset: None,
+            heap_alloc_data_ptr: None,
         };
 
         lifted.variables.insert(
@@ -3778,6 +4090,10 @@ mod tests {
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
             memory_base: None,
+            heap_alloc: None,
+            hidden_labels: HashSet::new(),
+            linear_memory_offset: None,
+            heap_alloc_data_ptr: None,
         };
         lifted.variables.insert(
             (0, 1),
@@ -3813,6 +4129,10 @@ mod tests {
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
             memory_base: None,
+            heap_alloc: None,
+            hidden_labels: HashSet::new(),
+            linear_memory_offset: None,
+            heap_alloc_data_ptr: None,
         };
 
         lifted.variables.insert(
@@ -4202,6 +4522,36 @@ mod tests {
         assert_eq!(format_expression(&load3, &ctx), "u32[0]");
     }
 
+    #[test]
+    fn test_linear_memory_offset_rendering_is_deref_only() {
+        let mut ctx = FormatContext::new(None);
+        ctx.linear_memory_offset = Some(0x50000);
+
+        // Outside dereference context, keep arithmetic explicit.
+        let arithmetic = Expression::BinOp {
+            op: BinOp::Add,
+            lhs: Box::new(Expression::Var("addr".to_string())),
+            rhs: Box::new(Expression::Const(-0x50000)),
+        };
+        assert_eq!(format_expression(&arithmetic, &ctx), "addr - 0x50000");
+
+        // Pointer-like bases use dereference form when offset matches linear_memory_offset.
+        let ptr_load = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::Var("ptr_data".to_string())),
+            offset: 0x50000,
+        };
+        assert_eq!(format_expression(&ptr_load, &ctx), "*ptr_data");
+
+        // Non-pointer names should preserve arithmetic addressing.
+        let non_ptr_load = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::Var("idx".to_string())),
+            offset: 0x50000,
+        };
+        assert_eq!(format_expression(&non_ptr_load, &ctx), "u32[idx + 0x50000]");
+    }
+
     fn empty_lifted() -> LiftedProgram {
         LiftedProgram {
             variables: HashMap::new(),
@@ -4217,6 +4567,10 @@ mod tests {
             epilogue_blocks: HashMap::new(),
             suppressed_blocks: HashSet::new(),
             memory_base: None,
+            heap_alloc: None,
+            hidden_labels: HashSet::new(),
+            linear_memory_offset: None,
+            heap_alloc_data_ptr: None,
         }
     }
 
