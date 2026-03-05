@@ -32,7 +32,6 @@ fn func_1(r1: u64) {
         goto block_0376;
     } else {
         // @02d1
-        ptr_0_512 = 1
     }
 
     // @02d1

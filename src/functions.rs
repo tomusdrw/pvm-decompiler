@@ -950,10 +950,16 @@ pub fn detect_heap_alloc_pattern(
         for (idx, (pc, instr)) in block.instructions.iter().enumerate() {
             if let Instruction::LoadImm { value, .. } = instr {
                 if *value == heap_ptr_addr && idx + 1 < block.instructions.len() {
-                    if let Instruction::StoreIndU32 { .. } = &block.instructions[idx + 1].1 {
+                    if let Instruction::StoreIndU32 { src: store_src, .. } =
+                        &block.instructions[idx + 1].1
+                    {
                         convergence_block_pc = Some(block_pc);
                         // Also eliminate the LoadIndU64 that loads the value to store
-                        if idx > 0 {
+                        if idx > 0
+                            && let Instruction::LoadIndU64 { dst: load_dst, .. } =
+                                &block.instructions[idx - 1].1
+                            && load_dst == store_src
+                        {
                             heap_ptr_store_pcs.push(block.instructions[idx - 1].0);
                         }
                         heap_ptr_store_pcs.push(*pc);
@@ -1099,6 +1105,258 @@ mod tests {
     use crate::cfg::build_test_cfg;
     use crate::decoder::DecodedProgram;
     use wasm_pvm::pvm::Instruction;
+
+    #[test]
+    fn test_detect_heap_alloc_pattern_valid_as_shape() {
+        let memory_base = 0x1000;
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (
+                            0,
+                            Instruction::LoadImm {
+                                reg: 0,
+                                value: memory_base as i32,
+                            },
+                        ),
+                        (
+                            2,
+                            Instruction::LoadIndU32 {
+                                dst: 1,
+                                base: 0,
+                                offset: 0,
+                            },
+                        ),
+                        (4, Instruction::LoadImm { reg: 2, value: 32 }),
+                        (
+                            6,
+                            Instruction::Add32 {
+                                dst: 1,
+                                src1: 1,
+                                src2: 2,
+                            },
+                        ),
+                        (
+                            8,
+                            Instruction::LoadImm {
+                                reg: 3,
+                                value: memory_base as i32 + 4,
+                            },
+                        ),
+                        (
+                            10,
+                            Instruction::LoadIndU32 {
+                                dst: 4,
+                                base: 3,
+                                offset: 0,
+                            },
+                        ),
+                        (
+                            12,
+                            Instruction::BranchEqImm {
+                                reg: 4,
+                                value: 0,
+                                offset: 88,
+                            },
+                        ),
+                    ],
+                    vec![20, 100],
+                ),
+                (20, vec![(20, Instruction::Jump { offset: 80 })], vec![100]),
+                (
+                    100,
+                    vec![
+                        (
+                            100,
+                            Instruction::LoadIndU64 {
+                                dst: 6,
+                                base: 7,
+                                offset: 0,
+                            },
+                        ),
+                        (
+                            102,
+                            Instruction::LoadImm {
+                                reg: 8,
+                                value: memory_base as i32,
+                            },
+                        ),
+                        (
+                            104,
+                            Instruction::StoreIndU32 {
+                                base: 9,
+                                src: 6,
+                                offset: 0,
+                            },
+                        ),
+                        (
+                            106,
+                            Instruction::LoadIndU64 {
+                                dst: 10,
+                                base: 11,
+                                offset: 0x50000,
+                            },
+                        ),
+                        (108, Instruction::LoadImm { reg: 12, value: 16 }),
+                        (
+                            110,
+                            Instruction::StoreIndU32 {
+                                base: 13,
+                                src: 10,
+                                offset: 0x50000,
+                            },
+                        ),
+                    ],
+                    vec![],
+                ),
+            ],
+        );
+
+        let pattern = detect_heap_alloc_pattern(&cfg, 0, Some(memory_base))
+            .expect("valid AS-style heap allocation pattern should be detected");
+
+        assert_eq!(pattern.alloc_size, 32);
+        assert_eq!(pattern.convergence_block_pc, 100);
+        assert_eq!(pattern.sbrk_blocks, vec![20]);
+        assert_eq!(pattern.heap_ptr_arithmetic_pcs, vec![0, 2, 4, 6]);
+        assert_eq!(pattern.header_write_pcs, vec![106, 108, 110]);
+        assert_eq!(pattern.linear_memory_offset, Some(0x50000));
+        assert!(
+            pattern.eliminated_pcs.contains(&100),
+            "matched value LoadIndU64 should be eliminated"
+        );
+        assert!(pattern.eliminated_pcs.contains(&102));
+        assert!(pattern.eliminated_pcs.contains(&104));
+    }
+
+    #[test]
+    fn test_detect_heap_alloc_pattern_near_miss_returns_none() {
+        let memory_base = 0x1000;
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (
+                        0,
+                        Instruction::LoadImm {
+                            reg: 0,
+                            value: memory_base as i32,
+                        },
+                    ),
+                    // Near-miss: next instruction is not LoadIndU32.
+                    (2, Instruction::LoadImm { reg: 1, value: 7 }),
+                    (
+                        4,
+                        Instruction::LoadImm {
+                            reg: 2,
+                            value: memory_base as i32 + 4,
+                        },
+                    ),
+                    (
+                        6,
+                        Instruction::LoadIndU32 {
+                            dst: 3,
+                            base: 2,
+                            offset: 0,
+                        },
+                    ),
+                    (8, Instruction::Trap),
+                ],
+                vec![],
+            )],
+        );
+
+        assert!(
+            detect_heap_alloc_pattern(&cfg, 0, Some(memory_base)).is_none(),
+            "near-miss entry pattern must not match heap allocation boilerplate"
+        );
+    }
+
+    #[test]
+    fn test_detect_heap_alloc_pattern_non_as_entry_returns_none() {
+        let memory_base = 0x1000;
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (
+                            0,
+                            Instruction::LoadImm {
+                                reg: 0,
+                                value: memory_base as i32,
+                            },
+                        ),
+                        (
+                            2,
+                            Instruction::LoadIndU32 {
+                                dst: 1,
+                                base: 0,
+                                offset: 0,
+                            },
+                        ),
+                        (
+                            4,
+                            Instruction::LoadImm {
+                                reg: 2,
+                                value: memory_base as i32 + 4,
+                            },
+                        ),
+                        (
+                            6,
+                            Instruction::LoadIndU32 {
+                                dst: 3,
+                                base: 2,
+                                offset: 0,
+                            },
+                        ),
+                        (8, Instruction::Trap),
+                    ],
+                    // No pre-convergence sbrk blocks => should not match AS boilerplate.
+                    vec![100],
+                ),
+                (
+                    100,
+                    vec![
+                        (
+                            100,
+                            Instruction::LoadIndU64 {
+                                dst: 4,
+                                base: 5,
+                                offset: 0,
+                            },
+                        ),
+                        (
+                            102,
+                            Instruction::LoadImm {
+                                reg: 6,
+                                value: memory_base as i32,
+                            },
+                        ),
+                        (
+                            104,
+                            Instruction::StoreIndU32 {
+                                base: 7,
+                                src: 4,
+                                offset: 0,
+                            },
+                        ),
+                    ],
+                    vec![],
+                ),
+            ],
+        );
+
+        assert!(
+            detect_heap_alloc_pattern(&cfg, 0, Some(memory_base)).is_none(),
+            "entry blocks without pre-convergence allocation path must not be treated as AS sbrk"
+        );
+    }
 
     #[test]
     fn test_single_function() {

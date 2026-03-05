@@ -10,6 +10,7 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     let ptr_0_80
     let ptr_0_88
     let ptr_2_144
+    let ptr_2_64
     let ptr_5_144
     let ptr_5_464
     let ptr_5_48
@@ -20,6 +21,9 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     let var_274: u64
     let var_65: u32
 
+    let ptr_2
+    let ptr_2_40
+    let ptr_2_56
     // @0000
 
     // @06d7
@@ -75,7 +79,7 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
         }
     }
     // @03fb
-    let ptr_2_64 = ptr_2_64 + 1
+    ptr_2_64 = ptr_2_64 + 1
     goto block_03a8;
 
     block_03a3:
@@ -90,7 +94,6 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
         // @05ea
     }
     // @06bf
-    ptr_5_608 = 0
 
     // @06b3
     ptr_5_608 = 1

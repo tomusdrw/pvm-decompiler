@@ -1010,9 +1010,18 @@ fn emit_indirect_jump(
     let trunc = next_tmp(tmp);
     let sw_default = next_label("sw_default", tmp);
     writeln!(out, "  {} = trunc i64 {} to i32", trunc, reg_val).unwrap();
+    let half = next_tmp(tmp);
+    let decoded_index = next_tmp(tmp);
+    writeln!(out, "  {} = lshr i32 {}, 1", half, trunc).unwrap();
+    writeln!(out, "  {} = add i32 {}, -1", decoded_index, half).unwrap();
 
-    // Build switch over jump table entries
-    write!(out, "  switch i32 {}, label %{} [", trunc, sw_default).unwrap();
+    // Decode encoded return-address selector ((idx + 1) * 2) to jump-table index.
+    write!(
+        out,
+        "  switch i32 {}, label %{} [",
+        decoded_index, sw_default
+    )
+    .unwrap();
 
     for (idx, &target_pc) in program.jump_table.iter().enumerate() {
         let target = target_pc as usize;
@@ -1137,6 +1146,30 @@ mod tests {
                 "each default label should be emitted once"
             );
         }
+    }
+
+    #[test]
+    fn emit_indirect_jump_decodes_selector_before_switch() {
+        let program = DecodedProgram {
+            jump_table: vec![0x10, 0x20],
+            instructions: vec![],
+            code_len: 0,
+            memory_base: None,
+        };
+        let func_block_pcs: HashSet<usize> = [0x10usize, 0x20usize].into_iter().collect();
+        let mut out = String::new();
+        let mut tmp = 0;
+
+        emit_indirect_jump(&mut out, "%r7", &program, &func_block_pcs, &mut tmp);
+
+        assert!(
+            out.contains("= lshr i32") && out.contains("= add i32"),
+            "expected encoded selector decode sequence, got:\n{out}"
+        );
+        assert!(
+            !out.contains("switch i32 %t0"),
+            "switch must not use raw truncated selector:\n{out}"
+        );
     }
 
     #[test]

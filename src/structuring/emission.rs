@@ -348,6 +348,7 @@ impl StructuralAnalysis {
                 }
             }
             result.push_str("}\n");
+            let result = add_missing_local_declarations(&result);
             return fix_blank_lines(&result);
         }
 
@@ -1675,12 +1676,12 @@ impl<'a, 'p> Emitter<'a, 'p> {
     }
 
     /// Check whether the last non-empty line of output ends with a control-flow
-    /// statement (goto, break, continue) so we can suppress redundant `break;`.
+    /// statement so we can suppress redundant `break;`.
     fn case_body_ends_with_jump(&self, _body_prefix: &str) -> bool {
         let trimmed = self.output.trim_end();
         if let Some(last_line) = trimmed.lines().last() {
             let t = last_line.trim();
-            t.starts_with("goto ") || t == "break;" || t == "continue;"
+            is_control_flow_terminator(t) || t == "halt();"
         } else {
             false
         }
@@ -2542,6 +2543,7 @@ fn fix_blank_lines(input: &str) -> String {
         }
         text = next;
     }
+    let text = elide_redundant_assignments(&text);
     let text = prune_unused_pure_let_definitions(&text);
     normalize_result_len_metadata(&text)
 }
@@ -2664,6 +2666,7 @@ fn elide_redundant_gotos(input: &str) -> String {
 
     // Build a map of block labels to their body lines for inlining.
     let block_bodies = collect_block_bodies(&lines);
+    let label_ref_counts = collect_label_reference_counts(&lines);
 
     let mut kept: Vec<String> = Vec::with_capacity(lines.len());
     let mut inlined_blocks: HashSet<String> = HashSet::new();
@@ -2685,7 +2688,10 @@ fn elide_redundant_gotos(input: &str) -> String {
                         // subsequent passes.
                         let is_simple = body.iter().all(|l| !l.contains('{') && !l.contains('}'));
 
-                        if !body.is_empty() && is_simple {
+                        if !body.is_empty()
+                            && is_simple
+                            && label_ref_counts.get(&goto_label) == Some(&1)
+                        {
                             // Determine indentation from the goto line
                             let indent = &lines[i + 1]
                                 [..lines[i + 1].len() - lines[i + 1].trim_start().len()];
@@ -3015,7 +3021,7 @@ fn is_control_flow_terminator(trimmed: &str) -> bool {
         || trimmed == "break;"
         || trimmed == "continue;"
         || trimmed.starts_with("return")
-        || trimmed == "halt()"
+        || trimmed.starts_with("halt(")
 }
 
 /// Remove unreachable statements after if-else blocks where both branches
@@ -3219,6 +3225,36 @@ fn collect_referenced_labels(input: &str) -> HashSet<String> {
     referenced
 }
 
+fn collect_label_reference_counts(lines: &[&str]) -> HashMap<String, usize> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+
+    for line in lines {
+        if let Some(label) = parse_block_label_name(line) {
+            counts.entry(label).or_insert(0);
+        }
+    }
+
+    for line in lines {
+        let mut rest = *line;
+        while let Some(idx) = rest.find("goto ") {
+            let after = &rest[idx + "goto ".len()..];
+            let label: String = after
+                .chars()
+                .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+                .collect();
+            if label.is_empty() {
+                break;
+            }
+            if is_block_label_name(&label) {
+                *counts.entry(label.clone()).or_insert(0) += 1;
+            }
+            rest = &after[label.len()..];
+        }
+    }
+
+    counts
+}
+
 /// Remove pure local `let` bindings that have no remaining identifier uses.
 /// Keeps effectful bindings (e.g. function calls) even when their target is unused.
 fn prune_unused_pure_let_definitions(input: &str) -> String {
@@ -3310,6 +3346,191 @@ fn parse_let_binding(line: &str) -> Option<(&str, &str)> {
         tail = "";
     }
     Some((name, tail))
+}
+
+fn add_missing_local_declarations(input: &str) -> String {
+    let mut lines: Vec<String> = input.lines().map(|s| s.to_string()).collect();
+    if lines.is_empty() {
+        return input.to_string();
+    }
+
+    let header = lines[0].trim();
+    if !header.starts_with("fn ") {
+        return input.to_string();
+    }
+
+    let mut params: HashSet<String> = HashSet::new();
+    if let (Some(open), Some(close)) = (header.find('('), header.rfind(')')) {
+        let params_str = &header[open + 1..close];
+        for raw in params_str.split(',') {
+            let name = raw.split(':').next().unwrap_or("").trim();
+            if !name.is_empty() {
+                params.insert(name.to_string());
+            }
+        }
+    }
+
+    let mut declared: HashSet<String> = HashSet::new();
+    let mut referenced: HashSet<String> = HashSet::new();
+    for line in lines.iter().skip(1) {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with("//") {
+            continue;
+        }
+        if let Some((name, _)) = parse_let_binding(trimmed) {
+            declared.insert(name.to_string());
+        }
+        for ident in collect_identifiers(trimmed) {
+            if is_local_temp_name(&ident) {
+                referenced.insert(ident);
+            }
+        }
+    }
+
+    let mut missing: Vec<String> = referenced
+        .into_iter()
+        .filter(|name| !declared.contains(name) && !params.contains(name))
+        .collect();
+    if missing.is_empty() {
+        return input.to_string();
+    }
+    missing.sort();
+
+    let mut insert_idx = 1usize;
+    while insert_idx < lines.len() {
+        let trimmed = lines[insert_idx].trim();
+        if trimmed.is_empty() || trimmed.starts_with("let ") {
+            insert_idx += 1;
+        } else {
+            break;
+        }
+    }
+
+    let decl_lines: Vec<String> = missing
+        .into_iter()
+        .map(|name| format!("    let {}", name))
+        .collect();
+    lines.splice(insert_idx..insert_idx, decl_lines);
+
+    let mut out = lines.join("\n");
+    out.push('\n');
+    out
+}
+
+fn is_local_temp_name(name: &str) -> bool {
+    name.starts_with("ptr_") || name.starts_with("var_") || name.starts_with("cond_")
+}
+
+fn parse_simple_local_assignment(trimmed: &str) -> Option<(&str, &str)> {
+    if trimmed.starts_with("let ")
+        || trimmed.starts_with("if ")
+        || trimmed.starts_with("while ")
+        || trimmed.starts_with("goto ")
+        || trimmed.starts_with("return")
+        || trimmed.starts_with("case ")
+        || trimmed.starts_with("default")
+        || trimmed.ends_with(':')
+        || trimmed.ends_with('{')
+    {
+        return None;
+    }
+    if trimmed.contains("==")
+        || trimmed.contains("!=")
+        || trimmed.contains(">=")
+        || trimmed.contains("<=")
+    {
+        return None;
+    }
+    let (lhs, rhs) = trimmed.split_once('=')?;
+    let lhs = lhs.trim();
+    if !is_local_temp_name(lhs) {
+        return None;
+    }
+    Some((lhs, rhs.trim()))
+}
+
+fn elide_redundant_assignments(input: &str) -> String {
+    let lines: Vec<&str> = input.lines().collect();
+    let mut drop_line: HashSet<usize> = HashSet::new();
+
+    // Pattern 1: same assignment in `else` and immediate fallthrough.
+    for i in 0..lines.len() {
+        if lines[i].trim() != "} else {" {
+            continue;
+        }
+
+        let mut j = i + 1;
+        let mut else_assign: Option<(usize, String, String)> = None;
+        while j < lines.len() {
+            let trimmed = lines[j].trim();
+            if trimmed == "}" {
+                break;
+            }
+            if trimmed.is_empty() || trimmed.starts_with("//") {
+                j += 1;
+                continue;
+            }
+            let Some((lhs, rhs)) = parse_simple_local_assignment(trimmed) else {
+                else_assign = None;
+                break;
+            };
+            if else_assign.is_some() {
+                else_assign = None;
+                break;
+            }
+            else_assign = Some((j, lhs.to_string(), rhs.to_string()));
+            j += 1;
+        }
+        if j >= lines.len() || lines[j].trim() != "}" {
+            continue;
+        }
+        let Some((assign_idx, lhs, rhs)) = else_assign else {
+            continue;
+        };
+
+        let mut k = j + 1;
+        while k < lines.len() && (lines[k].trim().is_empty() || lines[k].trim().starts_with("//")) {
+            k += 1;
+        }
+        if k < lines.len()
+            && let Some((next_lhs, next_rhs)) = parse_simple_local_assignment(lines[k].trim())
+            && lhs == next_lhs
+            && rhs == next_rhs
+        {
+            drop_line.insert(assign_idx);
+        }
+    }
+
+    // Pattern 2: immediate overwrite of local temp before any possible use.
+    for i in 0..lines.len() {
+        if drop_line.contains(&i) {
+            continue;
+        }
+        let Some((lhs, _)) = parse_simple_local_assignment(lines[i].trim()) else {
+            continue;
+        };
+        let mut j = i + 1;
+        while j < lines.len() && (lines[j].trim().is_empty() || lines[j].trim().starts_with("//")) {
+            j += 1;
+        }
+        if j < lines.len()
+            && !drop_line.contains(&j)
+            && let Some((next_lhs, _)) = parse_simple_local_assignment(lines[j].trim())
+            && lhs == next_lhs
+        {
+            drop_line.insert(i);
+        }
+    }
+
+    let mut kept: Vec<String> = Vec::new();
+    for (idx, line) in lines.iter().enumerate() {
+        if !drop_line.contains(&idx) {
+            kept.push((*line).to_string());
+        }
+    }
+    let mut out = kept.join("\n");
+    out.push('\n');
+    out
 }
 
 fn collect_identifiers(text: &str) -> Vec<String> {
@@ -6466,6 +6687,99 @@ case 4: goto block_0003;
             "Goto targets should be rewritten to canonical label: {}",
             output
         );
+    }
+
+    #[test]
+    fn test_is_control_flow_terminator_handles_return_and_halt() {
+        assert!(is_control_flow_terminator("return;"));
+        assert!(is_control_flow_terminator("return value;"));
+        assert!(is_control_flow_terminator("halt()"));
+        assert!(is_control_flow_terminator("halt();"));
+    }
+
+    #[test]
+    fn test_elide_redundant_gotos_keeps_multi_referenced_inline_target() {
+        let input = "\
+} else {
+    goto block_0003;
+}
+goto block_0003;
+block_0003:
+let var_0 = 1
+";
+
+        let output = elide_redundant_gotos(input);
+
+        assert!(
+            output.contains("goto block_0003;"),
+            "Shared goto target should not be inlined away: {}",
+            output
+        );
+        assert!(
+            output.contains("block_0003:"),
+            "Shared target label must remain when there are multiple references: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_elide_redundant_assignments_removes_immediate_overwrite() {
+        let input = "\
+ptr_0_1 = 0
+ptr_0_1 = 1
+return
+";
+        let output = elide_redundant_assignments(input);
+        assert!(
+            !output.contains("ptr_0_1 = 0"),
+            "Dead overwritten assignment should be removed: {}",
+            output
+        );
+        assert!(output.contains("ptr_0_1 = 1"));
+    }
+
+    #[test]
+    fn test_elide_redundant_assignments_dedups_else_assignment_with_comments() {
+        let input = "\
+if (cond) {
+    goto block_1;
+} else {
+    // @02d1
+    ptr_0_512 = 1
+}
+
+// @02d1
+ptr_0_512 = 1
+";
+        let output = elide_redundant_assignments(input);
+        assert_eq!(
+            output.matches("ptr_0_512 = 1").count(),
+            1,
+            "Else duplicate assignment should be removed: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_add_missing_local_declarations_inserts_undeclared_temps() {
+        let input = "\
+fn main(r1: u64) {
+    let ptr_0
+
+    if (ptr_2_64 >=s ptr_2_56) goto block_03a3;
+    ptr_0 = ptr_2
+    ptr_0_40 = ptr_2_40
+}
+";
+        let output = add_missing_local_declarations(input);
+        assert!(
+            output.contains("    let ptr_2"),
+            "Missing ptr temp should be declared: {}",
+            output
+        );
+        assert!(output.contains("    let ptr_2_40"));
+        assert!(output.contains("    let ptr_2_56"));
+        assert!(output.contains("    let ptr_2_64"));
     }
 
     #[test]

@@ -1175,7 +1175,7 @@ impl LiftedProgram {
         }
 
         // Eliminate stores whose target is not in any live load and whose base
-        // looks like a stack pointer (ptr_* variable).
+        // has proven stack-slot provenance.
         let pcs: Vec<usize> = self.expressions.keys().copied().collect();
         for pc in pcs {
             if self.eliminated_pcs.contains(&pc) {
@@ -1183,17 +1183,114 @@ impl LiftedProgram {
             }
             if let Some(Expression::Store { base, offset, .. }) = self.expressions.get(&pc) {
                 let base_str = format_expression(base, &self.format_context());
-                // Only eliminate stores to known stack slots (ptr_* base with
-                // small offset). Large offsets (>= 0x10000) indicate heap/memory
-                // stores through pointers loaded from the stack, not actual stack
-                // stores — these must be kept since they may be read externally.
-                if base_str.starts_with("ptr_")
+                // Keep stores unless the base expression can be traced back to
+                // stack-pointer-derived address arithmetic. This avoids dropping
+                // writes through pointers loaded from stack slots.
+                if self.has_stack_slot_provenance(base)
                     && (*offset >= 0 && *offset < 0x10000)
                     && !live_loads.contains(&(base_str, *offset))
                 {
                     self.eliminated_pcs.insert(pc);
                 }
             }
+        }
+    }
+
+    fn has_stack_slot_provenance(&self, base: &Expression) -> bool {
+        let mut visiting = HashSet::new();
+        self.expression_has_stack_slot_provenance(base, &mut visiting, 0)
+    }
+
+    fn expression_has_stack_slot_provenance(
+        &self,
+        expr: &Expression,
+        visiting: &mut HashSet<String>,
+        depth: usize,
+    ) -> bool {
+        if depth > 20 {
+            return false;
+        }
+        match expr {
+            Expression::Var(name) => {
+                self.variable_has_stack_slot_provenance(name, visiting, depth + 1)
+            }
+            Expression::BinOp { op, lhs, rhs } => {
+                (matches!(op, BinOp::Add | BinOp::Sub)
+                    && self.expression_has_stack_slot_provenance(lhs, visiting, depth + 1)
+                    && self.expression_is_constant_like(rhs, visiting, depth + 1))
+                    || (*op == BinOp::Add
+                        && self.expression_has_stack_slot_provenance(rhs, visiting, depth + 1)
+                        && self.expression_is_constant_like(lhs, visiting, depth + 1))
+            }
+            _ => false,
+        }
+    }
+
+    fn variable_has_stack_slot_provenance(
+        &self,
+        name: &str,
+        visiting: &mut HashSet<String>,
+        depth: usize,
+    ) -> bool {
+        if !visiting.insert(name.to_string()) {
+            return false;
+        }
+
+        let result = self
+            .var_name_to_def_pc
+            .get(name)
+            .copied()
+            .is_some_and(|def_pc| {
+                // SP is register 1 in the PVM ABI.
+                let is_sp_def = self
+                    .variables
+                    .iter()
+                    .any(|(&(pc, reg), var)| pc == def_pc && var.name == name && reg == 1);
+                if is_sp_def {
+                    return true;
+                }
+                self.expressions.get(&def_pc).is_some_and(|expr| {
+                    self.expression_has_stack_slot_provenance(expr, visiting, depth + 1)
+                })
+            });
+
+        visiting.remove(name);
+        result
+    }
+
+    fn expression_is_constant_like(
+        &self,
+        expr: &Expression,
+        visiting: &mut HashSet<String>,
+        depth: usize,
+    ) -> bool {
+        if depth > 20 {
+            return false;
+        }
+        match expr {
+            Expression::Const(_) => true,
+            Expression::UnaryOp { operand, .. } => {
+                self.expression_is_constant_like(operand, visiting, depth + 1)
+            }
+            Expression::BinOp { lhs, rhs, .. } => {
+                self.expression_is_constant_like(lhs, visiting, depth + 1)
+                    && self.expression_is_constant_like(rhs, visiting, depth + 1)
+            }
+            Expression::Var(name) => {
+                if !visiting.insert(name.clone()) {
+                    return false;
+                }
+                let result = self
+                    .var_name_to_def_pc
+                    .get(name)
+                    .and_then(|def_pc| self.expressions.get(def_pc))
+                    .is_some_and(|def_expr| {
+                        self.expression_is_constant_like(def_expr, visiting, depth + 1)
+                    });
+                visiting.remove(name);
+                result
+            }
+            _ => false,
         }
     }
 
@@ -3459,29 +3556,34 @@ mod tests {
 
     #[test]
     fn test_dead_store_elimination() {
-        // r0 = 100 (ptr); store u64[r0+8] = r1; store u64[r0+16] = r1; trap
-        // Both stores are never loaded, so they should be eliminated.
-        // Two stores so r0 has multiple uses and isn't constant-propagated.
+        // r1 = 4096 (SP-like base); store u64[r1+8] = r2; store u64[r1+16] = r2; trap
+        // Both stores are never loaded, so they should be eliminated as dead stack-slot stores.
         let cfg = build_test_cfg(
             0,
             vec![(
                 0,
                 vec![
-                    (0, Instruction::LoadImm { reg: 0, value: 100 }),
-                    (4, Instruction::LoadImm { reg: 1, value: 42 }),
+                    (
+                        0,
+                        Instruction::LoadImm {
+                            reg: 1,
+                            value: 4096,
+                        },
+                    ),
+                    (4, Instruction::LoadImm { reg: 2, value: 42 }),
                     (
                         8,
                         Instruction::StoreIndU64 {
-                            base: 0,
-                            src: 1,
+                            base: 1,
+                            src: 2,
                             offset: 8,
                         },
                     ),
                     (
                         12,
                         Instruction::StoreIndU64 {
-                            base: 0,
-                            src: 1,
+                            base: 1,
+                            src: 2,
                             offset: 16,
                         },
                     ),
@@ -3493,8 +3595,8 @@ mod tests {
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let lifted = LiftedProgram::analyze(&cfg, &dataflow);
 
-        // r0 is used as a base in stores, so it should be inferred as a pointer (ptr_*).
-        let var = lifted.variables.get(&(0, 0)).unwrap();
+        // r1 is used as a base in stores, so it should be inferred as a pointer (ptr_*).
+        let var = lifted.variables.get(&(0, 1)).unwrap();
         assert!(
             var.name.starts_with("ptr_"),
             "Base register should be a pointer, got: {}",
@@ -3515,11 +3617,11 @@ mod tests {
 
     #[test]
     fn test_store_load_forward_then_dead_store() {
-        // r0 = 100 (ptr); r1 = 7; store u64[r0+16] = r1; r2 = load u64[r0+16];
+        // r1 = 4096 (SP-like base); r2 = 7; store u64[r1+16] = r2; r3 = load u64[r1+16];
         // r3 = r2 + r4; store u64[r0+32] = r3; trap
-        // r2 is used at PC 20 (different reg from r4), and r4 used at PC 20.
-        // r0 has multiple uses (base in 3 stores/loads), not constant-propagated.
-        // r2 has uses at PC 20 and PC 24 (two distinct use sites via different instructions),
+        // r3 is used at PC 20 (different reg from r4), and r4 used at PC 20.
+        // r1 has multiple uses (base in load/store), not constant-propagated.
+        // r3 has uses at PC 20 and PC 24 (two distinct use sites via different instructions),
         // preventing fold. After forwarding, load at PC 12 replaced. After DSE, store at PC 8 removed.
         let cfg = build_test_cfg(
             0,
@@ -3527,21 +3629,27 @@ mod tests {
                 (
                     0,
                     vec![
-                        (0, Instruction::LoadImm { reg: 0, value: 100 }),
-                        (4, Instruction::LoadImm { reg: 1, value: 7 }),
+                        (
+                            0,
+                            Instruction::LoadImm {
+                                reg: 1,
+                                value: 4096,
+                            },
+                        ),
+                        (4, Instruction::LoadImm { reg: 2, value: 7 }),
                         (
                             8,
                             Instruction::StoreIndU64 {
-                                base: 0,
-                                src: 1,
+                                base: 1,
+                                src: 2,
                                 offset: 16,
                             },
                         ),
                         (
                             12,
                             Instruction::LoadIndU64 {
-                                dst: 2,
-                                base: 0,
+                                dst: 3,
+                                base: 1,
                                 offset: 16,
                             },
                         ),
@@ -3554,16 +3662,16 @@ mod tests {
                         (
                             20,
                             Instruction::AddImm32 {
-                                dst: 3,
-                                src: 2,
+                                dst: 5,
+                                src: 3,
                                 value: 1,
                             },
                         ),
                         (
                             24,
                             Instruction::AddImm32 {
-                                dst: 4,
-                                src: 2,
+                                dst: 6,
+                                src: 3,
                                 value: 2,
                             },
                         ),
@@ -3590,6 +3698,66 @@ mod tests {
         assert!(
             lifted.eliminated_pcs.contains(&8),
             "Store at PC 8 should be a dead store after forwarding"
+        );
+    }
+
+    #[test]
+    fn test_dead_store_elimination_keeps_store_through_loaded_pointer() {
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![
+                    (
+                        0,
+                        Instruction::LoadImm {
+                            reg: 1,
+                            value: 4096,
+                        },
+                    ),
+                    (
+                        4,
+                        Instruction::LoadImm {
+                            reg: 2,
+                            value: 8192,
+                        },
+                    ),
+                    (
+                        8,
+                        Instruction::StoreIndU64 {
+                            base: 1,
+                            src: 2,
+                            offset: 16,
+                        },
+                    ),
+                    (
+                        12,
+                        Instruction::LoadIndU64 {
+                            dst: 3,
+                            base: 1,
+                            offset: 16,
+                        },
+                    ),
+                    (16, Instruction::LoadImm { reg: 4, value: 123 }),
+                    (
+                        20,
+                        Instruction::StoreIndU64 {
+                            base: 3,
+                            src: 4,
+                            offset: 0,
+                        },
+                    ),
+                    (24, Instruction::Trap),
+                ],
+                vec![],
+            )],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        assert!(
+            !lifted.eliminated_pcs.contains(&20),
+            "Store through stack-loaded pointer must not be treated as dead stack-slot store"
         );
     }
 

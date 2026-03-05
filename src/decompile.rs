@@ -6,6 +6,7 @@
 use std::fs;
 use std::io::Read;
 use std::process::{Child, Command, ExitStatus, Output, Stdio};
+use std::thread::JoinHandle;
 use std::time::Duration;
 use tempfile::TempDir;
 use wait_timeout::ChildExt;
@@ -92,22 +93,47 @@ fn run_output_with_timeout(
 ) -> Result<Output, Box<dyn std::error::Error>> {
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
     let mut child = command.spawn()?;
-    let status = wait_with_timeout(&mut child, tool)?;
+    let stdout_handle = spawn_reader_thread(child.stdout.take(), tool, "stdout")?;
+    let stderr_handle = spawn_reader_thread(child.stderr.take(), tool, "stderr")?;
 
-    let mut stdout = Vec::new();
-    let mut stderr = Vec::new();
-    if let Some(mut out) = child.stdout.take() {
-        out.read_to_end(&mut stdout)?;
-    }
-    if let Some(mut err) = child.stderr.take() {
-        err.read_to_end(&mut stderr)?;
-    }
+    // Wait and pipe draining must run concurrently to avoid deadlocking when
+    // child stdout/stderr fills OS buffers before process exit.
+    let status = wait_with_timeout(&mut child, tool);
+    let stdout = join_reader_thread(stdout_handle, tool, "stdout")?;
+    let stderr = join_reader_thread(stderr_handle, tool, "stderr")?;
+    let status = status?;
 
     Ok(Output {
         status,
         stdout,
         stderr,
     })
+}
+
+fn spawn_reader_thread<R: Read + Send + 'static>(
+    stream: Option<R>,
+    tool: &str,
+    stream_name: &str,
+) -> Result<JoinHandle<std::io::Result<Vec<u8>>>, Box<dyn std::error::Error>> {
+    let mut stream =
+        stream.ok_or_else(|| format!("{} did not expose {} pipe", tool, stream_name))?;
+    Ok(std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        stream.read_to_end(&mut bytes)?;
+        Ok(bytes)
+    }))
+}
+
+fn join_reader_thread(
+    handle: JoinHandle<std::io::Result<Vec<u8>>>,
+    tool: &str,
+    stream_name: &str,
+) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    let bytes = handle
+        .join()
+        .map_err(|_| format!("{} {} reader thread panicked", tool, stream_name))?
+        .map_err(|e| format!("{} failed reading {}: {}", tool, stream_name, e))?;
+    Ok(bytes)
 }
 
 /// Detect which decompiler backends are available on the system.
@@ -120,7 +146,10 @@ pub fn detect_available_backends() -> Vec<DecompilerBackend> {
     if command_exists("rellic-decomp") {
         available.push(DecompilerBackend::Rellic);
     }
-    if docker_rellic_available() {
+    if rellic_docker_backend_selectable(
+        docker_rellic_available(),
+        rellic_build_on_demand_supported(),
+    ) {
         available.push(DecompilerBackend::RellicDocker);
     }
     if command_exists("llvm-cbe") {
@@ -131,6 +160,10 @@ pub fn detect_available_backends() -> Vec<DecompilerBackend> {
     available.push(DecompilerBackend::Builtin);
 
     available
+}
+
+fn rellic_docker_backend_selectable(image_exists: bool, can_build_on_demand: bool) -> bool {
+    image_exists || can_build_on_demand
 }
 
 /// Run decompilation on LLVM IR text, producing C code.
@@ -328,13 +361,16 @@ fn decompile_llvm_cbe(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::err
 /// Docker image name for Rellic.
 const RELLIC_DOCKER_IMAGE: &str = "pvm-rellic-decomp";
 
-/// Check if Docker-based Rellic is available (image exists or can be built).
+/// Check whether Docker CLI is available.
+fn docker_available() -> bool {
+    command_exists("docker")
+}
+
+/// Check if Docker-based Rellic image already exists locally.
 fn docker_rellic_available() -> bool {
-    // Check if Docker is available
-    if !command_exists("docker") {
+    if !docker_available() {
         return false;
     }
-    // Check if the image exists
     Command::new("docker")
         .args(["image", "inspect", RELLIC_DOCKER_IMAGE])
         .stdout(std::process::Stdio::null())
@@ -342,6 +378,11 @@ fn docker_rellic_available() -> bool {
         .status()
         .map(|s| s.success())
         .unwrap_or(false)
+}
+
+/// Check whether we can build the Rellic Docker image on-demand.
+fn rellic_build_on_demand_supported() -> bool {
+    docker_available() && find_rellic_dockerfile_dir().is_some()
 }
 
 /// Decompile using Rellic via Docker container.
@@ -673,4 +714,24 @@ fn find_llvm_tool(name: &str) -> String {
     }
     // Fall back to unversioned
     name.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::rellic_docker_backend_selectable;
+
+    #[test]
+    fn rellic_docker_backend_is_selectable_when_image_exists() {
+        assert!(rellic_docker_backend_selectable(true, false));
+    }
+
+    #[test]
+    fn rellic_docker_backend_is_selectable_when_can_build_on_demand() {
+        assert!(rellic_docker_backend_selectable(false, true));
+    }
+
+    #[test]
+    fn rellic_docker_backend_not_selectable_without_image_or_build_support() {
+        assert!(!rellic_docker_backend_selectable(false, false));
+    }
 }
