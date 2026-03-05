@@ -584,8 +584,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let chunk_end = (chunk_start + max_workers).min(total);
                     let chunk_results: Vec<(usize, String)> = std::thread::scope(|s| {
                         let mut handles = Vec::new();
-                        for idx in chunk_start..chunk_end {
-                            let (name, pseudo) = &pending_refinements[idx];
+                        for (idx, (name, pseudo)) in pending_refinements
+                            .iter()
+                            .enumerate()
+                            .take(chunk_end)
+                            .skip(chunk_start)
+                        {
                             let context = format!(
                                 "PVM bytecode decompiled from {}. Function {} of {}.",
                                 filename_ref,

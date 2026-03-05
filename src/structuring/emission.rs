@@ -266,10 +266,11 @@ impl StructuralAnalysis {
                 .is_some_and(|(_, cases)| em.should_emit_dispatch_loop(block_pc, cases));
 
             // Emit label if this block has one (skip hidden/suppressed blocks).
-            if !render_dispatch_loop && let Some(label) = em.labels.get(&block_pc) {
-                if !em.should_hide_label(block_pc) {
-                    let _ = writeln!(em.output, "{}:", label);
-                }
+            if !render_dispatch_loop
+                && let Some(label) = em.labels.get(&block_pc)
+                && !em.should_hide_label(block_pc)
+            {
+                let _ = writeln!(em.output, "{}:", label);
             }
 
             if let Some(Structure::Loop {
