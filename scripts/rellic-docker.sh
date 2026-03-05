@@ -18,7 +18,6 @@ fi
 
 INPUT_FILE="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 OUTPUT_FILE="$(cd "$(dirname "$2")" && pwd)/$(basename "$2")"
-WORK_DIR="$(dirname "$INPUT_FILE")"
 
 # Ensure output directory exists
 mkdir -p "$(dirname "$OUTPUT_FILE")"

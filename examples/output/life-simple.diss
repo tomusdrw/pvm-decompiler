@@ -1,4 +1,16 @@
 fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
+    let ptr_0: ptr
+    let ptr_0_160
+    let ptr_0_168
+    let ptr_0_40
+    let ptr_0_48
+    let ptr_0_56
+    let ptr_0_592
+    let ptr_0_64
+    let ptr_0_80
+    let ptr_0_88
+    let ptr_2_144
+    let ptr_5_144
     let ptr_5_464
     let ptr_5_48
     let ptr_5_56
@@ -6,6 +18,7 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     let ptr_5_608
     let ptr_5_64
     let var_274: u64
+    let var_65: u32
 
     // @0000
 
@@ -36,6 +49,39 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
         }
     }
 
+    block_03a8:
+    // @03a8
+    if (ptr_2_64 >=s ptr_2_56) goto block_03a3;
+
+    // @03e6
+
+    // @03f0
+    ptr_2_144 = 0
+
+    block_041b:
+    // @041b
+    if (!(ptr_2_144 >=s ptr_2_56)) {
+        // @0462
+        if (0xFEFD0000 >=u ptr_2 - 624) {
+        // @001f
+        ptr_0 = ptr_2 - 624
+        ptr_0_40 = ptr_2_40
+        ptr_0_48 = ptr_2_144
+        ptr_0_56 = ptr_2_64
+        ptr_0_64 = ptr_2_56
+        ptr_0_80 = 0
+        ptr_0_88 = 0xFFFFFFFF
+        goto block_0077;
+        }
+    }
+    // @03fb
+    let ptr_2_64 = ptr_2_64 + 1
+    goto block_03a8;
+
+    block_03a3:
+    // @038f
+    return
+
     if (!(ptr_5_200 ^ 3)) {
         // @06b3
         ptr_5_608 = 1
@@ -56,7 +102,7 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     block_05ef:
     // @05ef
     u8[ptr_5_48 + ptr_5_64 * ptr_5_56 + ptr_5_144 + 0x50000] = ptr_5_464
-    let ptr_5_144 = ptr_5_144 + 1
+    ptr_5_144 = ptr_5_144 + 1
     goto block_041b;
 
     block_069b:
@@ -68,6 +114,34 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     ptr_5_464 = ptr_5_600
     goto block_05ef;
 
+    block_0077:
+    // @0077
+    if (!(ptr_0_88 >s 1)) {
+        // @00a8
+        // @00b2
+        ptr_0_160 = ptr_0_80
+        ptr_0_168 = 0xFFFFFFFF
+        while (ptr_0_168 <=s 1) {
+        // @0138
+        if ((ptr_0_168 | ptr_0_88) != 0) goto block_0181;
+        // @0181
+        var_65 = ptr_0_48 + ptr_0_168 + ptr_0_64
+        break
+        // @0318
+        ptr_0_592 = ptr_0_160
+        // @0325
+        ptr_0_160 = ptr_0_592
+        ptr_0_168 = ptr_0_168 + 1
+        }
+        // @01ea
+        return
+        // @0260
+        return
+        // @00cc
+        ptr_0_80 = ptr_0_160
+        ptr_0_88 = ptr_0_88 + 1
+        goto block_0077;
+    }
 }
 
 fn func_1(r1: u64) {

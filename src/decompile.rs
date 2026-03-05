@@ -4,7 +4,14 @@
 //! to structured C code. Supports multiple backends with auto-detection.
 
 use std::fs;
-use std::process::Command;
+use std::io::Read;
+use std::process::{Child, Command, ExitStatus, Output, Stdio};
+use std::time::Duration;
+use tempfile::TempDir;
+use wait_timeout::ChildExt;
+
+/// Default timeout for external tool invocations.
+const DEFAULT_EXTERNAL_TOOL_TIMEOUT_SECS: u64 = 120;
 
 /// Available decompiler backends.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,6 +45,69 @@ pub struct DecompileResult {
     pub c_code: String,
     pub backend_used: DecompilerBackend,
     pub warnings: Vec<String>,
+}
+
+/// Create an isolated temp workspace for one decompilation run.
+fn create_workspace() -> Result<TempDir, Box<dyn std::error::Error>> {
+    Ok(tempfile::Builder::new()
+        .prefix("pvm-decompile-")
+        .tempdir()?)
+}
+
+fn external_tool_timeout() -> Duration {
+    let secs = std::env::var("PVM_DECOMPILER_TOOL_TIMEOUT_SECS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .filter(|v| *v > 0)
+        .unwrap_or(DEFAULT_EXTERNAL_TOOL_TIMEOUT_SECS);
+    Duration::from_secs(secs)
+}
+
+fn wait_with_timeout(
+    child: &mut Child,
+    tool: &str,
+) -> Result<ExitStatus, Box<dyn std::error::Error>> {
+    let timeout = external_tool_timeout();
+    match child.wait_timeout(timeout)? {
+        Some(status) => Ok(status),
+        None => {
+            let _ = child.kill();
+            let _ = child.wait();
+            Err(format!("{} timed out after {}s", tool, timeout.as_secs()).into())
+        }
+    }
+}
+
+fn run_status_with_timeout(
+    mut command: Command,
+    tool: &str,
+) -> Result<ExitStatus, Box<dyn std::error::Error>> {
+    let mut child = command.spawn()?;
+    wait_with_timeout(&mut child, tool)
+}
+
+fn run_output_with_timeout(
+    mut command: Command,
+    tool: &str,
+) -> Result<Output, Box<dyn std::error::Error>> {
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut child = command.spawn()?;
+    let status = wait_with_timeout(&mut child, tool)?;
+
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    if let Some(mut out) = child.stdout.take() {
+        out.read_to_end(&mut stdout)?;
+    }
+    if let Some(mut err) = child.stderr.take() {
+        err.read_to_end(&mut stderr)?;
+    }
+
+    Ok(Output {
+        status,
+        stdout,
+        stderr,
+    })
 }
 
 /// Detect which decompiler backends are available on the system.
@@ -101,35 +171,44 @@ pub fn decompile(
 
 /// Decompile using RetDec.
 fn decompile_retdec(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::error::Error>> {
-    let tmp_dir = std::env::temp_dir().join("pvm-decompile");
-    fs::create_dir_all(&tmp_dir)?;
+    let tmp_dir = create_workspace()?;
 
-    let ll_path = tmp_dir.join("input.ll");
-    let bc_path = tmp_dir.join("input.bc");
-    let out_path = tmp_dir.join("input.c");
+    let ll_path = tmp_dir.path().join("input.ll");
+    let bc_path = tmp_dir.path().join("input.bc");
+    let out_path = tmp_dir.path().join("input.c");
 
     // Write LLVM IR
     fs::write(&ll_path, llvm_ir)?;
 
     // Convert .ll to .bc using llvm-as
     let llvm_as = find_llvm_tool("llvm-as");
-    let status = Command::new(&llvm_as)
-        .args([ll_path.to_str().unwrap(), "-o", bc_path.to_str().unwrap()])
-        .status()?;
+    let status = run_status_with_timeout(
+        {
+            let mut cmd = Command::new(&llvm_as);
+            cmd.args([ll_path.to_str().unwrap(), "-o", bc_path.to_str().unwrap()]);
+            cmd
+        },
+        "llvm-as",
+    )?;
 
     if !status.success() {
         return Err("llvm-as failed to assemble LLVM IR".into());
     }
 
     // Run retdec-decompiler
-    let status = Command::new("retdec-decompiler")
-        .args([
-            "--backend-no-opts",
-            "-o",
-            out_path.to_str().unwrap(),
-            bc_path.to_str().unwrap(),
-        ])
-        .status()?;
+    let status = run_status_with_timeout(
+        {
+            let mut cmd = Command::new("retdec-decompiler");
+            cmd.args([
+                "--backend-no-opts",
+                "-o",
+                out_path.to_str().unwrap(),
+                bc_path.to_str().unwrap(),
+            ]);
+            cmd
+        },
+        "retdec-decompiler",
+    )?;
 
     let mut warnings = Vec::new();
     if !status.success() {
@@ -142,9 +221,6 @@ fn decompile_retdec(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::error
         return Err("RetDec produced no output".into());
     };
 
-    // Cleanup
-    let _ = fs::remove_dir_all(&tmp_dir);
-
     Ok(DecompileResult {
         c_code,
         backend_used: DecompilerBackend::RetDec,
@@ -154,34 +230,43 @@ fn decompile_retdec(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::error
 
 /// Decompile using Rellic.
 fn decompile_rellic(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::error::Error>> {
-    let tmp_dir = std::env::temp_dir().join("pvm-decompile");
-    fs::create_dir_all(&tmp_dir)?;
+    let tmp_dir = create_workspace()?;
 
-    let ll_path = tmp_dir.join("input.ll");
-    let bc_path = tmp_dir.join("input.bc");
-    let out_path = tmp_dir.join("output.c");
+    let ll_path = tmp_dir.path().join("input.ll");
+    let bc_path = tmp_dir.path().join("input.bc");
+    let out_path = tmp_dir.path().join("output.c");
 
     fs::write(&ll_path, llvm_ir)?;
 
     // Convert .ll to .bc
     let llvm_as = find_llvm_tool("llvm-as");
-    let status = Command::new(&llvm_as)
-        .args([ll_path.to_str().unwrap(), "-o", bc_path.to_str().unwrap()])
-        .status()?;
+    let status = run_status_with_timeout(
+        {
+            let mut cmd = Command::new(&llvm_as);
+            cmd.args([ll_path.to_str().unwrap(), "-o", bc_path.to_str().unwrap()]);
+            cmd
+        },
+        "llvm-as",
+    )?;
 
     if !status.success() {
         return Err("llvm-as failed to assemble LLVM IR".into());
     }
 
     // Run rellic-decomp
-    let output = Command::new("rellic-decomp")
-        .args([
-            "--input",
-            bc_path.to_str().unwrap(),
-            "--output",
-            out_path.to_str().unwrap(),
-        ])
-        .output()?;
+    let output = run_output_with_timeout(
+        {
+            let mut cmd = Command::new("rellic-decomp");
+            cmd.args([
+                "--input",
+                bc_path.to_str().unwrap(),
+                "--output",
+                out_path.to_str().unwrap(),
+            ]);
+            cmd
+        },
+        "rellic-decomp",
+    )?;
 
     let mut warnings = Vec::new();
     if !output.status.success() {
@@ -195,8 +280,6 @@ fn decompile_rellic(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::error
         return Err("Rellic produced no output".into());
     };
 
-    let _ = fs::remove_dir_all(&tmp_dir);
-
     Ok(DecompileResult {
         c_code,
         backend_used: DecompilerBackend::Rellic,
@@ -206,18 +289,22 @@ fn decompile_rellic(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::error
 
 /// Decompile using llvm-cbe (LLVM C Backend Emitter).
 fn decompile_llvm_cbe(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::error::Error>> {
-    let tmp_dir = std::env::temp_dir().join("pvm-decompile");
-    fs::create_dir_all(&tmp_dir)?;
+    let tmp_dir = create_workspace()?;
 
-    let ll_path = tmp_dir.join("input.ll");
-    let out_path = tmp_dir.join("input.cbe.c");
+    let ll_path = tmp_dir.path().join("input.ll");
+    let out_path = tmp_dir.path().join("input.cbe.c");
 
     fs::write(&ll_path, llvm_ir)?;
 
-    let output = Command::new("llvm-cbe")
-        .args([ll_path.to_str().unwrap()])
-        .current_dir(&tmp_dir)
-        .output()?;
+    let output = run_output_with_timeout(
+        {
+            let mut cmd = Command::new("llvm-cbe");
+            cmd.args([ll_path.to_str().unwrap()])
+                .current_dir(tmp_dir.path());
+            cmd
+        },
+        "llvm-cbe",
+    )?;
 
     let mut warnings = Vec::new();
     if !output.status.success() {
@@ -230,8 +317,6 @@ fn decompile_llvm_cbe(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::err
     } else {
         return Err("llvm-cbe produced no output".into());
     };
-
-    let _ = fs::remove_dir_all(&tmp_dir);
 
     Ok(DecompileResult {
         c_code,
@@ -261,11 +346,10 @@ fn docker_rellic_available() -> bool {
 
 /// Decompile using Rellic via Docker container.
 fn decompile_rellic_docker(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::error::Error>> {
-    let tmp_dir = std::env::temp_dir().join("pvm-decompile");
-    fs::create_dir_all(&tmp_dir)?;
+    let tmp_dir = create_workspace()?;
 
-    let ll_path = tmp_dir.join("input.ll");
-    let out_path = tmp_dir.join("output.c");
+    let ll_path = tmp_dir.path().join("input.ll");
+    let out_path = tmp_dir.path().join("output.c");
 
     // Write LLVM IR to temp file
     fs::write(&ll_path, llvm_ir)?;
@@ -282,9 +366,14 @@ fn decompile_rellic_docker(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std
                 "[rellic-docker] Building Docker image '{}' (this may take 15-30 minutes)...",
                 RELLIC_DOCKER_IMAGE
             );
-            let status = Command::new("docker")
-                .args(["build", "-t", RELLIC_DOCKER_IMAGE, dir.to_str().unwrap()])
-                .status()?;
+            let status = run_status_with_timeout(
+                {
+                    let mut cmd = Command::new("docker");
+                    cmd.args(["build", "-t", RELLIC_DOCKER_IMAGE, dir.to_str().unwrap()]);
+                    cmd
+                },
+                "docker build",
+            )?;
             if !status.success() {
                 return Err("Failed to build Rellic Docker image".into());
             }
@@ -299,17 +388,22 @@ fn decompile_rellic_docker(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std
     }
 
     // Run rellic via Docker: mount tmp dir, pass .ll file (entrypoint handles llvm-as)
-    let output = Command::new("docker")
-        .args([
-            "run",
-            "--rm",
-            "-v",
-            &format!("{}:/work", tmp_dir.display()),
-            RELLIC_DOCKER_IMAGE,
-            "/work/input.ll",
-            "/work/output.c",
-        ])
-        .output()?;
+    let output = run_output_with_timeout(
+        {
+            let mut cmd = Command::new("docker");
+            cmd.args([
+                "run",
+                "--rm",
+                "-v",
+                &format!("{}:/work", tmp_dir.path().display()),
+                RELLIC_DOCKER_IMAGE,
+                "/work/input.ll",
+                "/work/output.c",
+            ]);
+            cmd
+        },
+        "docker run",
+    )?;
 
     let mut warnings = Vec::new();
     if !output.status.success() {
@@ -323,9 +417,6 @@ fn decompile_rellic_docker(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(format!("Rellic Docker produced no output. stderr: {}", stderr).into());
     };
-
-    // Cleanup
-    let _ = fs::remove_dir_all(&tmp_dir);
 
     Ok(DecompileResult {
         c_code,
@@ -341,12 +432,14 @@ fn find_rellic_dockerfile_dir() -> Option<std::path::PathBuf> {
     if cwd_path.join("Dockerfile").exists() {
         return Some(cwd_path);
     }
-    // Try relative to executable
+    // Walk ancestors from executable directory to find repo-level docker/rellic.
     if let Ok(exe) = std::env::current_exe() {
         if let Some(parent) = exe.parent() {
-            let exe_path = parent.join("../docker/rellic");
-            if exe_path.join("Dockerfile").exists() {
-                return Some(exe_path);
+            for ancestor in parent.ancestors() {
+                let candidate = ancestor.join("docker/rellic");
+                if candidate.join("Dockerfile").exists() {
+                    return Some(candidate);
+                }
             }
         }
     }

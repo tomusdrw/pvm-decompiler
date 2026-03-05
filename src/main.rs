@@ -512,61 +512,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
+        unsuppress_blocks_with_live_incoming_edges(&mut lifted, &func_cfg, &direct_call_patterns);
 
-        // Detect and suppress AssemblyScript heap allocation boilerplate
-        if let Some(heap_alloc) =
-            detect_heap_alloc_pattern(&func_cfg, func.entry_pc, program.memory_base)
-        {
-            for &pc in &heap_alloc.eliminated_pcs {
-                lifted.eliminated_pcs.insert(pc);
-            }
-            for &pc in &heap_alloc.heap_ptr_arithmetic_pcs {
-                lifted.eliminated_pcs.insert(pc);
-            }
-            for &pc in &heap_alloc.header_write_pcs {
-                lifted.eliminated_pcs.insert(pc);
-            }
-            for &block_pc in &heap_alloc.sbrk_blocks {
-                lifted.suppressed_blocks.insert(block_pc);
-            }
-            lifted.hidden_labels.insert(heap_alloc.convergence_block_pc);
-            lifted.linear_memory_offset = heap_alloc.linear_memory_offset;
-
-            // Resolve the data pointer variable name: find the stack variable from
-            // the eliminated arithmetic range that is still referenced in non-eliminated code.
-            {
-                let arith_pcs: std::collections::HashSet<usize> =
-                    heap_alloc.heap_ptr_arithmetic_pcs.iter().copied().collect();
-                // Collect all stack variable names defined in the eliminated arithmetic range.
-                let mut arith_vars: Vec<String> = Vec::new();
-                for &pc in &heap_alloc.heap_ptr_arithmetic_pcs {
-                    if let Some(Expression::Store { base, offset, .. }) =
-                        lifted.expressions.get(&pc)
-                    {
-                        if let Expression::Var(base_name) = base.as_ref() {
-                            if let Some(name) = lifted.stack_vars.get(&(base_name.clone(), *offset))
-                            {
-                                arith_vars.push(name.clone());
-                            }
-                        }
-                    }
-                }
-                // Find the one that is referenced in non-eliminated, non-arithmetic expressions.
-                'outer: for var_name in &arith_vars {
-                    for (pc, expr) in &lifted.expressions {
-                        if arith_pcs.contains(pc) || lifted.eliminated_pcs.contains(pc) {
-                            continue;
-                        }
-                        if expr_uses_var(expr, var_name) {
-                            lifted.heap_alloc_data_ptr = Some(var_name.clone());
-                            break 'outer;
-                        }
-                    }
-                }
-            }
-
-            lifted.heap_alloc = Some(heap_alloc);
-        }
+        // Detect and suppress AssemblyScript heap allocation boilerplate.
+        apply_heap_alloc_suppression(&mut lifted, &func_cfg, func.entry_pc, program.memory_base);
 
         if verbosity >= Verbosity::Verbose {
             eprintln!("  Running structural analysis...");
@@ -623,38 +572,75 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let total = pending_refinements.len();
             eprintln!("Refining {} functions in parallel...", total);
             let filename_ref = &filename;
-            let results: Vec<String> = std::thread::scope(|s| {
-                let handles: Vec<_> = pending_refinements
-                    .iter()
-                    .enumerate()
-                    .map(|(idx, (name, pseudo))| {
-                        let context = format!(
-                            "PVM bytecode decompiled from {}. Function {} of {}.",
-                            filename_ref,
-                            idx + 1,
-                            total
-                        );
-                        let name = name.clone();
-                        let pseudo = pseudo.clone();
-                        s.spawn(move || {
-                            match llm_refine::refine_pseudo_code(&pseudo, &name, &context) {
-                                Ok(refined) => {
-                                    eprintln!("  Refined {}", name);
-                                    refined
+            if total > 0 {
+                let mut results_by_index: Vec<Option<String>> = vec![None; total];
+                let max_workers = std::thread::available_parallelism()
+                    .map(|n| n.get())
+                    .unwrap_or(1)
+                    .clamp(1, 4)
+                    .min(total);
+
+                for chunk_start in (0..total).step_by(max_workers) {
+                    let chunk_end = (chunk_start + max_workers).min(total);
+                    let chunk_results: Vec<(usize, String)> = std::thread::scope(|s| {
+                        let mut handles = Vec::new();
+                        for idx in chunk_start..chunk_end {
+                            let (name, pseudo) = &pending_refinements[idx];
+                            let context = format!(
+                                "PVM bytecode decompiled from {}. Function {} of {}.",
+                                filename_ref,
+                                idx + 1,
+                                total
+                            );
+                            let name = name.clone();
+                            let pseudo = pseudo.clone();
+                            handles.push(s.spawn(move || {
+                                let refined = std::panic::catch_unwind(
+                                    std::panic::AssertUnwindSafe(|| {
+                                        llm_refine::refine_pseudo_code(&pseudo, &name, &context)
+                                    }),
+                                );
+                                match refined {
+                                    Ok(Ok(code)) => {
+                                        eprintln!("  Refined {}", name);
+                                        (idx, code)
+                                    }
+                                    Ok(Err(e)) => {
+                                        eprintln!("  Failed {}: {}", name, e);
+                                        (idx, pseudo)
+                                    }
+                                    Err(_) => {
+                                        eprintln!("  Panic while refining {}", name);
+                                        (idx, pseudo)
+                                    }
                                 }
-                                Err(e) => {
-                                    eprintln!("  Failed {}: {}", name, e);
-                                    pseudo
+                            }));
+                        }
+
+                        let mut out = Vec::new();
+                        for handle in handles {
+                            match handle.join() {
+                                Ok(result) => out.push(result),
+                                Err(_) => {
+                                    eprintln!(
+                                        "  Worker panicked before returning refinement output"
+                                    );
                                 }
                             }
-                        })
-                    })
-                    .collect();
-                handles.into_iter().map(|h| h.join().unwrap()).collect()
-            });
-            for result in results {
-                all_output.push_str(&result);
-                all_output.push('\n');
+                        }
+                        out
+                    });
+
+                    for (idx, refined) in chunk_results {
+                        results_by_index[idx] = Some(refined);
+                    }
+                }
+
+                for (idx, refined) in results_by_index.into_iter().enumerate() {
+                    let text = refined.unwrap_or_else(|| pending_refinements[idx].1.clone());
+                    all_output.push_str(&text);
+                    all_output.push('\n');
+                }
             }
         } else {
             eprintln!("Warning: --refine requires OPENROUTER_API_KEY. Outputting raw pseudo-code.");
@@ -813,6 +799,9 @@ fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> 
                 }
             }
         }
+        unsuppress_blocks_with_live_incoming_edges(&mut lifted, &func_cfg, &direct_call_patterns);
+
+        apply_heap_alloc_suppression(&mut lifted, &func_cfg, func.entry_pc, program.memory_base);
 
         let structural = structuring::StructuralAnalysis::analyze_with_dom_tree(
             &func_cfg,
@@ -1056,6 +1045,98 @@ fn redundant_halt_setup_pcs_for_function(
     eliminated
 }
 
+fn apply_heap_alloc_suppression(
+    lifted: &mut LiftedProgram,
+    func_cfg: &ControlFlowGraph,
+    func_entry_pc: usize,
+    memory_base: Option<u64>,
+) {
+    if let Some(heap_alloc) = detect_heap_alloc_pattern(func_cfg, func_entry_pc, memory_base) {
+        for &pc in &heap_alloc.eliminated_pcs {
+            lifted.eliminated_pcs.insert(pc);
+        }
+        for &pc in &heap_alloc.heap_ptr_arithmetic_pcs {
+            lifted.eliminated_pcs.insert(pc);
+        }
+        for &pc in &heap_alloc.header_write_pcs {
+            lifted.eliminated_pcs.insert(pc);
+        }
+        for &block_pc in &heap_alloc.sbrk_blocks {
+            lifted.suppressed_blocks.insert(block_pc);
+        }
+        lifted.hidden_labels.insert(heap_alloc.convergence_block_pc);
+        lifted.linear_memory_offset = heap_alloc.linear_memory_offset;
+
+        // Resolve the data pointer variable name: find the stack variable from
+        // the eliminated arithmetic range that is still referenced in non-eliminated code.
+        let arith_pcs: HashSet<usize> = heap_alloc.heap_ptr_arithmetic_pcs.iter().copied().collect();
+        let mut arith_vars: Vec<String> = Vec::new();
+        for &pc in &heap_alloc.heap_ptr_arithmetic_pcs {
+            if let Some(Expression::Store { base, offset, .. }) = lifted.expressions.get(&pc)
+                && let Expression::Var(base_name) = base.as_ref()
+                && let Some(name) = lifted.stack_vars.get(&(base_name.clone(), *offset))
+            {
+                arith_vars.push(name.clone());
+            }
+        }
+        'outer: for var_name in &arith_vars {
+            for (pc, expr) in &lifted.expressions {
+                if arith_pcs.contains(pc) || lifted.eliminated_pcs.contains(pc) {
+                    continue;
+                }
+                if expr_uses_var(expr, var_name) {
+                    lifted.heap_alloc_data_ptr = Some(var_name.clone());
+                    break 'outer;
+                }
+            }
+        }
+
+        lifted.heap_alloc = Some(heap_alloc);
+    }
+}
+
+fn unsuppress_blocks_with_live_incoming_edges(
+    lifted: &mut LiftedProgram,
+    func_cfg: &ControlFlowGraph,
+    direct_call_patterns: &[functions::DirectCallPattern],
+) {
+    if lifted.suppressed_blocks.is_empty() {
+        return;
+    }
+
+    let allowed_call_edges: HashSet<(usize, usize)> = direct_call_patterns
+        .iter()
+        .map(|pat| (pat.caller_block_pc, pat.jump_target_pc))
+        .collect();
+
+    let mut queue = std::collections::VecDeque::new();
+    for &block_pc in &lifted.suppressed_blocks {
+        let Some(block) = func_cfg.blocks.get(&block_pc) else {
+            continue;
+        };
+        let has_live_incoming_edge = block.predecessors.iter().any(|pred| {
+            !lifted.suppressed_blocks.contains(pred)
+                && !allowed_call_edges.contains(&(*pred, block_pc))
+        });
+        if has_live_incoming_edge {
+            queue.push_back(block_pc);
+        }
+    }
+
+    while let Some(block_pc) = queue.pop_front() {
+        if !lifted.suppressed_blocks.remove(&block_pc) {
+            continue;
+        }
+        if let Some(block) = func_cfg.blocks.get(&block_pc) {
+            for &succ in &block.successors {
+                if lifted.suppressed_blocks.contains(&succ) {
+                    queue.push_back(succ);
+                }
+            }
+        }
+    }
+}
+
 fn is_halt_setup_side_effecting(shape: &crate::instruction::InstructionShape) -> bool {
     use crate::instruction::InstructionShape;
     matches!(
@@ -1105,7 +1186,9 @@ fn expr_uses_var(expr: &Expression, name: &str) -> bool {
             expr_uses_var(base, name) || expr_uses_var(value, name)
         }
         Expression::Call { args, .. } => args.iter().any(|a| expr_uses_var(a, name)),
-        Expression::Raw(text) => text.contains(name),
+        Expression::Raw(text) => text
+            .split(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+            .any(|tok| tok == name),
         Expression::Const(_) => false,
     }
 }
@@ -1603,27 +1686,43 @@ mod integration_tests {
             .expect("as-fibonacci.pvm fixture should exist");
         let output = decompile_bytes(&buffer).expect("decompilation should succeed");
 
-        let decl_pos = output
-            .find("let ptr_0_344")
-            .expect("ptr_0_344 should be hoisted to the function prologue");
-        let guard_pos = output
-            .find("if (var_27 <u var_9 + 268)")
-            .expect("expected heap-ensure guard in as-fibonacci");
-
-        assert!(
-            decl_pos < guard_pos,
-            "ptr_0_344 declaration must appear before its guarded definition:\n{}",
-            output
-        );
-        assert!(
-            !output.contains("let ptr_0_344 ="),
-            "ptr_0_344 should not be redeclared inside the guarded block:\n{}",
-            output
-        );
-        assert!(
-            output.contains("ptr_0_344 = var_64"),
-            "ptr_0_344 assignment should remain after hoisting:\n{}",
-            output
-        );
+        if let (Some(decl_pos), Some(guard_pos)) = (
+            output.find("let ptr_0_344"),
+            output.find("if (var_27 <u var_9 + 268)"),
+        ) {
+            assert!(
+                decl_pos < guard_pos,
+                "ptr_0_344 declaration must appear before its guarded definition:\n{}",
+                output
+            );
+            assert!(
+                !output.contains("let ptr_0_344 ="),
+                "ptr_0_344 should not be redeclared inside the guarded block:\n{}",
+                output
+            );
+            assert!(
+                output.contains("ptr_0_344 = var_64"),
+                "ptr_0_344 assignment should remain after hoisting:\n{}",
+                output
+            );
+        } else {
+            // In the shared suppression pipeline we may emit the compact heap_alloc helper
+            // form instead of explicit guard boilerplate.
+            assert!(
+                output.contains("heap_alloc("),
+                "expected either guarded hoisted form or compact heap_alloc form:\n{}",
+                output
+            );
+            assert!(
+                output.contains("RESULT_PTR ="),
+                "optimized form should still set RESULT_PTR:\n{}",
+                output
+            );
+            assert!(
+                output.contains("RESULT_LEN ="),
+                "optimized form should still set RESULT_LEN:\n{}",
+                output
+            );
+        }
     }
 }

@@ -6,10 +6,13 @@
 //!   - **Advisor**: Suggests specific improvements (naming, comments, structure)
 //!   - **Operator**: Applies improvements while preserving semantics
 
-use std::process::Command;
+use reqwest::blocking::Client;
+use serde_json::{Value, json};
+use std::time::Duration;
 
 /// Maximum refinement rounds.
 const MAX_ROUNDS: usize = 3;
+const DEFAULT_OPENROUTER_TIMEOUT_SECS: u64 = 60;
 
 /// Result of LLM refinement.
 pub struct RefinementResult {
@@ -44,7 +47,11 @@ pub fn refine(c_code: &str, context: &str) -> Result<RefinementResult, Box<dyn s
         let improved = run_operator(&current, &suggestions, context)?;
 
         // Validate the improvement isn't empty or obviously broken
-        if improved.len() > 20 && improved.contains("int") {
+        if improved.len() > 20
+            && improved.contains('{')
+            && improved.contains('}')
+            && (improved.contains("return") || improved.contains(';'))
+        {
             all_improvements.push(format!("Round {}: {}", round + 1, summarize(&suggestions)));
             current = improved;
         } else {
@@ -197,90 +204,50 @@ fn get_api_key() -> Result<String, Box<dyn std::error::Error>> {
 fn call_llm(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
     let api_key = get_api_key()?;
 
-    // Build JSON payload - escape the prompt for JSON
-    let escaped_prompt = prompt
-        .replace('\\', "\\\\")
-        .replace('"', "\\\"")
-        .replace('\n', "\\n")
-        .replace('\r', "\\r")
-        .replace('\t', "\\t");
+    let timeout_secs = std::env::var("OPENROUTER_TIMEOUT_SECS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .filter(|v| *v > 0)
+        .unwrap_or(DEFAULT_OPENROUTER_TIMEOUT_SECS);
 
-    let json_body = format!(
-        r#"{{"model":"google/gemini-3.1-flash-lite-preview","messages":[{{"role":"user","content":"{}"}}]}}"#,
-        escaped_prompt
-    );
+    let client = Client::builder()
+        .timeout(Duration::from_secs(timeout_secs))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
-    let output = Command::new("curl")
-        .args([
-            "-s",
-            "-X",
-            "POST",
-            "https://openrouter.ai/api/v1/chat/completions",
-            "-H",
-            &format!("Authorization: Bearer {}", api_key),
-            "-H",
-            "Content-Type: application/json",
-            "-d",
-            &json_body,
-        ])
-        .output()
-        .map_err(|e| format!("Failed to run curl: {}", e))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("curl failed: {}", stderr).into());
+    let response = client
+        .post("https://openrouter.ai/api/v1/chat/completions")
+        .bearer_auth(api_key)
+        .json(&json!({
+            "model": "google/gemini-3.1-flash-lite-preview",
+            "messages": [{ "role": "user", "content": prompt }]
+        }))
+        .send()
+        .map_err(|e| format!("OpenRouter request failed: {}", e))?;
+    let status = response.status();
+    let body = response
+        .text()
+        .map_err(|e| format!("Failed to read OpenRouter response body: {}", e))?;
+    if !status.is_success() {
+        return Err(format!("OpenRouter request failed ({status}): {body}").into());
     }
 
-    let body = String::from_utf8_lossy(&output.stdout);
-
     // Parse the response JSON to extract the message content.
-    // We do minimal JSON parsing to avoid adding a dependency.
     extract_openrouter_content(&body)
-        .ok_or_else(|| format!("Failed to parse OpenRouter response: {}", body).into())
+        .ok_or_else(|| format!("Failed to parse OpenRouter response: {body}").into())
 }
 
 /// Extract the assistant message content from an OpenRouter JSON response.
 fn extract_openrouter_content(json: &str) -> Option<String> {
-    // Look for "content":"..." in the response
-    // The response format is: {"choices":[{"message":{"content":"..."}}]}
-    let marker = r#""content":""#;
-    let start = json.find(marker)? + marker.len();
-    let rest = &json[start..];
-
-    // Find the closing quote, handling escaped quotes
-    let mut result = String::new();
-    let mut chars = rest.chars();
-    loop {
-        match chars.next()? {
-            '\\' => match chars.next()? {
-                'n' => result.push('\n'),
-                'r' => result.push('\r'),
-                't' => result.push('\t'),
-                '"' => result.push('"'),
-                '\\' => result.push('\\'),
-                '/' => result.push('/'),
-                'u' => {
-                    let mut hex = String::new();
-                    for _ in 0..4 {
-                        hex.push(chars.next()?);
-                    }
-                    if let Ok(cp) = u32::from_str_radix(&hex, 16) {
-                        if let Some(c) = char::from_u32(cp) {
-                            result.push(c);
-                        }
-                    }
-                }
-                other => {
-                    result.push('\\');
-                    result.push(other);
-                }
-            },
-            '"' => break,
-            c => result.push(c),
-        }
-    }
-
-    Some(result)
+    let parsed: Value = serde_json::from_str(json).ok()?;
+    parsed
+        .get("choices")?
+        .as_array()?
+        .first()?
+        .get("message")?
+        .get("content")?
+        .as_str()
+        .map(|s| s.to_string())
 }
 
 /// Extract a code block from an LLM response.

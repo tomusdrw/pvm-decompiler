@@ -938,10 +938,15 @@ pub fn detect_heap_alloc_pattern(
     let mut convergence_block_pc = None;
     let mut heap_ptr_store_pcs = Vec::new();
     let mut header_write_pcs = Vec::new();
-    for (&block_pc, block) in &cfg.blocks {
+    let mut sorted_block_pcs: Vec<usize> = cfg.blocks.keys().copied().collect();
+    sorted_block_pcs.sort_unstable();
+    for block_pc in sorted_block_pcs {
         if block_pc == entry_pc {
             continue;
         }
+        let Some(block) = cfg.blocks.get(&block_pc) else {
+            continue;
+        };
         for (idx, (pc, instr)) in block.instructions.iter().enumerate() {
             if let Instruction::LoadImm { value, .. } = instr {
                 if *value == heap_ptr_addr && idx + 1 < block.instructions.len() {
@@ -1008,7 +1013,7 @@ pub fn detect_heap_alloc_pattern(
         }
     }
 
-    // Step 4b: Collect eliminated PCs: HEAP_PAGES computation + guard branch
+    // Step 5: Collect eliminated PCs: HEAP_PAGES computation + guard branch
     // (HEAP_PTR arithmetic is kept visible — variables there are referenced later)
     let mut eliminated_pcs: Vec<usize> = instrs[heap_pages_load_idx..]
         .iter()
@@ -1018,7 +1023,7 @@ pub fn detect_heap_alloc_pattern(
     // Add HEAP_PTR store-back PCs from convergence block
     eliminated_pcs.extend(&heap_ptr_store_pcs);
 
-    // Step 5: BFS from entry block successors to collect all blocks before convergence
+    // Step 6: BFS from entry block successors to collect all blocks before convergence
     let mut sbrk_blocks = Vec::new();
     let mut visited = HashSet::new();
     visited.insert(entry_pc);
@@ -1050,7 +1055,7 @@ pub fn detect_heap_alloc_pattern(
         return None;
     }
 
-    // Step 6: Detect linear memory offset from convergence block instructions.
+    // Step 7: Detect linear memory offset from convergence block instructions.
     // Look for any Load/Store with an offset larger than memory_base — that's the
     // linear memory offset used for all heap accesses in AS programs.
     let mut linear_memory_offset = None;

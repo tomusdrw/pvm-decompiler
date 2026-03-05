@@ -116,7 +116,9 @@ fn lift_single_function(
     }
 
     // Function signature: takes no args, returns i64 (r0)
-    // PVM convention: r0 = return value, r1 = arg1, r2 = SP
+    // PVM convention used by this LLVM lift path:
+    // r0 = return address, r1 = SP, r2-r6 = scratch, r7 = return value/args ptr,
+    // r8 = args len, r9-r12 = callee-saved.
     writeln!(out, "define i64 @{}() {{", sanitize_name(name)).unwrap();
 
     // Entry block: allocate registers
@@ -130,11 +132,11 @@ fn lift_single_function(
         writeln!(out, "  store i64 0, ptr %r{}, align 8", reg).unwrap();
     }
 
-    // Initialize SP (r2) with a stack pointer value if memory_base is known
+    // Initialize SP (r1) with a stack pointer value if memory_base is known
     if let Some(mem_base) = program.memory_base {
         writeln!(
             out,
-            "  store i64 {}, ptr %r2, align 8 ; SP = memory_base",
+            "  store i64 {}, ptr %r1, align 8 ; SP = memory_base",
             mem_base
         )
         .unwrap();
@@ -146,6 +148,7 @@ fn lift_single_function(
 
     // SSA temporary counter for this function
     let mut tmp_counter = 0u64;
+    let mut exit_labels_emitted: HashSet<usize> = HashSet::new();
 
     // Emit each basic block
     for block in &func_blocks {
@@ -158,7 +161,14 @@ fn lift_single_function(
         }
 
         // Emit terminator
-        emit_terminator(out, block, program, block_pcs, &mut tmp_counter);
+        emit_terminator(
+            out,
+            block,
+            program,
+            block_pcs,
+            &mut exit_labels_emitted,
+            &mut tmp_counter,
+        );
         writeln!(out).unwrap();
     }
 
@@ -358,8 +368,6 @@ fn emit_instruction(
 
         InstructionShape::Unknown { opcode } => {
             writeln!(out, "  ; unknown opcode 0x{:02x}", opcode).unwrap();
-            writeln!(out, "  call void @pvm_trap()").unwrap();
-            writeln!(out, "  unreachable").unwrap();
         }
     }
 }
@@ -370,6 +378,7 @@ fn emit_terminator(
     block: &BasicBlock,
     program: &DecodedProgram,
     func_block_pcs: &HashSet<usize>,
+    exit_labels_emitted: &mut HashSet<usize>,
     tmp: &mut u64,
 ) {
     if let Some((pc, instr)) = block.instructions.last() {
@@ -467,13 +476,15 @@ fn emit_terminator(
                 .unwrap();
 
                 // Emit exit blocks if needed
-                if !func_block_pcs.contains(&target) {
+                if !func_block_pcs.contains(&target) && exit_labels_emitted.insert(target) {
                     writeln!(out, "\n{}:", target_label).unwrap();
                     let t = next_tmp(tmp);
                     writeln!(out, "  {} = load i64, ptr %r0, align 8", t).unwrap();
                     writeln!(out, "  ret i64 {}", t).unwrap();
                 }
-                if !func_block_pcs.contains(&fallthrough) {
+                if !func_block_pcs.contains(&fallthrough)
+                    && exit_labels_emitted.insert(fallthrough)
+                {
                     writeln!(out, "\n{}:", fall_label).unwrap();
                     let t = next_tmp(tmp);
                     writeln!(out, "  {} = load i64, ptr %r0, align 8", t).unwrap();
@@ -517,18 +528,26 @@ fn emit_terminator(
                 )
                 .unwrap();
 
-                if !func_block_pcs.contains(&target) {
+                if !func_block_pcs.contains(&target) && exit_labels_emitted.insert(target) {
                     writeln!(out, "\n{}:", target_label).unwrap();
                     let t = next_tmp(tmp);
                     writeln!(out, "  {} = load i64, ptr %r0, align 8", t).unwrap();
                     writeln!(out, "  ret i64 {}", t).unwrap();
                 }
-                if !func_block_pcs.contains(&fallthrough) {
+                if !func_block_pcs.contains(&fallthrough)
+                    && exit_labels_emitted.insert(fallthrough)
+                {
                     writeln!(out, "\n{}:", fall_label).unwrap();
                     let t = next_tmp(tmp);
                     writeln!(out, "  {} = load i64, ptr %r0, align 8", t).unwrap();
                     writeln!(out, "  ret i64 {}", t).unwrap();
                 }
+            }
+
+            InstructionShape::Unknown { opcode } => {
+                writeln!(out, "  ; unknown opcode 0x{:02x}", opcode).unwrap();
+                writeln!(out, "  call void @pvm_trap()").unwrap();
+                writeln!(out, "  unreachable").unwrap();
             }
 
             _ => {
@@ -552,7 +571,14 @@ fn emit_terminator(
     } else {
         // Empty block - fall through or return
         if !block.successors.is_empty() {
-            writeln!(out, "  br label %bb_{:04x}", block.successors[0]).unwrap();
+            let next = block.successors[0];
+            if func_block_pcs.contains(&next) {
+                writeln!(out, "  br label %bb_{:04x}", next).unwrap();
+            } else {
+                let t = next_tmp(tmp);
+                writeln!(out, "  {} = load i64, ptr %r0, align 8", t).unwrap();
+                writeln!(out, "  ret i64 {}", t).unwrap();
+            }
         } else {
             let t = next_tmp(tmp);
             writeln!(out, "  {} = load i64, ptr %r0, align 8", t).unwrap();
@@ -1052,8 +1078,28 @@ fn sanitize_name(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cfg::{BasicBlock, ControlFlowGraph, build_test_cfg};
     use crate::decoder::DecodedProgram;
+    use crate::functions::Function;
     use std::collections::HashSet;
+    use wasm_pvm::pvm::Instruction;
+
+    fn test_program(memory_base: Option<u64>) -> DecodedProgram {
+        DecodedProgram {
+            jump_table: vec![],
+            instructions: vec![],
+            code_len: 0,
+            memory_base,
+        }
+    }
+
+    fn single_function(entry_pc: usize, block_pcs: &[usize]) -> Function {
+        Function {
+            name: "main".to_string(),
+            entry_pc,
+            block_pcs: block_pcs.iter().copied().collect(),
+        }
+    }
 
     #[test]
     fn emit_indirect_jump_uses_unique_default_labels() {
@@ -1093,5 +1139,128 @@ mod tests {
                 "each default label should be emitted once"
             );
         }
+    }
+
+    #[test]
+    fn lift_program_initializes_sp_in_r1() {
+        let program = test_program(Some(0x50000));
+        let cfg = build_test_cfg(0, vec![(0, vec![(0, Instruction::Trap)], vec![])]);
+        let func = single_function(0, &[0]);
+
+        let ir = lift_program(&program, &cfg, &[func]);
+
+        assert!(
+            ir.contains("store i64 327680, ptr %r1, align 8 ; SP = memory_base"),
+            "SP must be initialized in r1: {ir}"
+        );
+        assert!(
+            !ir.contains("ptr %r2, align 8 ; SP = memory_base"),
+            "SP must not be initialized in r2: {ir}"
+        );
+    }
+
+    #[test]
+    fn unknown_opcode_emits_single_terminator() {
+        let program = test_program(None);
+        let cfg = build_test_cfg(
+            0,
+            vec![(
+                0,
+                vec![(
+                    0,
+                    Instruction::Unknown {
+                        opcode: 0xAB,
+                        raw_bytes: vec![0xAB, 0x00],
+                    },
+                )],
+                vec![],
+            )],
+        );
+        let func = single_function(0, &[0]);
+
+        let ir = lift_program(&program, &cfg, &[func]);
+
+        assert_eq!(
+            ir.matches("call void @pvm_trap()").count(),
+            1,
+            "unknown opcode block should trap exactly once: {ir}"
+        );
+        assert_eq!(
+            ir.matches("unreachable").count(),
+            1,
+            "unknown opcode block should emit a single unreachable terminator: {ir}"
+        );
+        assert!(
+            !ir.contains("ret i64"),
+            "unknown opcode block must not emit an additional return terminator: {ir}"
+        );
+    }
+
+    #[test]
+    fn external_branch_exit_labels_are_emitted_once() {
+        let program = test_program(None);
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::BranchEqImm {
+                            reg: 0,
+                            value: 0,
+                            offset: 0x200,
+                        },
+                    )],
+                    vec![],
+                ),
+                (
+                    10,
+                    vec![(
+                        10,
+                        Instruction::BranchEqImm {
+                            reg: 0,
+                            value: 1,
+                            offset: 0x1F6, // 10 + 0x1F6 = 0x200
+                        },
+                    )],
+                    vec![],
+                ),
+            ],
+        );
+        let func = single_function(0, &[0, 10]);
+
+        let ir = lift_program(&program, &cfg, &[func]);
+
+        assert_eq!(
+            ir.matches("bb_exit_0200:").count(),
+            1,
+            "duplicate external exit labels must be deduplicated: {ir}"
+        );
+    }
+
+    #[test]
+    fn empty_block_with_external_successor_returns_r0() {
+        let program = test_program(None);
+        let mut cfg = ControlFlowGraph::new(0);
+        cfg.add_block(BasicBlock {
+            start_pc: 0,
+            end_pc: 0,
+            instructions: vec![],
+            successors: vec![0x200],
+            predecessors: vec![],
+        });
+        let func = single_function(0, &[0]);
+
+        let ir = lift_program(&program, &cfg, &[func]);
+
+        assert!(
+            !ir.contains("br label %bb_0200"),
+            "empty block should not branch to undefined in-function label: {ir}"
+        );
+        assert!(
+            ir.contains("ret i64"),
+            "empty block with external successor should fallback to return: {ir}"
+        );
     }
 }

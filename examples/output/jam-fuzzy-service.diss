@@ -2,9 +2,12 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     let cond_128: bool
     let ptr_0: ptr
     let ptr_1073: ptr
+    let ptr_1073_0
     let ptr_1078: ptr
+    let ptr_1078_0
     let ptr_1106: ptr
     let ptr_1107: ptr
+    let ptr_1107_256
     let ptr_1113: ptr
     let ptr_1137: ptr
     let ptr_1141: ptr
@@ -23,6 +26,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     let ptr_1297: ptr
     let ptr_15: ptr
     let ptr_924: ptr
+    let var_10091: u64
     let var_17414: u64
     let var_17415: u64
     let var_17922: u64
@@ -168,7 +172,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     for (let r11 = ptr_1107_256; ptr_1107_256 >=u 255; r11 = ptr_1107_256 + ptr_1107) {
         // @15d2e
         r8 = ptr_1106 + 1
-        let ptr_1107_256 = ptr_1107_256 + 1
+        ptr_1107_256 = ptr_1107_256 + 1
     }
 
     // @15d49
@@ -178,7 +182,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     while (ptr_1073_0 & 255 != 0) {
         // @15597
         RESULT_PTR = var_16941
-        let ptr_1073_0 = ptr_1073_0 | 1 << 32 >>s 32
+        ptr_1073_0 = ptr_1073_0 | 1 << 32 >>s 32
     }
 
     // @155b5
@@ -6811,7 +6815,7 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     while (ptr_1078_0 & 255 != 0) {
         // @15661
         RESULT_PTR = var_16991
-        let ptr_1078_0 = ptr_1078_0 | 1 << 32 >>s 32
+        ptr_1078_0 = ptr_1078_0 | 1 << 32 >>s 32
     }
 
     // @1567f
@@ -8605,10 +8609,12 @@ fn func_1(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     let var_114: u64
     let var_129: u64
     let var_133: u64
+    let var_15: u64
     let var_16: u64
     let var_21: u64
     let var_22: u64
     let var_23: u64
+    let var_24: u64
     let var_8: u64
     let var_81: u64
     let var_84: u64
@@ -9128,6 +9134,7 @@ fn func_4(r7: u64, r8: u64) {
 }
 
 fn func_5(r7: u64, r8: u64) {
+
     // @0a0c
     let var_0 = u8[r7]
     r7 = u64[r8]
@@ -9481,6 +9488,7 @@ fn func_8(r7: u64, r8: u64) {
 }
 
 fn func_9(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
+
     if (u8[r7] != 8) {
         // @10e3
         r8 = 0x10B3A
@@ -9774,12 +9782,14 @@ fn func_38() {
 }
 
 fn func_39(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
+
     // @14298
     r8 = 39
     r0 = 2186; jump_ind var_1
 }
 
 fn func_40(r1: u64, r5: u64, r6: u64) {
+
     if (u8[r1 + 20] != 128) {
         // @1430e
         let var_6 = u8[r1 + 30]
@@ -9794,6 +9804,7 @@ fn func_40(r1: u64, r5: u64, r6: u64) {
 }
 
 fn func_41(r1: u64, r5: u64, r7: u64) {
+
     if (r7 == 0) {
         // @1433b
         r8 = 39
@@ -9817,6 +9828,7 @@ fn func_42(r1: u64) {
 }
 
 fn func_43(r1: u64, r5: u64, r7: u64) {
+
     if (r7 == 0) {
         // @1445a
         r7 = u64[r5]
@@ -9916,6 +9928,7 @@ fn func_54(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r12: u
 }
 
 fn func_55(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
+
     // @15dd4
     r8 = 0x128D0
     r9 = 12
@@ -9972,6 +9985,7 @@ fn func_57(r0: u64, r1: u64, r7: u64, r8: u64) {
 }
 
 fn func_58(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
+
     // @1609b
     r5 = u64[r7]
     r6 = u64[r7 + 8]

@@ -26,6 +26,9 @@ pub struct FormatContext {
     /// Linear memory offset for heap accesses (e.g. 0x50000 for AS programs).
     /// When set, pointer dereferences through this offset render as `*ptr`.
     pub linear_memory_offset: Option<u64>,
+    /// Whether formatting currently occurs in memory-dereference context.
+    /// Some simplifications are only semantics-safe in this context.
+    pub deref_context: bool,
 }
 
 impl FormatContext {
@@ -34,7 +37,14 @@ impl FormatContext {
         Self {
             memory_base,
             linear_memory_offset: None,
+            deref_context: false,
         }
+    }
+
+    fn with_deref_context(&self) -> Self {
+        let mut next = self.clone();
+        next.deref_context = true;
+        next
     }
 }
 
@@ -2168,6 +2178,7 @@ pub fn format_expression(expr: &Expression, ctx: &FormatContext) -> String {
                 // If subtracting the linear memory offset, strip it entirely —
                 // the matching *ptr dereference already hides the addition.
                 if let Some(lmo) = ctx.linear_memory_offset
+                    && ctx.deref_context
                     && (-*v) as u64 == lmo
                 {
                     return format_expression(lhs, ctx);
@@ -2273,6 +2284,7 @@ fn format_mem_base_access(
     ctx: &FormatContext,
 ) -> Option<String> {
     let mem_base = ctx.memory_base? as i64;
+    let deref_ctx = ctx.with_deref_context();
 
     // Pattern 1: base = BinOp(var, Add, Const(MEMORY_BASE)), offset = 0
     if offset == 0
@@ -2285,12 +2297,12 @@ fn format_mem_base_access(
         if let Expression::Const(v) = rhs.as_ref()
             && *v == mem_base
         {
-            return Some(format!("{}[{}]", width, format_expression(lhs, ctx)));
+            return Some(format!("{}[{}]", width, format_expression(lhs, &deref_ctx)));
         }
         if let Expression::Const(v) = lhs.as_ref()
             && *v == mem_base
         {
-            return Some(format!("{}[{}]", width, format_expression(rhs, ctx)));
+            return Some(format!("{}[{}]", width, format_expression(rhs, &deref_ctx)));
         }
     }
 
@@ -2305,7 +2317,7 @@ fn format_mem_base_access(
     }
     // Preserve the access width in the rendered syntax.
     if offset as i64 == mem_base {
-        return Some(format!("{}[{}]", width, format_expression(base, ctx)));
+        return Some(format!("{}[{}]", width, format_expression(base, &deref_ctx)));
     }
 
     None
@@ -2444,23 +2456,24 @@ fn resolve_named_global(
 
 /// Format a memory address `base + offset` with clean output.
 fn format_mem_address(base: &Expression, offset: i32, ctx: &FormatContext) -> String {
+    let deref_ctx = ctx.with_deref_context();
     match (base, offset) {
         // Pure constant address: base is 0 → just show offset
         (Expression::Const(0), off) => format_const(off as i64),
         // Constant base + offset → fold them
         (Expression::Const(b), off) => format_const((*b).wrapping_add(off as i64)),
         // Zero offset → just base
-        (_, 0) => format_expression(base, ctx),
+        (_, 0) => format_expression(base, &deref_ctx),
         // Negative offset
         (_, off) if off < 0 => format!(
             "{} - {}",
-            format_expression(base, ctx),
+            format_expression(base, &deref_ctx),
             format_const((-off) as i64)
         ),
         // Positive offset
         (_, off) => format!(
             "{} + {}",
-            format_expression(base, ctx),
+            format_expression(base, &deref_ctx),
             format_const(off as i64)
         ),
     }
@@ -4274,6 +4287,36 @@ mod tests {
             offset: 0,
         };
         assert_eq!(format_expression(&load3, &ctx), "u32[0]");
+    }
+
+    #[test]
+    fn test_linear_memory_offset_rendering_is_deref_only() {
+        let mut ctx = FormatContext::new(None);
+        ctx.linear_memory_offset = Some(0x50000);
+
+        // Outside dereference context, keep arithmetic explicit.
+        let arithmetic = Expression::BinOp {
+            op: BinOp::Add,
+            lhs: Box::new(Expression::Var("addr".to_string())),
+            rhs: Box::new(Expression::Const(-0x50000)),
+        };
+        assert_eq!(format_expression(&arithmetic, &ctx), "addr - 0x50000");
+
+        // Pointer-like bases use dereference form when offset matches linear_memory_offset.
+        let ptr_load = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::Var("ptr_data".to_string())),
+            offset: 0x50000,
+        };
+        assert_eq!(format_expression(&ptr_load, &ctx), "*ptr_data");
+
+        // Non-pointer names should preserve arithmetic addressing.
+        let non_ptr_load = Expression::Load {
+            width: MemWidth::U32,
+            base: Box::new(Expression::Var("idx".to_string())),
+            offset: 0x50000,
+        };
+        assert_eq!(format_expression(&non_ptr_load, &ctx), "u32[idx + 0x50000]");
     }
 
     fn empty_lifted() -> LiftedProgram {

@@ -267,10 +267,7 @@ impl StructuralAnalysis {
 
             // Emit label if this block has one (skip hidden/suppressed blocks).
             if !render_dispatch_loop && let Some(label) = em.labels.get(&block_pc) {
-                let should_hide = em.lifted.is_some_and(|l| {
-                    l.hidden_labels.contains(&block_pc) || l.suppressed_blocks.contains(&block_pc)
-                });
-                if !should_hide {
+                if !em.should_hide_label(block_pc) {
                     let _ = writeln!(em.output, "{}:", label);
                 }
             }
@@ -377,17 +374,42 @@ struct Emitter<'a, 'p> {
 }
 
 impl<'a, 'p> Emitter<'a, 'p> {
+    fn block_has_visible_predecessor(&self, block_pc: usize) -> bool {
+        let Some(block) = self.cfg.blocks.get(&block_pc) else {
+            return false;
+        };
+        block.predecessors.iter().any(|pred| {
+            if let Some(lifted) = self.lifted {
+                !lifted.suppressed_blocks.contains(pred)
+            } else {
+                true
+            }
+        })
+    }
+
+    fn should_hide_label(&self, block_pc: usize) -> bool {
+        let Some(lifted) = self.lifted else {
+            return false;
+        };
+
+        if lifted.suppressed_blocks.contains(&block_pc) {
+            return true;
+        }
+
+        if !lifted.hidden_labels.contains(&block_pc) {
+            return false;
+        }
+
+        !self.block_has_visible_predecessor(block_pc)
+    }
+
     /// Emit a maximal straight-line plain-block chain to reduce redundant gotos.
     fn emit_linear_region(&mut self, start_pc: usize, indent: usize) {
         let chain = self.collect_linear_region(start_pc);
         for (idx, &block_pc) in chain.iter().enumerate() {
             if idx > 0 {
                 if let Some(label) = self.labels.get(&block_pc) {
-                    let should_hide = self.lifted.is_some_and(|l| {
-                        l.hidden_labels.contains(&block_pc)
-                            || l.suppressed_blocks.contains(&block_pc)
-                    });
-                    if !should_hide {
+                    if !self.should_hide_label(block_pc) {
                         let _ = writeln!(self.output, "{}:", label);
                     }
                 }
@@ -1358,7 +1380,9 @@ impl<'a, 'p> Emitter<'a, 'p> {
             if self.emitted.contains(&target_pc) || !self.reachable_blocks.contains(&target_pc) {
                 continue;
             }
-            let _ = writeln!(self.output, "{}:", self.labels[&target_pc]);
+            if !self.should_hide_label(target_pc) {
+                let _ = writeln!(self.output, "{}:", self.labels[&target_pc]);
+            }
 
             // BFS forward walk to collect reachable blocks.
             // When encountering a loop header, don't traverse into the loop body —
@@ -1417,6 +1441,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
                 }
                 if block_pc != target_pc
                     && let Some(label) = self.labels.get(&block_pc)
+                    && !self.should_hide_label(block_pc)
                 {
                     let _ = writeln!(self.output, "{}:", label);
                 }
@@ -1493,6 +1518,21 @@ impl<'a, 'p> Emitter<'a, 'p> {
 
             // then_blocks must have exactly one block
             if then_blocks.len() != 1 {
+                return None;
+            }
+
+            // We only emit pre-branch statements from the first header when
+            // rendering a recovered switch. Any later header side effects would
+            // be dropped, so reject such chains.
+            if !cases.is_empty()
+                && block_may_emit_output(
+                    self.cfg,
+                    self.lifted,
+                    &self.plan.emission_eliminated_pcs,
+                    *header,
+                    /* skip_terminator */ true,
+                )
+            {
                 return None;
             }
 
@@ -2501,7 +2541,72 @@ fn fix_blank_lines(input: &str) -> String {
         }
         text = next;
     }
-    prune_unused_pure_let_definitions(&text)
+    let text = prune_unused_pure_let_definitions(&text);
+    normalize_result_len_metadata(&text)
+}
+
+fn normalize_result_len_metadata(input: &str) -> String {
+    let mut lines: Vec<String> = input.lines().map(|s| s.to_string()).collect();
+    let mut changed = false;
+
+    for i in 0..lines.len() {
+        if lines[i].trim() != "RESULT_LEN = RESULT_PTR" {
+            continue;
+        }
+
+        let prev = (0..i)
+            .rev()
+            .find(|&j| {
+                let t = lines[j].trim();
+                !t.is_empty() && !t.starts_with("//")
+            })
+            .and_then(|j| infer_result_len_from_store(&lines[j]));
+        let next_is_heap_reset = (i + 1..lines.len()).find_map(|j| {
+            let t = lines[j].trim();
+            if t.is_empty() || t.starts_with("//") {
+                None
+            } else {
+                Some(t == "HEAP_PTR = 4")
+            }
+        });
+
+        if let (Some(len), Some(true)) = (prev, next_is_heap_reset) {
+            let indent_len = lines[i].len() - lines[i].trim_start().len();
+            let indent = &lines[i][..indent_len];
+            lines[i] = format!("{indent}RESULT_LEN = {len}");
+            changed = true;
+        }
+    }
+
+    if !changed {
+        return input.to_string();
+    }
+    let mut out = lines.join("\n");
+    out.push('\n');
+    out
+}
+
+fn infer_result_len_from_store(line: &str) -> Option<u64> {
+    let lhs = line.trim().split_once('=')?.0.trim();
+    let (width, addr_with_bracket) = lhs.split_once('[')?;
+    if !addr_with_bracket.trim_end().ends_with(']') {
+        return None;
+    }
+    let addr_expr = addr_with_bracket
+        .trim_end()
+        .trim_end_matches(']')
+        .trim();
+    if addr_expr != "RESULT_PTR + 0x50000" {
+        return None;
+    }
+
+    match width.trim() {
+        "u8" => Some(1),
+        "u16" => Some(2),
+        "u32" => Some(4),
+        "u64" => Some(8),
+        _ => None,
+    }
 }
 
 /// Collapse runs of consecutive labels into a single canonical label.
@@ -2562,7 +2667,7 @@ fn elide_redundant_gotos(input: &str) -> String {
     // Build a map of block labels to their body lines for inlining.
     let block_bodies = collect_block_bodies(&lines);
 
-    let mut kept: Vec<&str> = Vec::with_capacity(lines.len());
+    let mut kept: Vec<String> = Vec::with_capacity(lines.len());
     let mut inlined_blocks: HashSet<String> = HashSet::new();
     let mut i = 0;
 
@@ -2587,24 +2692,18 @@ fn elide_redundant_gotos(input: &str) -> String {
                             let indent = &lines[i + 1]
                                 [..lines[i + 1].len() - lines[i + 1].trim_start().len()];
                             // Keep `} else {`
-                            kept.push(lines[i]);
+                            kept.push(lines[i].to_string());
                             // Inline the body with proper indentation
                             for body_line in body {
                                 let trimmed = body_line.trim();
                                 if trimmed.is_empty() {
-                                    kept.push(body_line);
+                                    kept.push(body_line.to_string());
                                 } else {
-                                    // We need to own these strings; push into a leaked
-                                    // string to keep &str lifetimes. This is fine for
-                                    // a one-shot formatting pass.
-                                    let new_line: &str = Box::leak(
-                                        format!("{}{}", indent, trimmed).into_boxed_str(),
-                                    );
-                                    kept.push(new_line);
+                                    kept.push(format!("{}{}", indent, trimmed));
                                 }
                             }
                             // Keep closing `}`
-                            kept.push(lines[i + 2]);
+                            kept.push(lines[i + 2].to_string());
                             inlined_blocks.insert(goto_label);
                             i += 3;
                             continue;
@@ -2620,7 +2719,7 @@ fn elide_redundant_gotos(input: &str) -> String {
                     if j < lines.len() {
                         if let Some(next_label) = parse_block_label_name(lines[j]) {
                             if goto_label == next_label {
-                                kept.push(lines[i + 2]);
+                                kept.push(lines[i + 2].to_string());
                                 i += 3;
                                 continue;
                             }
@@ -2712,7 +2811,7 @@ fn elide_redundant_gotos(input: &str) -> String {
             }
         }
 
-        kept.push(lines[i]);
+        kept.push(lines[i].to_string());
         i += 1;
     }
 
@@ -3258,10 +3357,15 @@ fn has_probable_call(expr: &str) -> bool {
             j -= 1;
         }
         let ident_len = end - j;
-        // Require at least 2 chars — single-letter tokens like 'u' in '>>u ('
-        // or 's' in '/s (' are operator suffixes, not function calls.
-        if ident_len >= 2 {
-            return true;
+        if ident_len >= 1 {
+            let ident = &expr[j..end];
+            let prev = j.checked_sub(1).and_then(|k| bytes.get(k)).copied();
+            let is_operator_suffix = ident_len == 1
+                && matches!(ident, "u" | "s")
+                && prev.is_some_and(|b| matches!(b, b'>' | b'<' | b'/' | b'*' | b'%'));
+            if !is_operator_suffix {
+                return true;
+            }
         }
     }
     false
@@ -3563,7 +3667,10 @@ fn collect_hoisted_declarations(
             continue;
         }
 
-        let mut needs_hoist = false;
+        let mut needs_hoist = lifted
+            .expressions
+            .get(&def_pc)
+            .is_some_and(|expr| expression_uses_var(expr, &name));
         for (use_pc, expr) in &lifted.expressions {
             if *use_pc == def_pc {
                 continue;
@@ -6499,6 +6606,62 @@ fn main() {
     }
 
     #[test]
+    fn test_prune_unused_let_single_char_call_is_effectful() {
+        let input = "\
+fn main() {
+    let a = f(1)
+    let b = 32 >>u (r0 + 1)
+    r0 = 7
+}
+";
+        let output = fix_blank_lines(input);
+
+        assert!(
+            output.contains("let a = f(1)"),
+            "single-char call must be kept as effectful: {}",
+            output
+        );
+        assert!(
+            !output.contains("let b = 32 >>u (r0 + 1)"),
+            "operator suffix expression should still be treated as pure: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_result_len_metadata_uses_store_width() {
+        let input = "\
+fn main() {
+    u32[RESULT_PTR + 0x50000] = value
+    RESULT_LEN = RESULT_PTR
+    HEAP_PTR = 4
+}
+";
+        let output = fix_blank_lines(input);
+        assert!(
+            output.contains("RESULT_LEN = 4"),
+            "RESULT_LEN should use width-derived byte count when heap reset pattern matches: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_result_len_metadata_not_rewritten_without_heap_reset() {
+        let input = "\
+fn main() {
+    u32[RESULT_PTR + 0x50000] = value
+    RESULT_LEN = RESULT_PTR
+}
+";
+        let output = fix_blank_lines(input);
+        assert!(
+            output.contains("RESULT_LEN = RESULT_PTR"),
+            "without heap reset guard we should keep original assignment: {}",
+            output
+        );
+    }
+
+    #[test]
     fn test_prune_cascading_removal() {
         // If var_b's only use is in the RHS of unused var_a, removing var_a
         // should then allow var_b to be removed in the next iteration.
@@ -6657,6 +6820,74 @@ fn main() {
         assert!(
             pseudo.contains("default:"),
             "Should have default case: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_switch_recovery_rejects_side_effecting_intermediate_header() {
+        // Middle header has a side-effecting pre-branch assignment that would be
+        // dropped by switch recovery; keep nested if-chain semantics instead.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::BranchEqImm {
+                            reg: 1,
+                            value: 0,
+                            offset: 20,
+                        },
+                    )],
+                    vec![10, 20],
+                ),
+                (10, vec![(10, Instruction::Trap)], vec![]),
+                (
+                    20,
+                    vec![
+                        (20, Instruction::LoadImm { reg: 5, value: 123 }),
+                        (
+                            30,
+                            Instruction::BranchEqImm {
+                                reg: 1,
+                                value: 1,
+                                offset: 20,
+                            },
+                        ),
+                    ],
+                    vec![30, 40],
+                ),
+                (30, vec![(40, Instruction::Trap)], vec![]),
+                (
+                    40,
+                    vec![(
+                        50,
+                        Instruction::BranchEqImm {
+                            reg: 1,
+                            value: 2,
+                            offset: 20,
+                        },
+                    )],
+                    vec![50, 60],
+                ),
+                (50, vec![(60, Instruction::Trap)], vec![]),
+                (60, vec![(70, Instruction::Trap)], vec![]),
+            ],
+        );
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, None, None);
+
+        assert!(
+            pseudo.contains("if (r1 == 0)"),
+            "top-level chain should stay as if-else when intermediate header is side-effecting: {}",
+            pseudo
+        );
+        assert!(
+            !pseudo.contains("case 0:"),
+            "the full chain must not be collapsed into a single switch: {}",
             pseudo
         );
     }
