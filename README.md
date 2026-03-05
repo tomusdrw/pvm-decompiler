@@ -42,14 +42,63 @@ pvm-decompiler -v path/to/program.pvm
 
 # Full debug diagnostics (includes raw instruction dump)
 pvm-decompiler --debug path/to/program.pvm
+
+# Emit LLVM IR for the recovered functions
+pvm-decompiler --llvm path/to/program.pvm
+
+# Full LLVM pipeline: PVM -> LLVM IR -> C (auto-select backend)
+pvm-decompiler --decompile path/to/program.pvm
+
+# Force a specific backend
+pvm-decompiler --decompile --backend=rellic path/to/program.pvm
+
+# Optional LLM refinement (requires OPENROUTER_API_KEY)
+pvm-decompiler --decompile --refine path/to/program.pvm
 ```
 
 ### CLI options
 
 - `-v`, `--verbose`: show analysis summaries
 - `--debug`: show raw instruction diagnostics
+- `--llvm`: emit LLVM IR instead of pseudo-code
+- `--decompile`: run full LLVM-to-C pipeline
+- `--backend=X`: choose backend (`retdec`, `rellic`, `rellic-docker`, `llvm-cbe`, `builtin`)
+- `--refine`: run LLM refinement on pseudo-code/C output (`OPENROUTER_API_KEY` required)
 - `-V`, `--version`: print tool version
 - `-h`, `--help`: print usage
+
+## Decompilation Backends (`--decompile`)
+
+When `--decompile` is enabled, the tool lifts PVM to LLVM IR and then emits C via one backend:
+
+- `retdec`: RetDec CLI (`retdec-decompiler`)
+- `rellic`: native Rellic CLI (`rellic-decomp`)
+- `rellic-docker`: Rellic in Docker image `pvm-rellic-decomp`
+- `llvm-cbe`: LLVM C backend emitter
+- `builtin`: built-in best-effort fallback emitter (always available)
+
+### Backend selection and fallback
+
+- Default behavior: auto-detect and pick the first available backend in this order:
+  `retdec` -> `rellic` -> `rellic-docker` -> `llvm-cbe` -> `builtin`
+- If `--backend=X` is unavailable, the tool warns and falls back to the first available backend.
+- Special case: if `--backend=rellic` is requested but native Rellic is missing, it automatically uses `rellic-docker` when available.
+- During `--decompile`, stderr prints both `Available backends` and `Used backend`.
+
+### Backend prerequisites
+
+- `retdec`: requires `retdec-decompiler` and an `llvm-as` binary.
+- `rellic`: requires native `rellic-decomp` and an `llvm-as` binary.
+- `rellic-docker`: requires Docker; if image `pvm-rellic-decomp` is missing, the tool can build it from `docker/rellic/`.
+- `llvm-cbe`: requires `llvm-cbe` on `PATH`.
+- `builtin`: no external dependencies.
+
+### Backend tradeoffs
+
+- `retdec` / `rellic`: generally stronger C decompilation quality, but require local toolchain setup.
+- `rellic-docker`: easier environment isolation than native setup, but has Docker/runtime overhead.
+- `llvm-cbe`: fast path to C-like output, but less decompiler-oriented structuring.
+- `builtin`: zero setup and always available, but intentionally naive and lower fidelity.
 
 ## Input Support
 

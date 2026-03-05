@@ -1,7 +1,39 @@
 fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_1088: ptr
     let ptr_12: ptr
+    let ptr_12_104
+    let ptr_12_112
+    let ptr_12_264
     let ptr_12_40
+    let ptr_12_48
+    let ptr_12_56
+    let ptr_12_64
+    let ptr_12_80
+    let ptr_15: ptr
+    let ptr_157_144
+    let ptr_16: ptr
+    let ptr_181: ptr
+    let ptr_181_40
+    let ptr_24: ptr
+    let ptr_25: ptr
+    let ptr_254_40
+    let ptr_292_40
+    let ptr_292_48
+    let ptr_292_64
+    let ptr_346: ptr
+    let ptr_40_384
+    let ptr_40_720
+    let ptr_40_800
+    let ptr_487_184
+    let ptr_502: ptr
+    let ptr_503: ptr
+    let ptr_601: ptr
+    let ptr_602: ptr
+    let ptr_603: ptr
+    let ptr_604: ptr
+    let ptr_605_680
+    let var_13441: u64
+    let var_3331: u64
     let var_883: u64
     let var_884: u64
     let var_885: u64
@@ -42,7 +74,168 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @39b1
     ptr_12 = ptr_13 - 192
     ptr_12_40 = var_883
+    ptr_12_48 = var_884
+    ptr_12_56 = var_885
     func_13(ptr_12, r7)
+
+    // @4b84
+    u32[12 + ptr_12_40 + 0x60000] = ptr_12_272
+
+    // @3c9e
+    ptr_12_104 = r7
+    ptr_12_112 = ptr_12_64
+    if (!(ptr_12_64 <u 0)) {
+        // @3cc3
+        // @3ce0
+        ptr_15 = ptr_12_104 + 0x60000
+        ptr_16 = ptr_12_64 + 0x60000
+        if (!(ptr_12_96 == 0)) {
+        while (ptr_12_96 - 1 != 0) {
+        // @3cf9
+        r2 = ptr_15 + 1
+        r3 = ptr_16 + 1
+        }
+        }
+        // @3d0c
+        goto block_3d16;
+    }
+    // @3d11
+
+    block_3d16:
+    // @3d16
+    func_16(r1, r7)
+
+    block_3aa2:
+    while (0xFEFD0000 <u ptr_12 - 256) {
+        // @bcb1
+        ptr_12_40 = r7
+        ptr_12_48 = r7
+        let cond_56 = !(r7)
+        ptr_12_56 = cond_56
+        ptr_12_64 = cond_56
+        let cond_57 = cond_56 <u 0
+        ptr_12_80 = cond_57
+
+        break
+    }
+
+    // @285c7
+    ptr_12_80 = var_13441
+    r10 = 1
+    r0 = 924
+    goto block_27170;
+
+    // @1ae5b
+    r0 = 830
+
+    block_1a42c:
+    // @30f9d
+
+    // @30d71
+    if (u32[12 + ptr_12_760 + 0x60000] <s ptr_12_2624 <u 0) goto block_3da4;
+
+    // @30ddd
+
+    // @30ebe
+    r0 = 1144
+
+    // @2ee72
+    if (!(0xFEFD0000 >=u ptr_12 - 200)) {
+        // @2ee86
+        return
+    }
+    // @2ee87
+    let ptr_882 = ptr_12 - 200
+    func_207(ptr_882)
+
+    // @26aae
+    ptr_40_384 = var_13441
+
+    while (ptr_40_72 <s ptr_40_600 >=u 0) {
+        // @26d17
+        let var_7204 = u32[32 >>u (32 << (32 >>u (32 << (2 << ptr_40_600))) + ptr_40_40) + 0x60000]
+        ptr_40_800 = var_7204
+
+        if (var_7204 <u 0) {
+            // @26f10
+            goto block_26f15;
+        } else {
+            // @26da6
+            goto block_26db5;
+        }
+        }
+
+        if (ptr_40_288 <u 0) {
+            // @2702e
+            goto block_27033;
+        } else {
+            // @26f3b
+            goto block_26f40;
+        }
+        }
+
+        // @27033
+    }
+
+    // @26dab
+
+    // @26db0
+
+    // @26c84
+    let var_7176 = u32[32 >>u (32 << (32 >>u (32 << (2 << ptr_40_72))) + ptr_40_40) + 0x60000]
+    ptr_40_720 = var_7176
+
+    if (var_7176 <u 0) {
+        // @27166
+        goto block_2716b;
+    } else {
+        // @26d12
+    }
+    // @27061
+    let var_7385 = 32 >>u (32 << (0xFFFFFFFE & u32[16 + (32 >>u (32 << 20 - ptr_40_720)) + 0x60000]))
+    ptr_502 = (32 >>u (32 << (32 >>u (32 << (1 << ptr_40_608))) + ptr_40_384)) + 0x60000
+    ptr_503 = ptr_40_720 + 0x60000
+
+    if (var_7385 == 0) {
+        // @27161
+        goto block_2716b;
+    } else {
+        // @2714e
+        r2 = ptr_502 + 1
+        r3 = ptr_503 + 1
+    }
+
+    while (var_7385 - 1 != 0) {
+        // @2714e
+        r2 = ptr_502 + 1
+        r3 = ptr_503 + 1
+    }
+
+    // @27161
+
+    // @27166
+
+    block_2716b:
+    // @2716b
+
+    // @2efea
+    let var_12174 = u32[28 + ptr_40_40 + 0x60000]
+    let var_12177 = 8 + var_12174
+    let ptr_40_72 = var_12177
+    r9 = 16
+    r10 = 53
+    r0 = 1068
+    goto block_3aa2;
+
+    block_3da4:
+    // @30fcc
+
+    // @30fd1
+
+    // @30de2
+    r9 = 16
+    r0 = 1140
+    goto block_1a42c;
 
     // @4bee
     ptr_12_40 = r7
@@ -53,8 +246,356 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     r0 = 20
     goto block_399c;
 
-    // @4b84
-    u32[12 + ptr_12_40 + 0x60000] = ptr_12_272
+    // @1a4b5
+    func_116(r1, r7)
+
+    // @28440
+    let var_7870 = 12 + ptr_12_40
+    ptr_12_264 = var_7870
+    u32[var_7870 + 0x60000] = ptr_12_248
+
+    // @28398
+    let var_7841 = u32[4 + ptr_12_40 + 0x60000]
+    let ptr_12_176 = var_7841
+    u8[32 >>u (32 << ptr_12_48 + var_7841) + 0x60000] = ptr_12_56
+
+    // @28336
+    return
+
+    // @bd2a
+
+    // @bd2f
+    ptr_12_104->field_393216 = 0
+    u8[1 + ptr_12_104 + 0x60000] = 0
+    u32[4 + ptr_12_104 + 0x60000] = 0
+
+    // @bcf7
+    return
+
+    // @29da5
+    ptr_12_264 = r7
+    ptr_601 = r7 + 0x60000
+    ptr_602 = ptr_12_40 + 0x60000
+
+    if (ptr_12_112 == 0) {
+        // @29dd7
+        ptr_603 = (32 >>u (32 << ptr_12_264 + ptr_12_112)) + 0x60000
+        ptr_604 = ptr_12_48 + 0x60000
+
+        if (ptr_12_176 == 0) {
+            // @29e38
+            goto block_29d6d;
+        } else {
+            // @29e25
+            r2 = ptr_603 + 1
+            r3 = ptr_604 + 1
+        }
+    } else {
+        // @29dc4
+        r2 = ptr_601 + 1
+        r3 = ptr_602 + 1
+    }
+
+    while (ptr_12_112 - 1 != 0) {
+        // @29dc4
+        r2 = ptr_601 + 1
+        r3 = ptr_602 + 1
+    }
+
+    // @29dd7
+    ptr_603 = (32 >>u (32 << ptr_12_264 + ptr_12_112)) + 0x60000
+    ptr_604 = ptr_12_48 + 0x60000
+
+    if (ptr_12_176 == 0) {
+        // @29e38
+        goto block_29d6d;
+    } else {
+        // @29e25
+        r2 = ptr_603 + 1
+        r3 = ptr_604 + 1
+    }
+
+    while (ptr_12_176 - 1 != 0) {
+        // @29e25
+        r2 = ptr_603 + 1
+        r3 = ptr_604 + 1
+    }
+
+    // @29e38
+
+    block_29d6d:
+    // @27b43
+    r0 = 902
+
+    // @26300
+    if (!(0xFEFD0000 >=u ptr_12 - 768)) {
+        // @26314
+        return
+    }
+    }
+    // @26434
+    if (ptr_487_184 >u 0x186A0 <u 0) goto block_264cc;
+
+    // @2647c
+
+    // @26481
+    if (!(ptr_487_184 >u 100 <u 0)) {
+        // @264c7
+        // @2660d
+        goto block_26708;
+    }
+    // @2665e
+
+    block_26708:
+    // @26708
+    goto block_2651a;
+
+    block_264cc:
+    // @264cc
+    if (!(ptr_487_184 >u 0x989680 <u 0)) {
+        // @26515
+        // @2670d
+        goto block_2680e;
+    }
+    // @26760
+
+    block_2680e:
+    // @2680e
+
+    block_2651a:
+    // @2651a
+    r10 = 2
+    r0 = 878
+    goto block_3aa2;
+
+    // @28590
+    ptr_12_48 = r7
+    u32[r7 + 0x60000] = ptr_12_40
+    let var_7906 = 4 + r7
+    ptr_12_64 = var_7906
+    u32[var_7906 + 0x60000] = 0
+
+    // @27836
+    if (!(0xFEFD0000 >=u ptr_12 - 1048)) {
+        // @2784a
+        return
+    }
+    block_27170:
+    // @2abe2
+    ptr_12_176 = 32 >>u (32 << 0x1000 + ptr_12_96)
+
+    // @2ab77
+    ptr_12_104 = ptr_12_96
+    ptr_12_112 = ptr_12_88
+    if (ptr_12_88 <u ptr_12_96 <u 0) goto block_c074;
+
+    // @2abc0
+
+    // @2abca
+    r10 = 2
+    r0 = 976
+
+    // @29e3d
+    if (!(0xFEFD0000 >=u ptr_12 - 904)) {
+        // @29e51
+        return
+    }
+    // @29f1e
+
+    // @29f23
+
+    for (let ptr_609 = var_9135; ptr_605_648 >=u 0; ptr_609 = 32 >>u (32 << (0xFFFFFFFE & ptr_605_680))) {
+        // @2a2b4
+        ptr_605_680 = u32[8 + ptr_605_648 + 0x60000]
+        let var_9167 = 32
+        if (var_9167 >>u (var_9167 << (1 & u32[8 + ptr_605_648 + 0x60000])) <u 0) goto block_2a332;
+
+        // @2a332
+        goto block_2a371;
+
+        break
+    }
+
+    // @2a397
+
+    // @2a323
+
+    // @2a328
+
+    // @2a2af
+
+    // @2a237
+    if (!(ptr_605_600) <u 0) goto block_2a470;
+
+    // @2a27f
+
+    // @2a3d1
+    r0 = 958
+
+    // @1a07a
+    if (!(0xFEFD0000 >=u ptr_346 - 560)) {
+        // @1a08e
+        return
+    }
+    }
+    // @1a162
+
+    // @1a222
+    return
+
+    // @1a224
+
+    // @1a229
+    let var_4362 = 32 >>u (32 << 1 - ptr_292_64)
+    u32[12 + ptr_292_48 + 0x60000] = var_4362
+
+    // @1a106
+    return
+
+    // @1a167
+
+    // @1a16c
+    let var_4330 = 32 >>u (32 << (12 << u32[8 + ptr_292_40 + 0x60000]))
+    let ptr_292_192 = var_4330
+    if (!(!(u32[4 + ptr_292_40 + 0x60000] ^ var_4330) <u 0)) {
+        // @1a21d
+        // @1a2f4
+        return
+    }
+    // @1a2fa
+
+    // @1a2ff
+    if (!(ptr_292_192 >u 0x200000 <u 0)) {
+        // @1a347
+        // @1a34c
+        r9 = 0x1000
+        r0 = 822
+        goto block_77ed;
+    }
+    // @1a369
+
+    // @1a36e
+    u32[8 + ptr_254_40 + 0x60000] = 32 >>u (32 << 1 + u32[8 + ptr_254_40 + 0x60000])
+    r9 = 8
+    r10 = 12
+    r0 = 824
+    goto block_3aa2;
+
+    block_2a470:
+    // @2a470
+
+    // @2a475
+    func_193(r1, r7)
+
+    // @2a565
+    ptr_157_144 = var_13441
+    let var_9259 = 32
+    let var_9268 = 32
+    if (!(var_9268 >>u (var_9268 << (var_9259 >>u (var_9259 << (4095 & ptr_157_80))) - 0x1000) <u u32[8 + ptr_157_72 + 0x60000] <u 0)) {
+        // @2a628
+        // @2a637
+        goto block_2a65b;
+    }
+    // @2a656
+
+    block_2a65b:
+    // @2a65b
+    r0 = 968
+
+    // @cd08
+    if (!(0xFEFD0000 >=u ptr_157 - 352)) {
+        // @cd1c
+        return
+    }
+    // @cd1d
+    ptr_181 = ptr_157 - 352
+    ptr_181_40 = var_3331
+    let cond_75 = !(u32[4 + var_3331 + 0x60000])
+    if (cond_75 <u 0) goto block_7802;
+
+    // @cd87
+
+    // @cda3
+
+    block_77ed:
+    while (0xFEFD0000 <u ptr_181 - 264) {
+        // @31406
+        r9 = 0
+        r0 = 1164
+    }
+
+    // @2c8f8
+    ptr_181_40 = var_13441
+    if (!(!(var_13441) <u 0)) {
+        // @2c939
+        // @2c955
+        r9 = 0
+        r10 = 0
+        r0 = 1058
+        goto block_3aa2;
+    }
+    // @2c971
+
+    // @2c976
+    ptr_181_104->field_393216 = 0
+    u32[4 + ptr_181_104 + 0x60000] = 0
+    u32[8 + ptr_181_104 + 0x60000] = 0
+    u32[12 + ptr_181_104 + 0x60000] = 0
+
+    // @2c93e
+    return
+
+    block_7802:
+    // @cea3
+
+    // @cea8
+
+    // @cd8c
+    return
+
+    block_c074:
+    // @2ac15
+
+    // @2ac1a
+
+    // @2abc5
+
+    // @2ab63
+    return
+
+    // @2609c
+    func_174(r1, r7, r12)
+
+    // @4564
+    ptr_24 = r7 + 0x60000
+    ptr_25 = ptr_12_552 + 0x60000
+
+    if (ptr_12_584 == 0) {
+        // @4598
+        goto block_459d;
+    } else {
+        // @4585
+        r2 = ptr_24 + 1
+        r3 = ptr_25 + 1
+    }
+
+    while (ptr_12_584 - 1 != 0) {
+        // @4585
+        r2 = ptr_24 + 1
+        r3 = ptr_25 + 1
+    }
+
+    // @4598
+
+    block_459d:
+    while (var_560 - 1 != 0) {
+        continue
+    }
+
+    // @260fa
+
+    // @3b31
+    func_15(r1, r7)
 
 }
 

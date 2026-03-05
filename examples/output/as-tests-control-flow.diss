@@ -9,9 +9,10 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 fn func_1(r1: u64) {
     let ptr_0_40
     let ptr_0_512
+    let ptr_0_568
     let ptr_0_576
-    let ptr_0_680
     let ptr_0_688
+    let ptr_0_760
     let ptr_0_768
     let ptr_0_88
 
@@ -26,7 +27,7 @@ fn func_1(r1: u64) {
 
     if (*ptr_0_40 <=s 10) {
         // @02d9
-        let ptr_0_568 = 0
+        ptr_0_568 = 0
         ptr_0_576 = ptr_0_512
         goto block_0376;
     } else {
@@ -55,12 +56,12 @@ fn func_1(r1: u64) {
     // @041d
 
     // @03c0
-    ptr_0_680 = 0
+    let ptr_0_680 = 0
     ptr_0_688 = ptr_0_576
 
     while (ptr_0_680 <s 5) {
         // @0496
-        let ptr_0_760 = 0
+        ptr_0_760 = 0
         ptr_0_768 = ptr_0_688
 
         while (ptr_0_760 <s 5 & ptr_0_760 <=s 2) {
