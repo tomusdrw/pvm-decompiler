@@ -482,8 +482,7 @@ fn emit_terminator(
                     writeln!(out, "  {} = load i64, ptr %r0, align 8", t).unwrap();
                     writeln!(out, "  ret i64 {}", t).unwrap();
                 }
-                if !func_block_pcs.contains(&fallthrough)
-                    && exit_labels_emitted.insert(fallthrough)
+                if !func_block_pcs.contains(&fallthrough) && exit_labels_emitted.insert(fallthrough)
                 {
                     writeln!(out, "\n{}:", fall_label).unwrap();
                     let t = next_tmp(tmp);
@@ -534,8 +533,7 @@ fn emit_terminator(
                     writeln!(out, "  {} = load i64, ptr %r0, align 8", t).unwrap();
                     writeln!(out, "  ret i64 {}", t).unwrap();
                 }
-                if !func_block_pcs.contains(&fallthrough)
-                    && exit_labels_emitted.insert(fallthrough)
+                if !func_block_pcs.contains(&fallthrough) && exit_labels_emitted.insert(fallthrough)
                 {
                     writeln!(out, "\n{}:", fall_label).unwrap();
                     let t = next_tmp(tmp);

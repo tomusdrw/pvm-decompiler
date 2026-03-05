@@ -2592,10 +2592,7 @@ fn infer_result_len_from_store(line: &str) -> Option<u64> {
     if !addr_with_bracket.trim_end().ends_with(']') {
         return None;
     }
-    let addr_expr = addr_with_bracket
-        .trim_end()
-        .trim_end_matches(']')
-        .trim();
+    let addr_expr = addr_with_bracket.trim_end().trim_end_matches(']').trim();
     if addr_expr != "RESULT_PTR + 0x50000" {
         return None;
     }

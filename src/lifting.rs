@@ -2317,7 +2317,11 @@ fn format_mem_base_access(
     }
     // Preserve the access width in the rendered syntax.
     if offset as i64 == mem_base {
-        return Some(format!("{}[{}]", width, format_expression(base, &deref_ctx)));
+        return Some(format!(
+            "{}[{}]",
+            width,
+            format_expression(base, &deref_ctx)
+        ));
     }
 
     None

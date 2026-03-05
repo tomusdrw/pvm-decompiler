@@ -595,11 +595,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let name = name.clone();
                             let pseudo = pseudo.clone();
                             handles.push(s.spawn(move || {
-                                let refined = std::panic::catch_unwind(
-                                    std::panic::AssertUnwindSafe(|| {
+                                let refined =
+                                    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                                         llm_refine::refine_pseudo_code(&pseudo, &name, &context)
-                                    }),
-                                );
+                                    }));
                                 match refined {
                                     Ok(Ok(code)) => {
                                         eprintln!("  Refined {}", name);
@@ -1069,7 +1068,8 @@ fn apply_heap_alloc_suppression(
 
         // Resolve the data pointer variable name: find the stack variable from
         // the eliminated arithmetic range that is still referenced in non-eliminated code.
-        let arith_pcs: HashSet<usize> = heap_alloc.heap_ptr_arithmetic_pcs.iter().copied().collect();
+        let arith_pcs: HashSet<usize> =
+            heap_alloc.heap_ptr_arithmetic_pcs.iter().copied().collect();
         let mut arith_vars: Vec<String> = Vec::new();
         for &pc in &heap_alloc.heap_ptr_arithmetic_pcs {
             if let Some(Expression::Store { base, offset, .. }) = lifted.expressions.get(&pc)
