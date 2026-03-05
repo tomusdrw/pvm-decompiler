@@ -5,12 +5,10 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
-    let ptr_0_592
     let ptr_0_64
     let ptr_0_80
     let ptr_0_88
     let ptr_2_144
-    let ptr_2_64
     let ptr_5_144
     let ptr_5_464
     let ptr_5_48
@@ -79,26 +77,18 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
         }
     }
     // @03fb
-    ptr_2_64 = ptr_2_64 + 1
+    let ptr_2_64 = ptr_2_64 + 1
     goto block_03a8;
-
     block_03a3:
     // @038f
     return
-
-    if (!(ptr_5_200 ^ 3)) {
-        // @06b3
-        ptr_5_608 = 1
-        goto block_06ca;
     } else {
         // @05ea
     }
     // @06bf
-
     // @06b3
     ptr_5_608 = 1
 
-    block_06ca:
     // @06ca
     ptr_5_464 = ptr_5_608
 
@@ -107,7 +97,6 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     u8[ptr_5_48 + ptr_5_64 * ptr_5_56 + ptr_5_144 + 0x50000] = ptr_5_464
     ptr_5_144 = ptr_5_144 + 1
     goto block_041b;
-
     block_069b:
     // @069b
     ptr_5_600 = 0
@@ -116,7 +105,6 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
     // @06a6
     ptr_5_464 = ptr_5_600
     goto block_05ef;
-
     block_0077:
     // @0077
     if (!(ptr_0_88 >s 1)) {
@@ -130,21 +118,12 @@ fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
         // @0181
         var_65 = ptr_0_48 + ptr_0_168 + ptr_0_64
         break
-        // @0318
-        ptr_0_592 = ptr_0_160
-        // @0325
-        ptr_0_160 = ptr_0_592
-        ptr_0_168 = ptr_0_168 + 1
         }
-        // @01ea
-        return
-        // @0260
-        return
-        // @00cc
-        ptr_0_80 = ptr_0_160
-        ptr_0_88 = ptr_0_88 + 1
-        goto block_0077;
     }
+    // @006c
+
+    // @0055
+    return
 }
 
 fn func_1(r1: u64) {

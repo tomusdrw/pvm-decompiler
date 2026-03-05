@@ -29,11 +29,10 @@ fn main(r1: u64, r7: u64, r8: u64) {
         goto block_00d5;
     } else {
         // @0094
+        ptr_0_128 = 999
     }
     // @00c9
-
     // @00bc
-    ptr_0_128 = 999
 
     block_00d5:
     // @00d5

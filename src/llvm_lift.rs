@@ -1012,14 +1012,37 @@ fn emit_indirect_jump(
     writeln!(out, "  {} = trunc i64 {} to i32", trunc, reg_val).unwrap();
     let half = next_tmp(tmp);
     let decoded_index = next_tmp(tmp);
+    let decoded_plus_one = next_tmp(tmp);
+    let reencoded_selector = next_tmp(tmp);
+    let is_canonical = next_tmp(tmp);
+    let validated_index = next_tmp(tmp);
     writeln!(out, "  {} = lshr i32 {}, 1", half, trunc).unwrap();
     writeln!(out, "  {} = add i32 {}, -1", decoded_index, half).unwrap();
+    writeln!(out, "  {} = add i32 {}, 1", decoded_plus_one, decoded_index).unwrap();
+    writeln!(
+        out,
+        "  {} = shl i32 {}, 1",
+        reencoded_selector, decoded_plus_one
+    )
+    .unwrap();
+    writeln!(
+        out,
+        "  {} = icmp eq i32 {}, {}",
+        is_canonical, reencoded_selector, trunc
+    )
+    .unwrap();
+    writeln!(
+        out,
+        "  {} = select i1 {}, i32 {}, i32 -1",
+        validated_index, is_canonical, decoded_index
+    )
+    .unwrap();
 
     // Decode encoded return-address selector ((idx + 1) * 2) to jump-table index.
     write!(
         out,
         "  switch i32 {}, label %{} [",
-        decoded_index, sw_default
+        validated_index, sw_default
     )
     .unwrap();
 
@@ -1135,9 +1158,16 @@ mod tests {
 
         assert_eq!(labels.len(), 2, "expected unique labels, got:\n{out}");
         for label in labels {
+            let switch_default_refs = out
+                .lines()
+                .filter(|line| {
+                    let trimmed = line.trim_start();
+                    trimmed.starts_with("switch i32 ")
+                        && trimmed.contains(&format!("label %{} [", label))
+                })
+                .count();
             assert_eq!(
-                out.matches(&format!("label %{}", label)).count(),
-                1,
+                switch_default_refs, 1,
                 "switch should reference each default label once"
             );
             assert_eq!(
@@ -1169,6 +1199,26 @@ mod tests {
         assert!(
             !out.contains("switch i32 %t0"),
             "switch must not use raw truncated selector:\n{out}"
+        );
+    }
+
+    #[test]
+    fn emit_indirect_jump_validates_canonical_selector_encoding() {
+        let program = DecodedProgram {
+            jump_table: vec![0x10],
+            instructions: vec![],
+            code_len: 0,
+            memory_base: None,
+        };
+        let func_block_pcs: HashSet<usize> = [0x10usize].into_iter().collect();
+        let mut out = String::new();
+        let mut tmp = 0;
+
+        emit_indirect_jump(&mut out, "%r3", &program, &func_block_pcs, &mut tmp);
+
+        assert!(
+            out.contains("= icmp eq i32") && out.contains("= select i1"),
+            "switch key should be validated before dispatch:\n{out}"
         );
     }
 

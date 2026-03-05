@@ -218,7 +218,7 @@ fn decompile_retdec(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::error
     let status = run_status_with_timeout(
         {
             let mut cmd = Command::new(&llvm_as);
-            cmd.args([ll_path.to_str().unwrap(), "-o", bc_path.to_str().unwrap()]);
+            cmd.arg(&ll_path).arg("-o").arg(&bc_path);
             cmd
         },
         "llvm-as",
@@ -232,12 +232,10 @@ fn decompile_retdec(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::error
     let status = run_status_with_timeout(
         {
             let mut cmd = Command::new("retdec-decompiler");
-            cmd.args([
-                "--backend-no-opts",
-                "-o",
-                out_path.to_str().unwrap(),
-                bc_path.to_str().unwrap(),
-            ]);
+            cmd.arg("--backend-no-opts")
+                .arg("-o")
+                .arg(&out_path)
+                .arg(&bc_path);
             cmd
         },
         "retdec-decompiler",
@@ -276,7 +274,7 @@ fn decompile_rellic(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::error
     let status = run_status_with_timeout(
         {
             let mut cmd = Command::new(&llvm_as);
-            cmd.args([ll_path.to_str().unwrap(), "-o", bc_path.to_str().unwrap()]);
+            cmd.arg(&ll_path).arg("-o").arg(&bc_path);
             cmd
         },
         "llvm-as",
@@ -290,12 +288,10 @@ fn decompile_rellic(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::error
     let output = run_output_with_timeout(
         {
             let mut cmd = Command::new("rellic-decomp");
-            cmd.args([
-                "--input",
-                bc_path.to_str().unwrap(),
-                "--output",
-                out_path.to_str().unwrap(),
-            ]);
+            cmd.arg("--input")
+                .arg(&bc_path)
+                .arg("--output")
+                .arg(&out_path);
             cmd
         },
         "rellic-decomp",
@@ -332,8 +328,7 @@ fn decompile_llvm_cbe(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std::err
     let output = run_output_with_timeout(
         {
             let mut cmd = Command::new("llvm-cbe");
-            cmd.args([ll_path.to_str().unwrap()])
-                .current_dir(tmp_dir.path());
+            cmd.arg(&ll_path).current_dir(tmp_dir.path());
             cmd
         },
         "llvm-cbe",
@@ -371,13 +366,18 @@ fn docker_rellic_available() -> bool {
     if !docker_available() {
         return false;
     }
-    Command::new("docker")
-        .args(["image", "inspect", RELLIC_DOCKER_IMAGE])
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
+    run_status_with_timeout(
+        {
+            let mut cmd = Command::new("docker");
+            cmd.args(["image", "inspect", RELLIC_DOCKER_IMAGE])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null());
+            cmd
+        },
+        "docker image inspect",
+    )
+    .map(|s| s.success())
+    .unwrap_or(false)
 }
 
 /// Check whether we can build the Rellic Docker image on-demand.
@@ -410,7 +410,10 @@ fn decompile_rellic_docker(llvm_ir: &str) -> Result<DecompileResult, Box<dyn std
             let status = run_status_with_timeout(
                 {
                     let mut cmd = Command::new("docker");
-                    cmd.args(["build", "-t", RELLIC_DOCKER_IMAGE, dir.to_str().unwrap()]);
+                    cmd.arg("build")
+                        .arg("-t")
+                        .arg(RELLIC_DOCKER_IMAGE)
+                        .arg(dir.as_os_str());
                     cmd
                 },
                 "docker build",
@@ -652,13 +655,14 @@ fn parse_store(line: &str) -> Option<String> {
 /// Parse a conditional branch into C.
 fn parse_conditional_branch(line: &str) -> Option<String> {
     // br i1 %tN, label %THEN, label %ELSE
+    let cond = line.strip_prefix("br i1 ")?.split(',').next()?.trim();
     let parts: Vec<&str> = line.split(", label %").collect();
     if parts.len() >= 3 {
         let then_label = parts[1];
         let else_label = parts[2];
         return Some(format!(
-            "if (...) goto {}; else goto {}",
-            then_label, else_label
+            "if ({}) goto {}; else goto {}",
+            cond, then_label, else_label
         ));
     }
     None
@@ -684,11 +688,30 @@ fn extract_call_arg(line: &str) -> Option<&str> {
 
 /// Check if a command exists on PATH.
 fn command_exists(name: &str) -> bool {
-    Command::new("which")
-        .arg(name)
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+    if name.contains(std::path::MAIN_SEPARATOR) {
+        return std::path::Path::new(name).is_file();
+    }
+
+    let Some(paths) = std::env::var_os("PATH") else {
+        return false;
+    };
+
+    for dir in std::env::split_paths(&paths) {
+        let candidate = dir.join(name);
+        if candidate.is_file() {
+            return true;
+        }
+        #[cfg(windows)]
+        {
+            if candidate.with_extension("exe").is_file()
+                || candidate.with_extension("bat").is_file()
+                || candidate.with_extension("cmd").is_file()
+            {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 /// Find an LLVM tool, trying Homebrew paths and versioned names.
@@ -718,7 +741,7 @@ fn find_llvm_tool(name: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::rellic_docker_backend_selectable;
+    use super::{parse_conditional_branch, rellic_docker_backend_selectable};
 
     #[test]
     fn rellic_docker_backend_is_selectable_when_image_exists() {
@@ -733,5 +756,12 @@ mod tests {
     #[test]
     fn rellic_docker_backend_not_selectable_without_image_or_build_support() {
         assert!(!rellic_docker_backend_selectable(false, false));
+    }
+
+    #[test]
+    fn parse_conditional_branch_preserves_condition_operand() {
+        let parsed = parse_conditional_branch("br i1 %cond42, label %then_bb, label %else_bb")
+            .expect("conditional branch should parse");
+        assert_eq!(parsed, "if (%cond42) goto then_bb; else goto else_bb");
     }
 }

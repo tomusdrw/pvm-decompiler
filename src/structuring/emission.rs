@@ -1483,8 +1483,10 @@ impl<'a, 'p> Emitter<'a, 'p> {
     fn try_collect_switch_cases(&self, block_pc: usize) -> Option<CollectedSwitch> {
         let mut cases: Vec<(i32, Vec<usize>, usize)> = Vec::new(); // (value, then_blocks, header_pc)
         let mut header_pcs: Vec<usize> = Vec::new();
+        let mut chain_header_pcs: Vec<usize> = Vec::new();
         let mut default_blocks: Option<Vec<usize>> = None;
         let mut switch_reg: Option<u8> = None;
+        let mut seen_immediates: HashSet<i32> = HashSet::new();
         let mut current = block_pc;
 
         loop {
@@ -1522,6 +1524,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
             if then_blocks.len() != 1 {
                 return None;
             }
+            chain_header_pcs.push(*header);
 
             // We only emit pre-branch statements from the first header when
             // rendering a recovered switch. Any later header side effects would
@@ -1538,8 +1541,10 @@ impl<'a, 'p> Emitter<'a, 'p> {
                 return None;
             }
 
-            header_pcs.push(*header);
-            cases.push((imm, then_blocks.clone(), *header));
+            if seen_immediates.insert(imm) {
+                header_pcs.push(*header);
+                cases.push((imm, then_blocks.clone(), *header));
+            }
 
             // Check else branch: must have exactly one block
             if else_blocks.len() != 1 {
@@ -1555,6 +1560,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
                 // This is the default case — track separately
                 default_blocks = Some(else_blocks.clone());
                 header_pcs.push(else_pc);
+                chain_header_pcs.push(else_pc);
                 break;
             }
         }
@@ -1572,6 +1578,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
             cases,
             default_blocks,
             header_pcs,
+            chain_header_pcs,
         })
     }
 
@@ -1669,8 +1676,11 @@ impl<'a, 'p> Emitter<'a, 'p> {
 
         let _ = writeln!(self.output, "{}}}", prefix);
 
-        // Mark all header PCs as emitted
+        // Mark emitted switch headers and any skipped duplicate-value headers.
         for &hpc in &sw.header_pcs {
+            self.emitted.insert(hpc);
+        }
+        for &hpc in &sw.chain_header_pcs {
             self.emitted.insert(hpc);
         }
     }
@@ -1695,8 +1705,11 @@ struct CollectedSwitch {
     cases: Vec<(i32, Vec<usize>, usize)>,
     /// The blocks for the default (final else) case, if present
     default_blocks: Option<Vec<usize>>,
-    /// All header PCs in the chain (for marking as emitted)
+    /// Unique header PCs corresponding to emitted case/default entries.
     header_pcs: Vec<usize>,
+    /// All if-chain header PCs traversed during collection.
+    /// Used to suppress duplicate re-emission when duplicate case values occur.
+    chain_header_pcs: Vec<usize>,
 }
 
 struct EmissionPlan {
@@ -2536,6 +2549,7 @@ fn fix_blank_lines(input: &str) -> String {
     for _ in 0..4 {
         let next = elide_redundant_gotos(&text);
         let next = remove_unreachable_after_control_flow(&next);
+        let next = remove_unreachable_after_terminators(&next);
         let next = invert_conditional_gotos(&next);
         let next = prune_unused_labels(&next);
         if next == text {
@@ -2543,7 +2557,15 @@ fn fix_blank_lines(input: &str) -> String {
         }
         text = next;
     }
-    let text = elide_redundant_assignments(&text);
+    let mut text = text;
+    for _ in 0..3 {
+        let next = normalize_empty_else_fallthrough_assignment(&text);
+        let next = elide_redundant_assignments(&next);
+        if next == text {
+            break;
+        }
+        text = next;
+    }
     let text = prune_unused_pure_let_definitions(&text);
     normalize_result_len_metadata(&text)
 }
@@ -3019,9 +3041,21 @@ fn invert_condition_text(cond: &str) -> String {
 fn is_control_flow_terminator(trimmed: &str) -> bool {
     trimmed.starts_with("goto ") && trimmed.ends_with(';')
         || trimmed == "break;"
+        || trimmed == "break"
         || trimmed == "continue;"
-        || trimmed.starts_with("return")
+        || trimmed == "continue"
+        || is_return_statement(trimmed)
         || trimmed.starts_with("halt(")
+}
+
+fn is_return_statement(trimmed: &str) -> bool {
+    let Some(rest) = trimmed.strip_prefix("return") else {
+        return false;
+    };
+    match rest.chars().next() {
+        None => true,
+        Some(c) => c.is_whitespace() || c == '(' || c == ';',
+    }
 }
 
 /// Remove unreachable statements after if-else blocks where both branches
@@ -3058,6 +3092,48 @@ fn remove_unreachable_after_control_flow(input: &str) -> String {
                     continue;
                 }
             }
+        }
+
+        i += 1;
+    }
+
+    let mut out = kept.join("\n");
+    out.push('\n');
+    out
+}
+
+/// Remove unreachable statements that appear after an unconditional terminator
+/// within the same lexical block (until the next label or closing brace).
+fn remove_unreachable_after_terminators(input: &str) -> String {
+    let lines: Vec<&str> = input.lines().collect();
+    let mut kept: Vec<&str> = Vec::with_capacity(lines.len());
+    let mut i = 0usize;
+
+    while i < lines.len() {
+        kept.push(lines[i]);
+        let trimmed = lines[i].trim();
+
+        if is_control_flow_terminator(trimmed) {
+            let mut j = i + 1;
+            while j < lines.len() {
+                let ahead = lines[j].trim();
+                if ahead.is_empty() || ahead.starts_with("//") {
+                    j += 1;
+                    continue;
+                }
+                if ahead == "}"
+                    || ahead == "} else {"
+                    || parse_block_label_name(lines[j]).is_some()
+                    || ahead.starts_with("case ")
+                    || ahead == "default:"
+                {
+                    break;
+                }
+                // unreachable statement in the same block
+                j += 1;
+            }
+            i = j;
+            continue;
         }
 
         i += 1;
@@ -3447,6 +3523,133 @@ fn parse_simple_local_assignment(trimmed: &str) -> Option<(&str, &str)> {
         return None;
     }
     Some((lhs, rhs.trim()))
+}
+
+/// Rewrite:
+/// `if (cond) { A; goto L; } else { } A; L:`
+/// into:
+/// `if (cond) { A; goto L; } else { A; } L:`
+/// so both branches assign explicitly and no fallthrough overwrite remains.
+fn normalize_empty_else_fallthrough_assignment(input: &str) -> String {
+    let mut lines: Vec<String> = input.lines().map(|s| s.to_string()).collect();
+    let mut i = 0usize;
+
+    while i < lines.len() {
+        let if_line = lines[i].trim();
+        if !if_line.starts_with("if (") || !if_line.ends_with('{') {
+            i += 1;
+            continue;
+        }
+
+        let mut else_open = None;
+        let mut j = i + 1;
+        while j < lines.len() {
+            let t = lines[j].trim();
+            if t == "} else {" {
+                else_open = Some(j);
+                break;
+            }
+            if parse_block_label_name(&lines[j]).is_some() {
+                break;
+            }
+            j += 1;
+        }
+        let Some(else_open) = else_open else {
+            i += 1;
+            continue;
+        };
+
+        let mut else_close = None;
+        let mut k = else_open + 1;
+        while k < lines.len() {
+            let t = lines[k].trim();
+            if t == "}" {
+                else_close = Some(k);
+                break;
+            }
+            if parse_block_label_name(&lines[k]).is_some() {
+                break;
+            }
+            k += 1;
+        }
+        let Some(else_close) = else_close else {
+            i += 1;
+            continue;
+        };
+
+        let then_meaningful: Vec<usize> = (i + 1..else_open)
+            .filter(|&idx| {
+                let t = lines[idx].trim();
+                !t.is_empty() && !t.starts_with("//")
+            })
+            .collect();
+        if then_meaningful.len() != 2 {
+            i += 1;
+            continue;
+        }
+
+        let Some((lhs, rhs)) = parse_simple_local_assignment(lines[then_meaningful[0]].trim())
+        else {
+            i += 1;
+            continue;
+        };
+        if parse_goto_target(lines[then_meaningful[1]].trim()).is_none() {
+            i += 1;
+            continue;
+        }
+
+        let else_has_body = (else_open + 1..else_close).any(|idx| {
+            let t = lines[idx].trim();
+            !t.is_empty() && !t.starts_with("//")
+        });
+        if else_has_body {
+            i += 1;
+            continue;
+        }
+
+        let mut next_idx = else_close + 1;
+        while next_idx < lines.len() {
+            let t = lines[next_idx].trim();
+            if t.is_empty() || t.starts_with("//") {
+                next_idx += 1;
+            } else {
+                break;
+            }
+        }
+        if next_idx >= lines.len() {
+            i += 1;
+            continue;
+        }
+
+        let Some((next_lhs, next_rhs)) = parse_simple_local_assignment(lines[next_idx].trim())
+        else {
+            i += 1;
+            continue;
+        };
+        if lhs != next_lhs || rhs != next_rhs {
+            i += 1;
+            continue;
+        }
+
+        // Keep assignment visually inside `else { ... }` even when the
+        // duplicated fallthrough assignment had shallower indentation.
+        let else_indent_len = lines[else_open].len() - lines[else_open].trim_start().len();
+        let indent = " ".repeat(else_indent_len + 4);
+        lines.insert(else_close, format!("{}{} = {}", indent, lhs, rhs));
+
+        let remove_idx = if next_idx >= else_close {
+            next_idx + 1
+        } else {
+            next_idx
+        };
+        lines.remove(remove_idx);
+
+        i = else_close + 2;
+    }
+
+    let mut out = lines.join("\n");
+    out.push('\n');
+    out
 }
 
 fn elide_redundant_assignments(input: &str) -> String {
@@ -6695,6 +6898,7 @@ case 4: goto block_0003;
         assert!(is_control_flow_terminator("return value;"));
         assert!(is_control_flow_terminator("halt()"));
         assert!(is_control_flow_terminator("halt();"));
+        assert!(!is_control_flow_terminator("return_code = 1"));
     }
 
     #[test]
@@ -6756,6 +6960,154 @@ ptr_0_512 = 1
             output.matches("ptr_0_512 = 1").count(),
             1,
             "Else duplicate assignment should be removed: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_normalize_empty_else_fallthrough_assignment_moves_assignment_into_else() {
+        let input = "\
+if (cond) {
+    ptr_0_128 = 999
+    goto block_00d5;
+} else {
+}
+ptr_0_128 = 999
+block_00d5:
+u32[0x20000] = ptr_0_128
+";
+        let output = normalize_empty_else_fallthrough_assignment(input);
+        assert_eq!(
+            output.matches("ptr_0_128 = 999").count(),
+            2,
+            "assignment should remain exactly once per branch path: {}",
+            output
+        );
+        assert!(
+            output.contains("} else {\nptr_0_128 = 999\n}")
+                || output.contains("} else {\n    ptr_0_128 = 999\n}"),
+            "fallthrough assignment should be moved into empty else branch: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_normalize_empty_else_fallthrough_assignment_handles_commented_br_table_shape() {
+        let input = "\
+    if (!(ptr_0_80)) {
+        // @00bc
+        ptr_0_128 = 999
+        goto block_00d5;
+    } else {
+        // @0094
+    }
+    // @00c9
+    // @00bc
+    ptr_0_128 = 999
+
+    block_00d5:
+    u32[0x20000] = ptr_0_128
+";
+        let output = normalize_empty_else_fallthrough_assignment(input);
+        assert!(
+            output.contains("} else {\n        // @0094\n        ptr_0_128 = 999\n    }")
+                || output.contains("} else {\n        ptr_0_128 = 999\n    }"),
+            "fallthrough assignment should move into else in br-table-like shape: {}",
+            output
+        );
+        assert_eq!(output.matches("ptr_0_128 = 999").count(), 2);
+    }
+
+    #[test]
+    fn test_fix_blank_lines_moves_br_table_fallthrough_assignment_into_else() {
+        let input = "\
+fn main() {
+    if (!(ptr_0_80)) {
+        // @00bc
+        ptr_0_128 = 999
+        goto block_00d5;
+    } else {
+        // @0094
+    }
+    // @00c9
+    // @00bc
+    ptr_0_128 = 999
+
+    block_00d5:
+    u32[0x20000] = ptr_0_128
+}
+";
+        let output = fix_blank_lines(input);
+        assert!(
+            !output.contains("\n    // @00bc\n    ptr_0_128 = 999\n\n    block_00d5:"),
+            "fallthrough duplicate assignment should not remain outside else: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_normalize_empty_else_fallthrough_assignment_on_br_table_fixture_text() {
+        let input =
+            std::fs::read_to_string("examples/output/br-table.diss").expect("fixture should exist");
+        let output = normalize_empty_else_fallthrough_assignment(&input);
+        assert!(
+            !output.contains("\n    // @00bc\n    ptr_0_128 = 999\n\n    block_00d5:"),
+            "normalized fixture text should not keep fallthrough duplicate: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_fix_blank_lines_on_br_table_fixture_text_removes_fallthrough_duplicate() {
+        let input =
+            std::fs::read_to_string("examples/output/br-table.diss").expect("fixture should exist");
+        let output = fix_blank_lines(&input);
+        assert!(
+            !output.contains("\n    // @00bc\n    ptr_0_128 = 999\n\n    block_00d5:"),
+            "fix_blank_lines on fixture should remove fallthrough duplicate: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_fix_blank_lines_reapplies_normalize_after_assignment_elision() {
+        let input = "\
+fn main(r1: u64) {
+    if (cond_0) {
+        ptr_0_128 = 999
+        goto block_00d5;
+    } else {
+        ptr_0_128 = 999
+    }
+    // @00bc
+    ptr_0_128 = 999
+
+    block_00d5:
+    u32[0x20000] = ptr_0_128
+}
+";
+        let output = fix_blank_lines(input);
+        assert!(
+            !output.contains("\n    // @00bc\n    ptr_0_128 = 999\n\n    block_00d5:"),
+            "fix_blank_lines should not leave duplicate fallthrough assignment after else-elision: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_remove_unreachable_after_terminators_drops_dead_tail_in_loop() {
+        let input = "\
+while (x) {
+    var_1 = 1
+    break
+    var_2 = 2
+}
+return
+";
+        let output = remove_unreachable_after_terminators(input);
+        assert!(
+            !output.contains("var_2 = 2"),
+            "statements after break in same block should be removed: {}",
             output
         );
     }
@@ -7081,6 +7433,72 @@ fn main() {
         assert!(
             !pseudo.contains("if (r1 == 0)"),
             "Should not have nested ifs: {}",
+            pseudo
+        );
+    }
+
+    #[test]
+    fn test_switch_recovery_skips_duplicate_case_values() {
+        // Duplicate `value: 0` appears in two headers; recovered switch should
+        // emit a single `case 0`.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![(
+                        0,
+                        Instruction::BranchEqImm {
+                            reg: 1,
+                            value: 0,
+                            offset: 20,
+                        },
+                    )],
+                    vec![10, 20],
+                ),
+                (10, vec![(10, Instruction::Trap)], vec![]),
+                (
+                    20,
+                    vec![(
+                        20,
+                        Instruction::BranchEqImm {
+                            reg: 1,
+                            value: 0, // duplicate
+                            offset: 20,
+                        },
+                    )],
+                    vec![30, 40],
+                ),
+                (30, vec![(30, Instruction::Trap)], vec![]),
+                (
+                    40,
+                    vec![(
+                        40,
+                        Instruction::BranchEqImm {
+                            reg: 1,
+                            value: 1,
+                            offset: 20,
+                        },
+                    )],
+                    vec![50, 60],
+                ),
+                (50, vec![(50, Instruction::Trap)], vec![]),
+                (60, vec![(60, Instruction::Trap)], vec![]), // default
+            ],
+        );
+
+        let result = StructuralAnalysis::analyze(&cfg, &empty_program());
+        let pseudo = result.pseudo_code(&cfg, None, None);
+
+        assert!(
+            pseudo.contains("switch (r1)"),
+            "should still recover switch: {}",
+            pseudo
+        );
+        assert_eq!(
+            pseudo.matches("case 0:").count(),
+            1,
+            "duplicate immediate comparisons must not emit duplicate case labels: {}",
             pseudo
         );
     }

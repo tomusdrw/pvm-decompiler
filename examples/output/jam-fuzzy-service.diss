@@ -2912,7 +2912,6 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     }
 
     // @16a49
-
     if (ptr_1137 == 0) {
         // @16ab7
         r7 = 0
@@ -4247,7 +4246,6 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     u32[ptr_1137 + 8] = 0
     u32[ptr_1137 + 12] = 0
     u32[0x2634] = ptr_1137
-
     // @16ab7
     r7 = 0
 
@@ -4670,10 +4668,6 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
     // @16d6e
     goto block_16c21;
-
-    if (var_30 >>u 25 != 0) {
-        // @16c21
-        r7 = 0
     } else {
         // @16ae3
         var_17925 = var_30 + 1
@@ -6861,7 +6855,6 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
     // @16bde
     u32[r8 + 12] = 0
-
     // @16c32
     var_18006 = -2
     var_18008 = var_18006 rotl var_17956 & ptr_1153_1544
@@ -7194,7 +7187,6 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     }
 
     // @17bb9
-
     while (var_3170 - 1 != 0) {
         // @17ba4
         ptr_1297_0 = var_3171
@@ -8334,7 +8326,6 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
 
     // @16e0d
     u32[ptr_1168 + 12] = 0
-
     // @16e20
     var_18099 = var_18085 >>u 6
     var_18104 = -2
@@ -9196,7 +9187,6 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     // @16ef9
     ptr_1173_8->field_12 = ptr_1173_12
     r2 = var_18120 + var_18076
-
     // @16eb8
     ptr_1174_0 = ptr_1173_8
 
@@ -9226,7 +9216,6 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     // @16ebd
     u32[ptr_1175 + 12] = 0
     r2 = var_18120 + var_18076
-
     // @16f01
     var_18140 = ptr_1173_4 >>u 6
     var_18146 = -2
@@ -9246,7 +9235,6 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     // @16f28
     u64[var_18070 + 0x2738] = u64[var_18070 + 0x2738] & var_18146 rotl var_18140
     r2 = var_18120 + var_18076
-
     // @16f3f
     r2 = var_18120 + var_18076
 
@@ -9370,7 +9358,6 @@ fn main(r0: u64, r1: u64, r2: u64, r3: u64, r4: u64, r5: u64, r6: u64, r7: u64, 
     u64[ptr_1074 + 64] = 0
     r8 = 0x17F10
     r7 = ptr_1074 + 40
-
     // @15575
     r1 = ptr_1071 + 112
     call_indirect(r0)
@@ -9822,7 +9809,6 @@ fn func_1(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
 
     // @12a44
     var_114 = 0
-
     if (var_112 != 2) {
         // @12b1e
         var_129 = 0
@@ -9964,6 +9950,7 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     let ptr_10_16
     let ptr_10_24
     let ptr_10_32
+    let ptr_10_40
     let ptr_10_48
     let ptr_10_56
     let ptr_10_64
@@ -9980,8 +9967,6 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     let var_128: u64
     let var_130: u64
     let var_132: u64
-    let var_137: u64
-    let var_140: u64
     let var_145: u64
     let var_146: u64
     let var_147: u64
@@ -10002,7 +9987,6 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     let ptr_11_0
     let ptr_12_0
     let ptr_14_0
-    let ptr_15_0
     let ptr_22_0
     let var_226
     let var_231
@@ -10045,7 +10029,7 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
 
                 if (ptr_10_40 == 0) {
                     // @12e61
-                    let ptr_10_40 = ptr_10_40
+                    ptr_10_40 = ptr_10_40
 
                     if (u16[r8 + 20] >=u var_101) {
                         // @12f82
@@ -10146,10 +10130,6 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
 
     // @12cb9
     goto block_12f82;
-
-    while (var_140 != ptr_15 + 1) {
-        // @12d52
-        r9 = var_137 + (ptr_15_0 <s -64 ^ 1)
     }
 
     for (let var_145 = var_130 >>u 3; var_145 != 0; var_145 = ptr_10_64 - ptr_10_48) {
@@ -10276,10 +10256,6 @@ fn func_6(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r8: u64) {
     // @12e4e
     r4 = var_109 - (var_109 - var_113)
     goto block_12e61;
-
-    if (var_224 >=u zext16(var_220)) {
-        // @12ecd
-        r0 = 2120; jump_ind var_231
     } else {
         // @12eb4
         r6 = var_220 + 1

@@ -1165,13 +1165,14 @@ impl LiftedProgram {
     /// Dead store elimination: remove stores to stack locations that are never
     /// read by any remaining load in the program.
     fn eliminate_dead_stores(&mut self) {
+        let ctx = self.format_context();
         // Collect all (base_str, offset) pairs that appear in remaining Load expressions.
         let mut live_loads: HashSet<(String, i32)> = HashSet::new();
         for (pc, expr) in &self.expressions {
             if self.eliminated_pcs.contains(pc) {
                 continue;
             }
-            collect_live_loads(expr, &mut live_loads);
+            collect_live_loads(expr, &ctx, &mut live_loads);
         }
 
         // Eliminate stores whose target is not in any live load and whose base
@@ -1182,7 +1183,7 @@ impl LiftedProgram {
                 continue;
             }
             if let Some(Expression::Store { base, offset, .. }) = self.expressions.get(&pc) {
-                let base_str = format_expression(base, &self.format_context());
+                let base_str = format_expression(base, &ctx);
                 // Keep stores unless the base expression can be traced back to
                 // stack-pointer-derived address arithmetic. This avoids dropping
                 // writes through pointers loaded from stack slots.
@@ -2049,28 +2050,26 @@ fn expression_depth(expr: &Expression) -> usize {
 }
 
 /// Recursively collect all (base_str, offset) pairs from Load expressions in an expression tree.
-fn collect_live_loads(expr: &Expression, live: &mut HashSet<(String, i32)>) {
-    // Use default context (no memory base) since we only need consistent string keys.
-    let ctx = FormatContext::default();
+fn collect_live_loads(expr: &Expression, ctx: &FormatContext, live: &mut HashSet<(String, i32)>) {
     match expr {
         Expression::Load { base, offset, .. } => {
             live.insert((format_expression(base, &ctx), *offset));
-            collect_live_loads(base, live);
+            collect_live_loads(base, ctx, live);
         }
         Expression::BinOp { lhs, rhs, .. } => {
-            collect_live_loads(lhs, live);
-            collect_live_loads(rhs, live);
+            collect_live_loads(lhs, ctx, live);
+            collect_live_loads(rhs, ctx, live);
         }
         Expression::UnaryOp { operand, .. } => {
-            collect_live_loads(operand, live);
+            collect_live_loads(operand, ctx, live);
         }
         Expression::Store { base, value, .. } => {
-            collect_live_loads(base, live);
-            collect_live_loads(value, live);
+            collect_live_loads(base, ctx, live);
+            collect_live_loads(value, ctx, live);
         }
         Expression::Call { args, .. } => {
             for arg in args {
-                collect_live_loads(arg, live);
+                collect_live_loads(arg, ctx, live);
             }
         }
         Expression::Const(_) | Expression::Var(_) | Expression::Raw(_) => {}
@@ -3612,6 +3611,68 @@ mod tests {
         assert!(
             lifted.eliminated_pcs.contains(&12),
             "Dead store at PC 12 should be eliminated"
+        );
+    }
+
+    #[test]
+    fn test_dead_store_elimination_uses_shared_format_context_for_live_load_keys() {
+        let mut lifted = LiftedProgram {
+            variables: HashMap::new(),
+            expressions: HashMap::new(),
+            eliminated_pcs: HashSet::new(),
+            var_at_use: HashMap::new(),
+            declared_vars: HashSet::new(),
+            stack_vars: HashMap::new(),
+            call_targets: HashMap::new(),
+            direct_call_sites: HashMap::new(),
+            call_param_regs: HashMap::new(),
+            var_name_to_def_pc: HashMap::new(),
+            epilogue_blocks: HashMap::new(),
+            suppressed_blocks: HashSet::new(),
+            memory_base: Some(0x50000),
+            heap_alloc: None,
+            hidden_labels: HashSet::new(),
+            linear_memory_offset: None,
+            heap_alloc_data_ptr: None,
+        };
+        lifted.variables.insert(
+            (1, 1),
+            Variable {
+                name: "ptr_0".to_string(),
+                var_type: VarType::Pointer,
+            },
+        );
+        lifted.var_name_to_def_pc.insert("ptr_0".to_string(), 1);
+        lifted.expressions.insert(1, Expression::Const(0));
+
+        let base_expr = Expression::BinOp {
+            op: BinOp::Add,
+            lhs: Box::new(Expression::Var("ptr_0".to_string())),
+            rhs: Box::new(Expression::Const(0x50000)),
+        };
+        lifted.expressions.insert(
+            2,
+            Expression::Store {
+                width: MemWidth::U64,
+                base: Box::new(base_expr.clone()),
+                offset: 0,
+                value: Box::new(Expression::Const(7)),
+            },
+        );
+        lifted.expressions.insert(
+            3,
+            Expression::Load {
+                width: MemWidth::U64,
+                base: Box::new(base_expr),
+                offset: 0,
+            },
+        );
+
+        lifted.eliminate_dead_stores();
+
+        assert!(
+            !lifted.eliminated_pcs.contains(&2),
+            "Store with matching live load should be retained when keying uses a shared context"
         );
     }
 

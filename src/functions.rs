@@ -1066,6 +1066,7 @@ pub fn detect_heap_alloc_pattern(
     // linear memory offset used for all heap accesses in AS programs.
     let mut linear_memory_offset = None;
     if let Some(conv_block) = cfg.blocks.get(&convergence_block_pc) {
+        let mut offset_counts: HashMap<u64, usize> = HashMap::new();
         for (_, instr) in &conv_block.instructions {
             let off = match instr {
                 Instruction::StoreIndU32 { offset, .. }
@@ -1081,9 +1082,18 @@ pub fn detect_heap_alloc_pattern(
             };
             if let Some(o) = off {
                 if o > memory_base {
-                    linear_memory_offset = Some(o);
-                    break;
+                    *offset_counts.entry(o).or_insert(0) += 1;
                 }
+            }
+        }
+        if let Some(best_count) = offset_counts.values().copied().max() {
+            let mut winners: Vec<u64> = offset_counts
+                .iter()
+                .filter_map(|(&off, &count)| (count == best_count).then_some(off))
+                .collect();
+            winners.sort_unstable();
+            if winners.len() == 1 {
+                linear_memory_offset = Some(winners[0]);
             }
         }
     }
@@ -1355,6 +1365,114 @@ mod tests {
         assert!(
             detect_heap_alloc_pattern(&cfg, 0, Some(memory_base)).is_none(),
             "entry blocks without pre-convergence allocation path must not be treated as AS sbrk"
+        );
+    }
+
+    #[test]
+    fn test_detect_heap_alloc_pattern_ambiguous_linear_memory_offset_returns_none() {
+        let memory_base = 0x1000;
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (
+                            0,
+                            Instruction::LoadImm {
+                                reg: 0,
+                                value: memory_base as i32,
+                            },
+                        ),
+                        (
+                            2,
+                            Instruction::LoadIndU32 {
+                                dst: 1,
+                                base: 0,
+                                offset: 0,
+                            },
+                        ),
+                        (4, Instruction::LoadImm { reg: 2, value: 16 }),
+                        (
+                            6,
+                            Instruction::Add32 {
+                                dst: 1,
+                                src1: 1,
+                                src2: 2,
+                            },
+                        ),
+                        (
+                            8,
+                            Instruction::LoadImm {
+                                reg: 3,
+                                value: memory_base as i32 + 4,
+                            },
+                        ),
+                        (
+                            10,
+                            Instruction::LoadIndU32 {
+                                dst: 4,
+                                base: 3,
+                                offset: 0,
+                            },
+                        ),
+                    ],
+                    vec![20, 100],
+                ),
+                (20, vec![(20, Instruction::Jump { offset: 80 })], vec![100]),
+                (
+                    100,
+                    vec![
+                        (
+                            100,
+                            Instruction::LoadIndU64 {
+                                dst: 6,
+                                base: 7,
+                                offset: 0,
+                            },
+                        ),
+                        (
+                            102,
+                            Instruction::LoadImm {
+                                reg: 8,
+                                value: memory_base as i32,
+                            },
+                        ),
+                        (
+                            104,
+                            Instruction::StoreIndU32 {
+                                base: 9,
+                                src: 6,
+                                offset: 0,
+                            },
+                        ),
+                        (
+                            106,
+                            Instruction::LoadIndU64 {
+                                dst: 10,
+                                base: 11,
+                                offset: 0x50000,
+                            },
+                        ),
+                        (
+                            108,
+                            Instruction::LoadIndU32 {
+                                dst: 12,
+                                base: 13,
+                                offset: 0x50010,
+                            },
+                        ),
+                    ],
+                    vec![],
+                ),
+            ],
+        );
+
+        let pattern = detect_heap_alloc_pattern(&cfg, 0, Some(memory_base))
+            .expect("base heap allocation pattern should be detected");
+        assert_eq!(
+            pattern.linear_memory_offset, None,
+            "ambiguous linear-memory offsets should not pick an arbitrary value"
         );
     }
 
