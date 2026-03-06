@@ -1,30 +1,26 @@
-# Small Backend Compare
+# Backend Comparison
 
-Here I compare backend behavior on tiny fixture `simple-add.pvm`.
+The `--decompile` flag runs the full LLVM pipeline: PVM bytecode is lifted to LLVM IR, then decompiled to C code. Several backends are available for the final decompilation step.
 
-Source file for this one is not tracked in `examples/sources/`. It is hand-made tiny fixture.
+## Available Backends
 
-## Tiny Program Metadata
+| Backend | Flag | Status |
+| --- | --- | --- |
+| `builtin` | `--backend=builtin` | Works locally, no extra dependencies |
+| `retdec` | `--backend=retdec` | Requires RetDec installation |
+| `rellic` | `--backend=rellic` | Requires Rellic installation |
+| `rellic-docker` | `--backend=rellic-docker` | Requires Docker with Rellic image |
+| `llvm-cbe` | `--backend=llvm-cbe` | Requires LLVM C Backend Emitter |
 
-| Field | Value |
-| --- | --- |
-| Compiled file | `examples/compiled/simple-add.pvm` |
-| File size | `21` bytes |
-| Container format | `raw ProgramBlob` (SPI decode fails, then raw decode works) |
-| Functions detected | `1` |
-| Instruction count | `6` |
-| Jump table | `[]` |
-| Code size | `0x10` (`16`) bytes (max CFG block end PC) |
+For most users, `builtin` is the easiest option since it needs no external tools.
 
-## Backend 1: builtin (works now)
+## Example: builtin Backend
 
-Command:
+Using `simple-add.pvm`, a minimal hand-crafted PVM binary (21 bytes, 6 instructions):
 
 ```bash
 ./target/release/pvm-decompiler --decompile --backend=builtin examples/compiled/simple-add.pvm
 ```
-
-Short output:
 
 ```c
 int64_t main(void) {
@@ -41,21 +37,26 @@ bb_000f:
 }
 ```
 
-## Backend 2: rellic-docker (available but failing in this local env)
+The C output preserves the basic block structure from the LLVM IR. Variables like `%t5` are LLVM temporaries that the backend has not yet resolved into concrete expressions. This is expected for the builtin backend -- it prioritizes correctness over readability.
 
-Command:
+## Example: br-table Through builtin
+
+A larger example showing how the builtin backend handles branching:
 
 ```bash
-./target/release/pvm-decompiler --decompile --backend=rellic-docker examples/compiled/simple-add.pvm
+./target/release/pvm-decompiler --decompile --backend=builtin examples/compiled/br-table.pvm
 ```
 
-Observed error:
+The output is a C function with labeled basic blocks (`bb_0000`, `bb_000a`, etc.), `goto` statements for control flow, and `if/else` for conditional branches. The switch table from the source becomes a chain of conditional jumps.
 
-```text
-Error: "Rellic Docker produced no output. stderr: [rellic-docker] Assembling /work/input.ll -> /work/input.bc
-/entrypoint.sh: 23: /opt/trailofbits/llvm/bin/llvm-as: not found
-"
-```
+## When to Use Which Output
 
-So for now, use `--backend=builtin` on this machine.
+| Goal | Recommended mode |
+| --- | --- |
+| Quick understanding of program logic | Default pseudo-code (no flags) |
+| Better variable names for review | `--refine` |
+| Integration with C toolchains | `--decompile --backend=builtin` |
+| Deep analysis of the binary | `--verbose` or `--debug` |
+| Generating LLVM IR for custom pipelines | `--llvm` |
 
+The default pseudo-code mode is usually the most readable. Use `--decompile` when you need actual C code, for example to compile and test the decompiled output.

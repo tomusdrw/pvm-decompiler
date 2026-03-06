@@ -1,5 +1,5 @@
 [book]
-title = "PVM Decompiler - Simple Notes"
+title = "PVM Decompiler Documentation"
 authors = ["pvm-decompiler maintainers"]
 language = "en"
 src = "book-src"

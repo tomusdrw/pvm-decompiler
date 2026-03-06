@@ -1,6 +1,6 @@
-# Example 1: br-table (small)
+# Branch Table
 
-This is good small case. Source is WAT and control flow has `br_table`.
+A small WAT program that uses `br_table` for indexed branching. The decompiler recovers this as a `switch/case` statement.
 
 ## Source
 
@@ -44,42 +44,40 @@ File: `examples/sources/br-table.wat`
 )
 ```
 
-## Compiled Metadata
+The program reads an index from memory, branches to one of four cases (setting result to 100, 200, 300, or 0), then falls back to 999 if the result is still zero. Finally it writes the result to memory.
 
-From `--debug` output and file size:
+## Compiled Metadata
 
 | Field | Value |
 | --- | --- |
-| Compiled file | `examples/compiled/br-table.pvm` |
-| File size | `335` bytes |
-| Container format | `SPI` |
-| Functions detected | `1` |
-| Instruction count | `70` |
-| Jump table | `[10]` (1 entry) |
-| Code size | `0xF2` (`242`) bytes (max CFG block end PC) |
+| File | `examples/compiled/br-table.pvm` |
+| Size | 335 bytes |
+| Format | SPI |
+| Functions | 1 |
+| Instructions | 70 |
+| Jump table entries | 1 |
 
-## Decompiled Output (default pseudo-code)
+## Decompiled Output
+
+```bash
+./target/release/pvm-decompiler examples/compiled/br-table.pvm
+```
 
 ```text
 fn main(r1: u64, r7: u64, r8: u64) {
     let ptr_0_128
     let ptr_0_80
 
-    // @000a
     let var_1 = u32[r7]
 
     switch (var_1) {
         case 0:
-            // @00b1
             ptr_0_80 = 100
         case 1:
-            // @00a5
             ptr_0_80 = 200
         case 2:
-            // @0099
             ptr_0_80 = 300
         default:
-            // @0040
             ptr_0_80 = 0
     }
 
@@ -95,9 +93,14 @@ fn main(r1: u64, r7: u64, r8: u64) {
 }
 ```
 
-## Decompiled Output Refined With LLM
+**What to notice:**
 
-Command used:
+- The `br_table` is recovered as a clean `switch` statement with four cases.
+- The variable `ptr_0_80` holds the intermediate result from each case.
+- The fallback check (`if result == 0 then 999`) is visible in the `if` block.
+- Memory write `u32[0x20000]` corresponds to the `i32.store` at offset 0 plus the PVM memory base address.
+
+## Refined Output (LLM)
 
 ```bash
 ./target/release/pvm-decompiler --refine examples/compiled/br-table.pvm
@@ -108,7 +111,6 @@ fn main(r1: u64, r7: u64, r8: u64) {
     let result_code
     let switch_value
 
-    // Read branch index from memory location in r7
     let switch_index = u32[r7]
 
     switch (switch_index) {
@@ -125,9 +127,9 @@ fn main(r1: u64, r7: u64, r8: u64) {
         result_code = 999
     }
     block_00d5:
-    // Store final result to fixed output memory address 0x20000
     u32[0x20000] = result_code
     halt()
 }
 ```
 
+The LLM renames `ptr_0_80` to `switch_value` and `ptr_0_128` to `result_code`, making the intent clearer.
