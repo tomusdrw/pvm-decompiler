@@ -1,0 +1,182 @@
+fn main(r1: u64, r7: u64, r8: u64) {
+    let var_0: u64
+
+    let ptr_0
+    // @0000
+
+    // @0006
+    var_0 = 2; jump 756
+
+    if (0xFEFD0000 >=u ptr_0) {
+        // @0315
+        u32[0x30004] = 1036
+        call_indirect(var_0)
+    }
+}
+
+fn func_1(r1: u64, r10: u64, r11: u64) {
+    let ptr_0_160
+    let ptr_0_40
+    let ptr_0_80
+    let ptr_0_96
+    let ptr_4: ptr
+    let ptr_4_48
+    let var_13: u32
+    let var_21: u32
+    let var_40: u64
+    let var_42: u64
+    let var_43: u32
+    let var_56: u64
+    let var_58: u64
+    let var_60: u64
+    let var_61: u32
+
+    let ptr_0
+    let ptr_2
+    let var_51
+    // @0015
+    r8 = u64[r1 + 8]
+    ptr_0_40 = u64[r1] - 0x33000
+    let var_4 = RESULT_LEN
+    let var_9 = 32
+    ptr_0_80 = var_4 + 4 << var_9 >>u var_9
+    var_13 = var_4 + 272
+    ptr_0_96 = var_13 << var_9 >>u var_9
+    let var_18 = HEAP_PTR
+    var_21 = var_18 << 16
+
+    if (var_13 <u var_21) {
+        // @007f
+        let var_30 = var_13 - var_21 + 0xFFFF >>u 16
+        ptr_0_160 = var_30 << 32 >>u 32
+        if (r2 != 0) var_40 = r3
+        var_42 = HEAP_PTR
+        var_43 = var_42 + var_40
+
+        if (var_42 <u var_43) {
+            // @00ea
+            r4 = -1
+        } else {
+            if (var_43 <u 256) {
+                // @00ea
+                r4 = -1
+            } else {
+                // @00d5
+                HEAP_PTR = var_43
+                let ptr_1 = sbrk(var_43 - var_42 << 16)
+                goto block_00ee;
+            }
+        }
+    } else {
+        // @007a
+        goto block_010a;
+    }
+
+    block_00ee:
+    if (var_51 == 0) {
+        // @010a
+        RESULT_LEN = ptr_0_96
+        u32[r2 + 0x33000] = 268
+        RESULT_PTR = ptr_0_80
+        var_56 = ptr_0_40->field_208896
+        var_58 = 4; jump 314
+    } else {
+        // @0105
+        goto block_014f;
+    }
+
+    // @0105
+
+    block_014f:
+    // @014f
+    var_60 = HEAP_PTR
+    var_61 = var_60 + ptr_0_160
+
+    if (var_60 <u var_61) {
+        // @0180
+        r4 = -1
+    } else {
+        if (var_61 <u 256) {
+            // @0180
+            r4 = -1
+        } else {
+            // @016b
+            HEAP_PTR = var_61
+            let ptr_3 = sbrk(var_61 - var_60 << 16)
+            goto block_0184;
+        }
+    }
+
+    if (var_61 <u 256) {
+        // @0180
+        r4 = -1
+    } else {
+        // @016b
+        HEAP_PTR = var_61
+        ptr_3 = sbrk(var_61 - var_60 << 16)
+        goto block_0184;
+    }
+
+    // @016b
+    HEAP_PTR = var_61
+    ptr_3 = sbrk(var_61 - var_60 << 16)
+    // @0180
+    r4 = -1
+
+    block_0184:
+    // @0184
+
+    block_010a:
+    // @010a
+    RESULT_LEN = ptr_0_96
+    u32[r2 + 0x33000] = 268
+    RESULT_PTR = ptr_0_80
+    var_56 = ptr_0_40->field_208896
+    var_58 = 4; jump 314
+
+    for (let ptr_2 = ptr_0_40; 0xFEFD0000 >=u r1 - 384 - 120; ptr_2 = ptr_4_48 - 1 << 32 >>u 32) {
+        // @0280
+        ptr_4 = ptr_0 - 120
+        ptr_4_48 = var_56
+
+        if (var_56 <s 2) {
+            // @02a9
+
+            break
+        } else {
+            // @02a4
+            goto block_02ca;
+        }
+    }
+
+    // @027f
+    return
+}
+
+fn func_2(r1: u64, r7: u64) {
+    // @0139
+    u64[r1 + 224] = r7
+    u64[r1 + 264] = 0
+    u64[r1 + 272] = 0
+
+    while (u64[r1 + 272] <s 3) {
+        // @01b2
+        let var_8 = u64[r1 + 264] + u64[r1 + 272] * u64[r1 + 272]
+        u64[r1 + 296] = var_8
+        u64[r1 + 264] = var_8
+        u64[r1 + 272] = u64[r1 + 272] + 1
+    }
+
+    // @01e2
+    let var_16 = u64[r1 + 224]
+    u64[r1 + 328] = var_16
+    let var_20 = u64[r1 + 216] + 5 + var_16
+    u64[r1 + 336] = var_20
+    let var_21 = RESULT_PTR
+    u64[r1 + 344] = var_21
+    let var_28 = var_20 + u64[r1 + 264] << 32 >>u 32
+    u64[r1 + 360] = var_28
+    u32[var_21 + 0x33000] = var_28
+    halt()
+}
+

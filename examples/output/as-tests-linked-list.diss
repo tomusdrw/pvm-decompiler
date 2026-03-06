@@ -1,0 +1,501 @@
+fn main(r1: u64, r7: u64, r8: u64) {
+    let var_0: u64
+
+    let ptr_0
+    // @0000
+
+    // @0006
+    var_0 = 2; jump 1600
+
+    if (0xFEFD0000 >=u ptr_0) {
+        // @0661
+        u32[0x30008] = 1036
+        call_indirect(var_0)
+    }
+}
+
+fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0_144
+    let ptr_0_256
+    let ptr_0_264
+    let ptr_0_328
+    let ptr_0_64
+    let ptr_0_72
+    let ptr_0_80
+    let ptr_7: ptr
+    let var_109: u64
+    let var_110: u32
+    let var_131: u64
+    let var_15: u32
+    let var_168: u64
+    let var_34: u64
+    let var_36: u64
+    let var_37: u32
+    let var_48: u64
+    let var_49: u32
+    let var_76: u32
+    let var_95: u64
+    let var_97: u64
+    let var_98: u32
+
+    let ptr_0
+    let var_106
+    let var_45
+    // @0015
+    r8 = u64[r1 + 8]
+    r7 = u64[r1] - 0x33000
+    let var_4 = HEAP_PTR
+    ptr_0_64 = var_4
+    let var_7 = var_4 + 272
+    ptr_0_72 = var_7
+    ptr_0_80 = var_7 << 32 >>u 32
+    let var_12 = HEAP_PAGES
+    var_15 = var_12 << 16
+
+    if (var_7 <u var_15) {
+        // @006d
+        let var_24 = ptr_0_72 - var_15 + 0xFFFF >>u 16
+        ptr_0_144 = var_24 << 32 >>u 32
+        if (r2 != 0) var_34 = r3
+        var_36 = HEAP_PAGES
+        var_37 = var_36 + var_34
+
+        if (var_36 <u var_37) {
+            // @00d9
+            r4 = -1
+        } else {
+            if (var_37 <u 256) {
+                // @00d9
+                r4 = -1
+            } else {
+                // @00c4
+                HEAP_PAGES = var_37
+                let ptr_1 = sbrk(var_37 - var_36 << 16)
+                goto block_00dd;
+            }
+        }
+    } else {
+        // @0068
+        goto block_0143;
+    }
+
+    block_00dd:
+    if (var_45 == 0) {
+        // @0143
+        HEAP_PTR = ptr_0_80
+        u32[r2 + 0x33000] = 268
+        RESULT_PTR = ptr_0_64 + 4 << 32 >>u 32
+        let ptr_0_248 = ptr_0_80
+        ptr_0_256 = ptr_0_80
+        let var_72 = ptr_0_80 + 48
+        ptr_0_264 = var_72
+        let var_73 = HEAP_PAGES
+        let ptr_0_272 = var_73
+        let ptr_0_280 = var_73
+        var_76 = var_73 << 16
+
+        if (var_72 <u var_76) {
+            // @01a8
+            let var_85 = ptr_0_264 - var_76 + 0xFFFF >>u 16
+            ptr_0_328 = var_85 << 32 >>u 32
+            if (r2 != 0) var_95 = r3
+            var_97 = HEAP_PAGES
+            var_98 = var_97 + var_95
+
+            if (var_97 <u var_98) {
+                // @0217
+                r4 = -1
+            } else {
+                if (var_98 <u 256) {
+                    // @0217
+                    r4 = -1
+                } else {
+                    // @0202
+                    HEAP_PAGES = var_98
+                    let ptr_3 = sbrk(var_98 - var_97 << 16)
+                    goto block_021b;
+                }
+            }
+        } else {
+            // @01a3
+            goto block_0281;
+        }
+    } else {
+        // @00f4
+        var_48 = HEAP_PAGES
+        var_49 = var_48 + ptr_0_144
+
+        if (var_48 <u var_49) {
+            // @0125
+            r4 = -1
+        } else {
+            if (var_49 <u 256) {
+                // @0125
+                r4 = -1
+            } else {
+                // @0110
+                HEAP_PAGES = var_49
+                let ptr_2 = sbrk(var_49 - var_48 << 16)
+                goto block_0129;
+            }
+        }
+    }
+
+    // @00f4
+    var_48 = HEAP_PAGES
+    var_49 = var_48 + ptr_0_144
+
+    if (var_48 <u var_49) {
+        // @0125
+        r4 = -1
+    } else {
+        if (var_49 <u 256) {
+            // @0125
+            r4 = -1
+        } else {
+            // @0110
+            HEAP_PAGES = var_49
+            ptr_2 = sbrk(var_49 - var_48 << 16)
+            goto block_0129;
+        }
+    }
+
+    if (var_49 <u 256) {
+        // @0125
+        r4 = -1
+    } else {
+        // @0110
+        HEAP_PAGES = var_49
+        ptr_2 = sbrk(var_49 - var_48 << 16)
+        goto block_0129;
+    }
+
+    // @0110
+    HEAP_PAGES = var_49
+    ptr_2 = sbrk(var_49 - var_48 << 16)
+    // @0125
+    r4 = -1
+
+    block_0129:
+    // @0129
+
+    block_0143:
+    // @0143
+    HEAP_PTR = ptr_0_80
+    u32[r2 + 0x33000] = 268
+    RESULT_PTR = ptr_0_64 + 4 << 32 >>u 32
+    ptr_0_248 = ptr_0_80
+    ptr_0_256 = ptr_0_80
+    var_72 = ptr_0_80 + 48
+    ptr_0_264 = var_72
+    var_73 = HEAP_PAGES
+    ptr_0_272 = var_73
+    ptr_0_280 = var_73
+    var_76 = var_73 << 16
+
+    if (var_72 <u var_76) {
+        // @01a8
+        var_85 = ptr_0_264 - var_76 + 0xFFFF >>u 16
+        ptr_0_328 = var_85 << 32 >>u 32
+        if (r2 != 0) var_95 = r3
+        var_97 = HEAP_PAGES
+        var_98 = var_97 + var_95
+
+        if (var_97 <u var_98) {
+            // @0217
+            r4 = -1
+        } else {
+            if (var_98 <u 256) {
+                // @0217
+                r4 = -1
+            } else {
+                // @0202
+                HEAP_PAGES = var_98
+                ptr_3 = sbrk(var_98 - var_97 << 16)
+                goto block_021b;
+            }
+        }
+    } else {
+        // @01a3
+        goto block_0281;
+    }
+
+    // @01a3
+    goto block_0281;
+    } else {
+        if (var_98 <u 256) {
+            // @0217
+            r4 = -1
+        } else {
+            // @0202
+            HEAP_PAGES = var_98
+            ptr_3 = sbrk(var_98 - var_97 << 16)
+            goto block_021b;
+        }
+    }
+
+    if (var_98 <u 256) {
+        // @0217
+        r4 = -1
+    } else {
+        // @0202
+        HEAP_PAGES = var_98
+        ptr_3 = sbrk(var_98 - var_97 << 16)
+        goto block_021b;
+    }
+
+    // @0202
+    HEAP_PAGES = var_98
+    ptr_3 = sbrk(var_98 - var_97 << 16)
+    // @0217
+    r4 = -1
+
+    block_021b:
+    if (var_106 == 0) {
+        // @0281
+        let var_123 = 32
+        HEAP_PTR = ptr_0_264 << var_123 >>u var_123
+        u32[r2 + 0x33000] = 44
+        var_131 = ptr_0_256 + 4 << var_123 >>u var_123
+        RESULT_LEN = var_131
+        u32[r2 + 0x33000] = 10
+        u32[var_131 + 0x33004] = ptr_0_256 + 12 << var_123 >>u var_123
+        let var_145 = 32
+        let var_147 = var_131 + 8 << var_145 >>u var_145
+        u32[r2 + 0x33000] = 20
+        u32[var_147 + 0x33004] = var_131 + 16 << var_145 >>u var_145
+        let var_163 = var_131 + 16 << 32 >>u 32
+        u32[var_163 + 0x33000] = 30
+        u32[r2 + 0x33000] = 0
+        var_168 = 4; jump 592
+    } else {
+        // @0232
+        var_109 = HEAP_PAGES
+        var_110 = var_109 + ptr_0_328
+
+        if (var_109 <u var_110) {
+            // @0263
+            r4 = -1
+        } else {
+            if (var_110 <u 256) {
+                // @0263
+                r4 = -1
+            } else {
+                // @024e
+                HEAP_PAGES = var_110
+                let ptr_4 = sbrk(var_110 - var_109 << 16)
+                goto block_0267;
+            }
+        }
+    }
+
+    // @0232
+    var_109 = HEAP_PAGES
+    var_110 = var_109 + ptr_0_328
+
+    if (var_109 <u var_110) {
+        // @0263
+        r4 = -1
+    } else {
+        if (var_110 <u 256) {
+            // @0263
+            r4 = -1
+        } else {
+            // @024e
+            HEAP_PAGES = var_110
+            ptr_4 = sbrk(var_110 - var_109 << 16)
+            goto block_0267;
+        }
+    }
+
+    if (var_110 <u 256) {
+        // @0263
+        r4 = -1
+    } else {
+        // @024e
+        HEAP_PAGES = var_110
+        ptr_4 = sbrk(var_110 - var_109 << 16)
+        goto block_0267;
+    }
+
+    // @024e
+    HEAP_PAGES = var_110
+    ptr_4 = sbrk(var_110 - var_109 << 16)
+    // @0263
+    r4 = -1
+
+    block_0267:
+    // @0267
+
+    block_0281:
+    // @0281
+    var_123 = 32
+    HEAP_PTR = ptr_0_264 << var_123 >>u var_123
+    u32[r2 + 0x33000] = 44
+    var_131 = ptr_0_256 + 4 << var_123 >>u var_123
+    RESULT_LEN = var_131
+    u32[r2 + 0x33000] = 10
+    u32[var_131 + 0x33004] = ptr_0_256 + 12 << var_123 >>u var_123
+    var_145 = 32
+    var_147 = var_131 + 8 << var_145 >>u var_145
+    u32[r2 + 0x33000] = 20
+    u32[var_147 + 0x33004] = var_131 + 16 << var_145 >>u var_145
+    var_163 = var_131 + 16 << 32 >>u 32
+    u32[var_163 + 0x33000] = 30
+    u32[r2 + 0x33000] = 0
+    var_168 = 4; jump 592
+
+    while (0xFEFD0000 >=u r1 - 648 - 136) {
+        // @05bd
+        ptr_7 = ptr_0 - 136
+
+        if (var_131 == 0) {
+            // @05e3
+
+            break
+        } else {
+            // @05de
+            goto block_0604;
+        }
+    }
+
+    // @05bc
+    return
+}
+
+fn func_2(r7: u64) {
+    // @035f
+    u32[RESULT_PTR + 0x33000] = r7
+    halt()
+}
+
+fn func_3(r0: u64, r1: u64, r9: u64, r12: u64) {
+    let ptr_0_136
+    let ptr_0_40
+    let ptr_0_48
+    let ptr_0_64
+    let ptr_0_72
+    let var_13: u32
+    let var_18: u32
+    let var_37: u64
+    let var_39: u64
+    let var_40: u32
+    let var_73: u64
+    let var_74: u32
+
+    let ptr_0
+    let var_48
+    if (0xFEFD0000 >=u r1 - 272) {
+        // @03bd
+        let var_4 = HEAP_PTR
+        ptr_0_40 = var_4
+        ptr_0_48 = var_4
+        let var_10 = r9 + 19 & -16
+        ptr_0_64 = var_10
+        var_13 = var_10 + var_4
+        ptr_0_72 = var_13
+        let var_15 = HEAP_PAGES
+        var_18 = var_15 << 16
+
+        if (var_13 <u var_18) {
+            // @0424
+            let var_27 = var_13 - var_18 + 0xFFFF >>u 16
+            ptr_0_136 = var_27 << 32 >>u 32
+            if (r2 != 0) var_37 = r3
+            var_39 = HEAP_PAGES
+            var_40 = var_39 + var_37
+
+            if (var_39 <u var_40) {
+                // @048f
+                r4 = -1
+            } else {
+                if (var_40 <u 256) {
+                    // @048f
+                    r4 = -1
+                } else {
+                    // @047a
+                    HEAP_PAGES = var_40
+                    let ptr_1 = sbrk(var_40 - var_39 << 16)
+                    goto block_0493;
+                }
+            }
+        } else {
+            // @041f
+            goto block_04af;
+        }
+    }
+
+    block_0493:
+    if (var_48 == 0) {
+        // @04af
+        let var_52 = 32
+        HEAP_PTR = ptr_0_72 << var_52 >>u var_52
+        ptr_0_40->field_208896 = ptr_0_64 - 4 << var_52 >>u var_52
+        let var_67 = ptr_0_48 + 4 << 32 >>u 32
+        r1 = ptr_0 + 272
+        call_indirect(r0)
+    } else {
+        // @04aa
+        goto block_0507;
+    }
+
+    // @04aa
+
+    block_0507:
+    // @0507
+    var_73 = HEAP_PAGES
+    var_74 = var_73 + ptr_0_136
+
+    if (var_73 <u var_74) {
+        // @0538
+        r4 = -1
+    } else {
+        if (var_74 <u 256) {
+            // @0538
+            r4 = -1
+        } else {
+            // @0523
+            HEAP_PAGES = var_74
+            let ptr_3 = sbrk(var_74 - var_73 << 16)
+            goto block_053c;
+        }
+    }
+
+    if (var_74 <u 256) {
+        // @0538
+        r4 = -1
+    } else {
+        // @0523
+        HEAP_PAGES = var_74
+        ptr_3 = sbrk(var_74 - var_73 << 16)
+        goto block_053c;
+    }
+
+    // @0523
+    HEAP_PAGES = var_74
+    ptr_3 = sbrk(var_74 - var_73 << 16)
+    // @0538
+    r4 = -1
+
+    block_053c:
+    // @053c
+
+    block_04af:
+    // @04af
+    var_52 = 32
+    HEAP_PTR = ptr_0_72 << var_52 >>u var_52
+    ptr_0_40->field_208896 = ptr_0_64 - 4 << var_52 >>u var_52
+    var_67 = ptr_0_48 + 4 << 32 >>u 32
+    r1 = ptr_0 + 272
+    call_indirect(r0)
+}
+
+fn func_4(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64) {
+    if (0xFEFD0000 >=u r1 - 72) {
+        // @056e
+        u32[r9 + 0x33000] = r10
+        u32[r9 + 0x33004] = r11
+        call_indirect(r0)
+    }
+}
+

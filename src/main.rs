@@ -1628,6 +1628,131 @@ mod integration_tests {
     }
 
     #[test]
+    fn test_as_tests_functions_full_pipeline() {
+        let buffer = std::fs::read("examples/compiled/as-tests-functions.pvm")
+            .expect("as-tests-functions.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        assert!(
+            output.contains("fn "),
+            "Output should contain function definitions: {}",
+            output
+        );
+        // The square-in-loop should produce a while loop with multiplication
+        assert!(
+            output.contains("while"),
+            "as-tests-functions should contain a loop (square-in-loop): {}",
+            output
+        );
+        assert!(
+            output.contains("halt()"),
+            "as-tests-functions should terminate with halt: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_as_tests_linked_list_full_pipeline() {
+        let buffer = std::fs::read("examples/compiled/as-tests-linked-list.pvm")
+            .expect("as-tests-linked-list.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        assert!(
+            output.contains("fn "),
+            "Output should contain function definitions: {}",
+            output
+        );
+        // Node creation stores value and next pointer at adjacent offsets
+        assert!(
+            output.contains("0x33004"),
+            "Linked list should show adjacent memory stores for node fields: {}",
+            output
+        );
+        // Recursive sumList produces an indirect call
+        assert!(
+            output.contains("call_indirect"),
+            "Linked list recursive traversal should produce indirect call: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_as_life_full_pipeline() {
+        let buffer = std::fs::read("examples/compiled/as-life.pvm")
+            .expect("as-life.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        assert!(
+            output.contains("fn "),
+            "Output should contain function definitions: {}",
+            output
+        );
+        // The clear() loop iterates over 256 cells
+        assert!(
+            output.contains("256"),
+            "Game of Life should reference cell count 256 (16x16): {}",
+            output
+        );
+        // Seed stores should be present as u8 byte stores
+        assert!(
+            output.contains("u8["),
+            "Game of Life should contain byte-level stores for cell grid: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_host_call_log_full_pipeline() {
+        let buffer = std::fs::read("examples/compiled/host-call-log.pvm")
+            .expect("host-call-log.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        assert!(
+            output.contains("fn main"),
+            "Output should contain main function: {}",
+            output
+        );
+        // The ecalli 100 should be recognized as log()
+        assert!(
+            output.contains("log()"),
+            "Host call log should recognize ecalli 100 as log(): {}",
+            output
+        );
+        // Should store 42 as the result
+        assert!(
+            output.contains("42"),
+            "Host call log should contain result value 42: {}",
+            output
+        );
+        assert!(
+            output.contains("halt()"),
+            "Host call log should terminate with halt: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_aslan_fib_full_pipeline() {
+        let buffer = std::fs::read("examples/compiled/aslan-fib.pvm")
+            .expect("aslan-fib.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        assert!(
+            output.contains("fn main"),
+            "Output should contain main function: {}",
+            output
+        );
+        // Should have multiple functions (framework overhead)
+        let func_count = output.matches("fn ").count();
+        assert!(
+            func_count >= 5,
+            "aslan-fib should have multiple functions (framework overhead), found {}: {}",
+            func_count,
+            output
+        );
+    }
+
+    #[test]
     fn test_all_fixtures_decompile_without_panic() {
         let fixtures = [
             "examples/compiled/fibonacci.pvm",
@@ -1639,6 +1764,11 @@ mod integration_tests {
             "examples/compiled/simple-add.pvm",
             "examples/compiled/pvm.jam",
             "examples/compiled/ananas-compiler.jam",
+            "examples/compiled/as-tests-functions.pvm",
+            "examples/compiled/as-tests-linked-list.pvm",
+            "examples/compiled/as-life.pvm",
+            "examples/compiled/host-call-log.pvm",
+            "examples/compiled/aslan-fib.pvm",
         ];
 
         for fixture in &fixtures {
