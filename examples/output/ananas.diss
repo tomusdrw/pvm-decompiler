@@ -1,33 +1,34 @@
 fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0: ptr
     let ptr_0_104
     let ptr_0_208
     let ptr_0_240
     let ptr_0_248
     let ptr_0_320
+    let ptr_0_40
     let ptr_0_472
     let ptr_0_528
     let ptr_1088: ptr
     let ptr_12: ptr
-    let ptr_12_1008
+    let ptr_12_104
     let ptr_12_112
     let ptr_12_144
     let ptr_12_168
     let ptr_12_264
-    let ptr_12_288
-    let ptr_12_384
     let ptr_12_40
     let ptr_12_48
+    let ptr_12_480
+    let ptr_12_552
     let ptr_12_56
-    let ptr_12_608
+    let ptr_12_600
     let ptr_12_64
-    let ptr_12_72
-    let ptr_12_720
-    let ptr_12_744
-    let ptr_12_752
+    let ptr_12_704
+    let ptr_12_760
     let ptr_12_80
-    let ptr_12_840
+    let ptr_12_88
     let ptr_12_904
-    let ptr_12_936
+    let ptr_12_96
+    let ptr_13: ptr
     let ptr_150: ptr
     let ptr_150_48
     let ptr_150_576
@@ -35,6 +36,20 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_157_120
     let ptr_157_144
     let ptr_157_72
+    let ptr_17_1208
+    let ptr_17_1216
+    let ptr_17_1288
+    let ptr_17_1440
+    let ptr_17_1496
+    let ptr_17_288
+    let ptr_17_328
+    let ptr_17_40
+    let ptr_17_552
+    let ptr_17_56
+    let ptr_17_576
+    let ptr_17_584
+    let ptr_17_752
+    let ptr_17_80
     let ptr_181: ptr
     let ptr_181_40
     let ptr_23: ptr
@@ -46,26 +61,15 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_292_48
     let ptr_292_64
     let ptr_346: ptr
-    let ptr_346_1024
-    let ptr_346_152
-    let ptr_346_232
-    let ptr_346_384
-    let ptr_346_40
-    let ptr_346_48
-    let ptr_346_496
-    let ptr_346_528
-    let ptr_346_56
-    let ptr_346_64
-    let ptr_346_72
-    let ptr_346_792
-    let ptr_346_88
-    let ptr_346_888
-    let ptr_45: ptr
+    let ptr_40_384
+    let ptr_40_40
+    let ptr_40_72
+    let ptr_40_720
     let ptr_487_184
     let ptr_502: ptr
     let ptr_503: ptr
     let ptr_504: ptr
-    let ptr_518: ptr
+    let ptr_504_48
     let ptr_601: ptr
     let ptr_602: ptr
     let ptr_603: ptr
@@ -80,25 +84,31 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_168: u32
     let var_189: u64
     let var_190: u32
-    let var_249: u64
-    let var_251: u64
+    let var_4884: u64
     let var_5387: u64
-    let var_873: u64
-    let var_874: u64
+    let var_736: u64
+    let var_737: u32
+    let var_7496: u64
+    let var_7498: u64
+    let var_758: u64
+    let var_759: u32
     let var_883: u64
     let var_884: u64
     let var_885: u64
 
+    let ptr_12_272
     let ptr_12_328
-    let ptr_12_480
+    let ptr_12_752
+    let ptr_12_840
     let ptr_150_496
     let ptr_150_544
     let ptr_153
     let ptr_157_80
+    let ptr_17_480
     let ptr_181_104
     let ptr_25_0
-    let ptr_346_288
-    let ptr_346_608
+    let ptr_40_288
+    let ptr_40_608
     let ptr_503_0
     let ptr_602_0
     let ptr_604_0
@@ -107,6 +117,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_609
     let ptr_617_80
     let ptr_992
+    let var_210
     let var_2707
     let var_7658
     let var_9135
@@ -119,7 +130,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     if (0xFEFD0000 >=u ptr_1088 - 3760) {
         // @4bb9
-        ptr_45 = ptr_1088 - 3760
         RESULT_PTR = 0x4DFC
         var_883 = 1856
         var_884 = 0
@@ -130,85 +140,34 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @4bb8
     return
     block_399c:
-    if (0xFEFD0000 >=u ptr_45 - 192) {
-        // @39b1
-        ptr_12 = ptr_45 - 192
-        ptr_12_40 = var_883
-        ptr_12_48 = var_884
-        ptr_12_56 = var_885
-        func_13(ptr_12, r7)
+    // @399c
+    if (!(0xFEFD0000 >=u ptr_12 - 192)) {
+        // @39b0
+        return
     }
+    // @39b1
+    ptr_12 = ptr_13 - 192
+    ptr_12_40 = var_883
+    ptr_12_48 = var_884
+    ptr_12_56 = var_885
+    func_13(ptr_12, r7)
 
-    // @39b0
-    return
-    } else {
-        // @4585
-        let ptr_24_0 = ptr_25_0
-        r2 = ptr_24 + 1
-        r3 = ptr_25 + 1
-    }
+    block_34ec:
+    // @34ec
+    if (0xFEFD0000 >=u ptr_12 - 640) goto block_3501;
 
-    while (ptr_12_584 - 1 != 0) {
-        // @4585
-        ptr_24_0 = ptr_25_0
-        r2 = ptr_24 + 1
-        r3 = ptr_25 + 1
-    }
+    // @4b84
+    u32[12 + ptr_12_40 + 0x60000] = ptr_12_272
 
-    // @4598
+    // @4ab2
+    let var_839 = 4 + ptr_12_40
+    ptr_12_168 = var_839
+    let var_840 = u32[var_839 + 0x60000]
+    let ptr_12_176 = var_840
+    let ptr_12_208 = var_840
+    u32[32 >>u (32 << (32 >>u (32 << (2 << ptr_12_48))) + var_840) + 0x60000] = ptr_12_56
 
-    // @459d
-
-    // @4327
-    u32[16 + (32 >>u (32 << 4 - ptr_12_840)) + 0x60000] = ptr_12_480
-    let var_538 = 32 >>u (32 << 16 + ptr_12_840)
-    ptr_12_904 = var_538
-    let var_549 = 32 >>u (32 << ptr_12_80 + var_538)
-    ptr_12_936 = var_549
-    let var_560 = 32 >>u (32 << ptr_12_80 - ptr_12_480)
-    ptr_23 = var_549 + 0x60000
-
-    if (var_560 == 0) {
-        // @441d
-        ptr_12_1008 = (ptr_12_328 ^ ptr_12_904) <u 0
-
-        if ((ptr_12_328 ^ ptr_12_904) <u 0 <u 0) {
-            // @4999
-            goto block_499e;
-        } else {
-            // @4473
-            goto block_496e;
-        }
-    }
-
-    while (var_560 - 1 != 0) {
-        // @440f
-        ptr_23_0 = 0
-        r2 = ptr_23 + 1
-    }
-
-    // @441d
-    ptr_12_1008 = (ptr_12_328 ^ ptr_12_904) <u 0
-
-    if ((ptr_12_328 ^ ptr_12_904) <u 0 <u 0) {
-        // @4999
-        goto block_499e;
-    } else {
-        // @4473
-    }
-    block_496e:
-    // @496e
-    ptr_12_40->field_393216 = ptr_12_904
-    u32[4 + ptr_12_40 + 0x60000] = ptr_12_904
-    // @4999
-
-    block_499e:
-    // @499e
-    u32[8 + ptr_12_40 + 0x60000] = ptr_12_480
-
-    // @3ef0
-
-    // @3e57
+    // @4a50
     return
     }
 
@@ -221,201 +180,30 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_3aa2:
     while (0xFEFD0000 <u ptr_12 - 256) {
         // @bcb1
-        ptr_12_40 = var_13441
-        ptr_12_48 = var_13441
-        let cond_56 = !(var_13441)
+        ptr_12_40 = r7
+        ptr_12_48 = r7
+        let cond_56 = !(r7)
         ptr_12_56 = cond_56
         ptr_12_64 = cond_56
-        ptr_12_72 = cond_56
         let cond_57 = cond_56 <u 0
         ptr_12_80 = cond_57
 
         break
     }
-    }
-    // @1b4dc
-    ptr_346 = ptr_12 - 1080
-    ptr_346_40 = var_249
-    ptr_346_48 = var_251
-    ptr_346_56 = var_873
-    ptr_346_64 = var_874
-    ptr_346_72 = u32[32]
-    ptr_346_88 = u32[32 + var_874 + 0x60000]
-    ptr_346_152 = 32 >>u (32 << u32[var_251 + 0x60000])
-    if (!(u32[var_251 + 0x60000] <=u 13 >=u 0)) {
-        // @1b581
-        ptr_346_152 = 12
-    }
-    // @1b589
-    let var_5245 = 32 >>u (32 << u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_346_152))) + ptr_346_56) + 0x60000])
-    ptr_346_232 = var_5245
-    if (!(!(var_5245) <u 0)) {
-        // @1b655
-        // @1b6b5
-        ptr_346_72->field_393216 = 0
-        goto block_1b672;
-    }
-    // @1b6de
 
-    // @1b6e3
-    let var_5294 = (32 >>u (32 << ptr_346_232)) + u32[32 + ptr_346_64 + 0x60000]
-    ptr_346_384 = var_5294
-    if (!(var_5294 <s u64[16 + ptr_346_64 + 0x60000] <u 0)) {
-        // @1b77e
-        // @1b783
-        ptr_346_72->field_393216 = 1
-        goto block_1b672;
-    }
-    // @1b7ad
+    // @29da5
+    ptr_12_264 = var_13441
+    ptr_601 = var_13441 + 0x60000
+    ptr_602 = ptr_12_40 + 0x60000
 
-    // @1b7b2
-    u32[32 + ptr_346_64 + 0x60000] = ptr_346_384
-    ptr_346_496 = ptr_346_64->field_393216
-    let var_5338 = 32 >>u (32 << (12 >>s 1 - ptr_346_384))
-    ptr_346_528 = var_5338
-    if (!(!(var_5338 ^ ptr_346_64->field_393216) <u 0)) {
-        // @1b87d
-        goto block_1b672;
-    }
-    // @1b882
+    if (ptr_12_112 == 0) {
+        // @29dd7
+        ptr_603 = (32 >>u (32 << ptr_12_264 + ptr_12_112)) + 0x60000
+        ptr_604 = ptr_12_48 + 0x60000
 
-    // @1b8b0
-    if (!(ptr_346_608 >=s ptr_346_528 <u 0)) {
-        // @1b904
-        // @1b934
-        var_5387 = u32[24 + ptr_346_64 + 0x60000]
-        goto block_1a07a;
-    }
-    // @1ba0b
-
-    // @1ba10
-
-    // @1b909
-    ptr_346_64->field_393216 = ptr_346_528
-
-    block_1b672:
-    if (u8[u32[32] + 0x60000] <u 0) {
-        // @1ba58
-        goto block_1ba5d;
-    } else {
-        // @1b6b0
-    }
-    // @1ba15
-    ptr_346_792 = u32[32]
-
-    if (u8[u32[32] + 0x60000] <u 0) {
-        // @1bc20
-        goto block_1bc25;
-    } else {
-        // @1ba53
-    }
-    // @1bb71
-    ptr_346_40->field_393216 = 3
-    ptr_346_1024 = 1
-
-    if (u8[1 + ptr_346_792 + 0x60000] >=u 0) {
-        // @1bbcc
-        u32[12 + ptr_346_40 + 0x60000] = ptr_346_1024
-        u32[16 + ptr_346_40 + 0x60000] = u32[4 + ptr_346_792 + 0x60000]
-        goto block_1bc25;
-    } else {
-        // @1bbc4
-    }
-
-    // @1bbc4
-    ptr_346_1024 = 2
-
-    // @1bbcc
-    u32[12 + ptr_346_40 + 0x60000] = ptr_346_1024
-    u32[16 + ptr_346_40 + 0x60000] = u32[4 + ptr_346_792 + 0x60000]
-    // @1bc20
-
-    block_1bc25:
-    // @1bc25
-    goto block_1b65a;
-    block_1ba5d:
-    // @1ba5d
-    ptr_346_888 = 32 >>u (32 << u32[4 + ptr_346_48 + 0x60000])
-
-    if (u32[4 + ptr_346_48 + 0x60000] <=u 13 >=u 0) {
-        // @1bae1
-        u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_346_888))) + ptr_346_56) + 0x60000] = ptr_346_288
-        ptr_346_40->field_393216 = 0
-        u32[8 + ptr_346_40 + 0x60000] = 0
-        goto block_1b65a;
-    } else {
-        // @1bad9
-    }
-
-    // @1bad9
-    ptr_346_888 = 12
-
-    // @1bae1
-    u64[32 >>u (32 << (32 >>u (32 << (3 << ptr_346_888))) + ptr_346_56) + 0x60000] = ptr_346_288
-    ptr_346_40->field_393216 = 0
-    u32[8 + ptr_346_40 + 0x60000] = 0
-
-    block_1b65a:
-    // @1b65a
-    return
-    }
-    }
-    // @26434
-    if (ptr_487_184 >u 0x186A0 <u 0) goto block_264cc;
-
-    // @2647c
-
-    // @26481
-    if (!(ptr_487_184 >u 100 <u 0)) {
-        // @264c7
-        // @2660d
-        goto block_26708;
-    }
-    // @2665e
-
-    block_26708:
-    // @26708
-    goto block_2651a;
-    block_264cc:
-    // @264cc
-    if (!(ptr_487_184 >u 0x989680 <u 0)) {
-        // @26515
-        // @2670d
-        goto block_2680e;
-    }
-    // @26760
-
-    block_2680e:
-    // @2680e
-
-    block_2651a:
-    // @2651a
-    r10 = 2
-    r0 = 878
-    goto block_3aa2;
-    }
-    // @27c94
-    ptr_12_608 = ptr_12_168
-    ptr_12_720 = ptr_12_144
-
-    for (let var_7658 = 32 >>u (32 << 1 - ptr_12_144); ptr_12_752 <=s 0 >=u 0; var_7658 = 32 >>u (32 << 1 - ptr_12_752)) {
-        // @27e6e
-        ptr_12_904 = ptr_12_752
-        let var_7686 = 32 >>u (32 << 1 + ptr_12_752)
-        ptr_12_936 = var_7686
-        let var_7714 = (32 >>u (32 << (8 << ptr_12_744))) + u8[32 >>u (32 << var_7686 + u32[4 + ptr_12_80 + 0x60000]) + 0x60000]
-        ptr_12_1008 = var_7714
-    }
-
-    // @27f7d
-
-    // @27f82
-
-    // @27dca
-    r9 = 8
-    r10 = 45
-    r0 = 906
-    goto block_3aa2;
+        if (ptr_12_176 == 0) {
+            // @29e38
+            goto block_29d6d;
         } else {
             // @29e25
             let ptr_603_0 = ptr_604_0
@@ -437,7 +225,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     }
 
     // @29dd7
-    ptr_12_288 = ptr_12_264
     ptr_603 = (32 >>u (32 << ptr_12_264 + ptr_12_112)) + 0x60000
     ptr_604 = ptr_12_48 + 0x60000
 
@@ -464,9 +251,388 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @29d6d
     return
     }
+        }
+        }
+
+        if (ptr_40_288 <u 0) {
+            // @2702e
+            goto block_27033;
+        } else {
+            // @26f3b
+            goto block_26f40;
+        }
+        }
+
+        // @27033
+    }
+
+    // @26dab
+
+    // @26db0
+
+    // @26c84
+    let var_7176 = u32[32 >>u (32 << (32 >>u (32 << (2 << ptr_40_72))) + ptr_40_40) + 0x60000]
+    ptr_40_720 = var_7176
+
+    if (var_7176 <u 0) {
+        // @27166
+        goto block_2716b;
+    } else {
+        // @26d12
+    }
+    // @27061
+    let var_7385 = 32 >>u (32 << (0xFFFFFFFE & u32[16 + (32 >>u (32 << 20 - ptr_40_720)) + 0x60000]))
+    ptr_502 = (32 >>u (32 << (32 >>u (32 << (1 << ptr_40_608))) + ptr_40_384)) + 0x60000
+    ptr_503 = ptr_40_720 + 0x60000
+
+    if (var_7385 == 0) {
+        // @27161
+        goto block_2716b;
+    } else {
+        // @2714e
+        let ptr_502_0 = ptr_503_0
+        r2 = ptr_502 + 1
+        r3 = ptr_503 + 1
+    }
+
+    while (var_7385 - 1 != 0) {
+        // @2714e
+        ptr_502_0 = ptr_503_0
+        r2 = ptr_502 + 1
+        r3 = ptr_503 + 1
+    }
+
+    // @27161
+    // @27166
+
+    block_2716b:
+    // @2716b
+    goto block_268be;
+    }
+    }
+    // @3f53
+    let ptr_17_320 = 32 >>u (32 << (ptr_17_56 << ptr_17_288))
+    ptr_17_328 = ptr_17_40->field_393216
+    if (ptr_17_64 <u 0) goto block_40aa;
+
+    // @3fb7
+
+    // @3fbc
+    let var_371 = 32 >>u (32 << (1 << ptr_17_80))
+    let ptr_17_416 = var_371
+    if (!(var_371 <=u 0x3FFFFFFC >=u 0)) {
+        // @4038
+        ptr_17_416 = 0x3FFFFFFC
+    }
+    // @4043
+    if (ptr_17_416 <u ptr_17_320 >=u 0) goto block_40a5;
+
+    block_40a5:
+    // @40a5
+    goto block_40af;
+    block_40aa:
+    // @40aa
+
+    block_40af:
+    // @40af
+    if (!(ptr_17_480 <u 0x3FFFFFEC <u 0)) {
+        // @40f8
+        // @40fd
+        return
+    }
+    // @40ff
+
+    // @4104
+    let var_422 = 32 >>u (32 << 16 - ptr_17_328)
+    ptr_17_552 = var_422
+    let var_431 = 32 >>u (32 << 4 - var_422)
+    ptr_17_576 = var_431
+    let var_432 = u32[var_431 + 0x60000]
+    ptr_17_584 = var_432
+    let ptr_17_656 = !(32 >>u (32 << var_432 + var_422) ^ RESULT_PTR)
+    let var_461 = 32 >>u (32 << 16 + ptr_17_480)
+    let ptr_17_680 = var_461
+    ptr_17_752 = 32 >>u (32 << 4 - (32 >>u (32 << (0xFFFFFFF0 & 32 >>u (32 << 19 + var_461)))))
+    if (var_461 <u var_432 <u 0) goto block_42fc;
+
+    // @42cc
+
+    // @42d1
+    if (ptr_17_656 <u 0) goto block_44c6;
+
+    // @42f7
+
+    if (ptr_17_680 <u 0x3FFFFFFC <u 0) {
+        // @45a4
+        goto block_45a9;
+    } else {
+        // @44c1
+    }
+    // @45a2
+    return
+    block_45a9:
+    // @45a9
+    let var_638 = 32 >>u (32 << ptr_17_752 + ptr_17_552)
+    ptr_17_1208 = var_638
+    let var_639 = u32[52]
+    ptr_17_1216 = var_639
+    let var_666 = 32 >>u (32 << (0xFFFFFFF0 & 32 >>u (32 << 15 + (32 >>u (32 << (16 << var_639))))))
+    ptr_17_1288 = var_666
+
+    if (var_638 <u var_666 <u 0) {
+        // @485b
+        goto block_4860;
+    } else {
+        // @46bb
+    }
+    // @46c0
+    let var_718 = 32 >>u (32 << (16 >>u (32 >>u (32 << (0xFFFF0000 & 32 >>u (32 << 0xFFFF + (32 >>u (32 << ptr_17_1288 - ptr_17_1208))))))))
+    ptr_17_1440 = var_718
+    ptr_17_1496 = var_718
+
+    if (ptr_17_1216 <s var_718 >=u 0) {
+        // @47da
+        var_736 = u32[52]
+        var_737 = ptr_17_1496 + var_736
+
+        if (var_737 <u 1024) {
+            // @4809
+            r4 = -1
+        } else {
+            // @47f2
+            u32[52] = var_737
+            let ptr_29 = sbrk(16 << var_736 - var_737)
+            goto block_480d;
+        }
+    } else {
+        // @47d1
+    }
+
+    // @47d1
+    ptr_17_1496 = ptr_17_1216
+
+    // @47da
+    var_736 = u32[52]
+    var_737 = ptr_17_1496 + var_736
+
+    if (var_737 <u 1024) {
+        // @4809
+        r4 = -1
+    } else {
+        // @47f2
+        u32[52] = var_737
+        ptr_29 = sbrk(16 << var_736 - var_737)
+        goto block_480d;
+    }
+
+    // @47f2
+    u32[52] = var_737
+    ptr_29 = sbrk(16 << var_736 - var_737)
+    // @4809
+    r4 = -1
+
+    block_480d:
+    if (var_736 >s 0 <u 0) {
+        // @48fe
+        goto block_4903;
+    } else {
+        // @4856
+    }
+    // @487d
+    var_758 = u32[52]
+    var_759 = ptr_17_1440 + var_758
+
+    if (var_759 <u 1024) {
+        // @48ac
+        r4 = -1
+    } else {
+        // @4895
+        u32[52] = var_759
+        let ptr_34 = sbrk(16 << var_758 - var_759)
+        goto block_48b0;
+    }
+
+    // @4895
+    u32[52] = var_759
+    ptr_34 = sbrk(16 << var_758 - var_759)
+    // @48ac
+    r4 = -1
+
+    block_48b0:
+    if (var_758 >s 0 <u 0) {
+        // @4909
+        goto block_490e;
+    } else {
+        // @48f9
+    }
+    // @4908
+    return
+    block_490e:
+    // @490e
+    // @48fe
+
+    block_4903:
+    // @4903
+    // @485b
+
+    block_4860:
+    // @4860
+    RESULT_PTR = ptr_17_1208
+    ptr_17_576->field_393216 = ptr_17_752
+    goto block_459d;
+    block_44c6:
+    // @44c6
+    let var_602 = 32 >>u (32 << (1 << ptr_17_584))
+    let ptr_17_1144 = var_602
+    if (!(ptr_17_752 <u var_602 >=u 0)) {
+        // @4548
+        ptr_17_1144 = ptr_17_752
+    }
+    // @4551
+    r0 = 14
+    goto block_34ec;
+    block_42fc:
+    if (ptr_17_656 <u 0) {
+        // @4964
+        goto block_4969;
+    } else {
+        // @4322
+    }
+    // @4913
+    RESULT_PTR = 32 >>u (32 << ptr_17_752 + ptr_17_552)
+    ptr_17_576->field_393216 = ptr_17_752
+    // @4964
+
+    block_4969:
+    // @4969
+    goto block_4327;
+    // @1a440
+    u64[ptr_12 - 80] = var_4884
+    if (!(var_4884 <u 0x3FFFFFFC <u 0)) {
+        // @1a493
+        // @1a4ae
+        return
+    }
+    }
+    }
+    // @2a87d
+    let ptr_629 = ptr_12 - 424
+    func_195(ptr_629)
+
+    // @27876
+    var_7498 = ptr_12_40->field_393216
+    ptr_12_56 = var_7498
+    let var_7501 = 4 + ptr_12_40
+    ptr_12_64 = var_7501
+    u32[28] = 1
+    func_179(r1, r7)
+
+    // @2779a
+    if (!(0xFEFD0000 >=u ptr_12 - 112)) {
+        // @27927
+        let var_7515 = 32 >>u (32 << (255 & r7))
+        ptr_12_144 = var_7515
+        ptr_12_168 = u8[u32[4 + ptr_12_80 + 0x60000] + 0x60000]
+        ptr_12_176 = var_7515
+        let cond_268 = !(var_7515) <u 0
+        ptr_12_208 = cond_268
+        if (!(!(var_7515) <u 0)) {
+        // @279c3
+        // @27a75
+        func_180(r1, r7)
+        }
+        // @27abb
+        // @27ac0
+        if (!(ptr_12_144 <s u32[8 + ptr_12_80 + 0x60000] <u 0)) {
+        // @27b2b
+        // @27b30
+        r0 = 900
+        goto block_26300;
+        }
+        // @27be8
+        // @27bed
+        let var_7586 = 32 >>u (32 << ptr_12_144 - 8)
+        ptr_12_552 = 32 >>u (32 << (var_7586 << 1))
+        let ptr_12_584 = var_7586 >u 32
+        ptr_12_600 = 0
+        if (!(var_7586 >u 32 >=u 0)) {
+        // @27c8b
+        ptr_12_600 = ptr_12_552
+        }
+        // @27c94
+        let var_7645 = 32 >>u (32 << (3 << ptr_12_144)) << (32 >>u (32 << 256 - (32 >>u (32 << ptr_12_600 + ptr_12_168))))
+        ptr_12_704 = var_7645
+        for (let var_7658 = 32 >>u (32 << 1 - ptr_12_144); ptr_12_752 <=s 0 >=u 0; var_7658 = 32 >>u (32 << 1 - ptr_12_752)) {
+        // @27d7d
+        ptr_12_760 = ptr_12_752
+        // @27e6e
+        ptr_12_904 = ptr_12_752
+        }
+        // @27f7d
+        // @27f82
+        // @27dca
+        r9 = 8
+        r10 = 45
+        r0 = 906
+        goto block_3aa2;
+    }
+    // @277ae
+    u64[ptr_12 - 72] = var_7498
+    let var_7485 = u32[28]
+    if (!(var_7485 == 0)) {
+        // @277e1
+        if (var_7485 == 1) goto block_2782b;
+        // @277e8
+        if (var_7485 == 2) goto block_2780a;
+        // @277ef
+        // @27835
+        return
+    }
+    // @27830
+
+    block_2782b:
+    // @2782b
+
+    block_2780a:
+    // @2780a
+    func_178(r1, r7)
+
+    // @27386
+    if (0xFEFD0000 >=u ptr_12 - 648) goto block_2739b;
+
+    // @285c7
+    ptr_12_80 = r7
+    r10 = 1
+    r0 = 924
+
+    // @27170
+    if (0xFEFD0000 >=u ptr_12 - 328) goto block_27185;
+
+    // @2abe2
+    let var_9423 = 0x1000 + ptr_12_96
+    ptr_12_168 = var_9423
+    ptr_12_176 = 32 >>u (32 << var_9423)
+
+    // @2ab77
+    ptr_12_104 = ptr_12_96
+    ptr_12_112 = ptr_12_88
+    let cond_349 = ptr_12_88 <u ptr_12_96 <u 0
+    ptr_12_144 = cond_349
+    if (ptr_12_88 <u ptr_12_96 <u 0) goto block_2ac15;
+
+    // @2abc0
+
+    // @2abca
+    r10 = 2
+    r0 = 976
+
+    // @29e3d
+    if (!(0xFEFD0000 >=u ptr_12 - 904)) {
+        // @29e51
+        return
     }
     // @29e52
-    ptr_605 = ptr_518 - 904
+    ptr_605 = ptr_12 - 904
     ptr_605_40 = ptr_617_40
     let var_8960 = 32 >>u (32 << (12 >>u ptr_617_80))
     ptr_605_80 = var_8960
@@ -503,7 +669,6 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @2a3d1
     r0 = 958
 
-    block_1a07a:
     // @1a07a
     if (!(0xFEFD0000 >=u ptr_346 - 560)) {
         // @1a08e
@@ -563,7 +728,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     if (0xFEFD0000 >=u ptr_157 - 736) goto block_c074;
 
     // @2a565
-    ptr_157_144 = var_13441
+    ptr_157_144 = r7
     let var_9259 = 32
     let var_9268 = 32
     if (!(var_9268 >>u (var_9268 << (var_9259 >>u (var_9259 << (4095 & ptr_157_80))) - 0x1000) <u u32[8 + ptr_157_72 + 0x60000] <u 0)) {
@@ -589,8 +754,8 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     }
 
     // @2c8f8
-    ptr_181_40 = var_13441
-    if (!(!(var_13441) <u 0)) {
+    ptr_181_40 = r7
+    if (!(!(r7) <u 0)) {
         // @2c939
         // @2c955
         r9 = 0
@@ -648,6 +813,26 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     // @c381
     return
+    block_2ac15:
+    // @2ac15
+
+    // @2ac1a
+
+    // @2abc5
+
+    // @2ab63
+    return
+    block_27185:
+    // @27185
+    ptr_504 = ptr_12 - 328
+    ptr_504_48 = var_7496
+    let var_7412 = 32
+    if (var_7412 >>u (var_7412 << var_7496 + u32[4 + var_13441 + 0x60000]) <s u32[8 + u32[var_13441 + 0x60000] + 0x60000] <u 0) goto block_2737c;
+
+    // @27251
+
+    // @2726a
+
     block_25f33:
     // @25f33
     if (!(0xFEFD0000 >=u ptr_504 - 584)) {
@@ -668,79 +853,158 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @2609c
     func_174(r1, r7, r12)
 
+    block_2737c:
     // @2737c
 
     // @27381
 
     // @27256
     return
-        } else {
-            // @26da6
-            goto block_26db5;
-        }
-        }
-
-        if (ptr_12_288 <u 0) {
-            // @2702e
-            goto block_27033;
-        } else {
-            // @26f3b
-            goto block_26f40;
-        }
-        }
-
-        // @27033
     }
+    // @28207
+    func_185(r1, r7)
 
-    // @26dab
+    // @2739a
+    return
+    block_2739b:
+    // @2739b
+    let ptr_514 = ptr_12 - 648
+    func_177(ptr_514, r7)
 
-    // @26db0
-
-    // @26c84
-    let var_7176 = u32[32 >>u (32 << (32 >>u (32 << (2 << ptr_12_72))) + ptr_12_40) + 0x60000]
-    ptr_12_720 = var_7176
-
-    if (var_7176 <u 0) {
-        // @27166
-        goto block_2716b;
-    } else {
-        // @26d12
-    }
-    // @27061
-    let var_7385 = 32 >>u (32 << (0xFFFFFFFE & u32[16 + (32 >>u (32 << 20 - ptr_12_720)) + 0x60000]))
-    ptr_502 = (32 >>u (32 << (32 >>u (32 << (1 << ptr_12_608))) + ptr_12_384)) + 0x60000
-    ptr_503 = ptr_12_720 + 0x60000
-
-    if (var_7385 == 0) {
-        // @27161
-        goto block_2716b;
-    } else {
-        // @2714e
-        let ptr_502_0 = ptr_503_0
-        r2 = ptr_502 + 1
-        r3 = ptr_503 + 1
-    }
-
-    while (var_7385 - 1 != 0) {
-        // @2714e
-        ptr_502_0 = ptr_503_0
-        r2 = ptr_502 + 1
-        r3 = ptr_503 + 1
-    }
-
-    // @27161
-    // @27166
-
-    block_2716b:
-    // @2716b
-
+    block_268be:
     // @268be
     return
+    } else {
+        // @4585
+        let ptr_24_0 = ptr_25_0
+        r2 = ptr_24 + 1
+        r3 = ptr_25 + 1
+    }
+
+    while (ptr_12_584 - 1 != 0) {
+        // @4585
+        ptr_24_0 = ptr_25_0
+        r2 = ptr_24 + 1
+        r3 = ptr_25 + 1
+    }
+
+    // @4598
+
+    block_459d:
+    // @459d
+
+    block_4327:
+    // @4327
+    u32[16 + (32 >>u (32 << 4 - ptr_12_840)) + 0x60000] = ptr_12_480
+    let var_538 = 32 >>u (32 << 16 + ptr_12_840)
+    ptr_12_904 = var_538
+    let var_560 = 32 >>u (32 << ptr_12_80 - ptr_12_480)
+    ptr_23 = (32 >>u (32 << ptr_12_80 + var_538)) + 0x60000
+
+    if (var_560 == 0) {
+        if ((ptr_12_328 ^ ptr_12_904) <u 0 <u 0) {
+            // @4999
+            goto block_499e;
+        } else {
+            // @4473
+            goto block_496e;
+        }
+    }
+
+    while (var_560 - 1 != 0) {
+        // @440f
+        ptr_23_0 = 0
+        r2 = ptr_23 + 1
+    }
+
+    if ((ptr_12_328 ^ ptr_12_904) <u 0 <u 0) {
+        // @4999
+        goto block_499e;
+    } else {
+        // @4473
+    }
+    block_496e:
+    // @496e
+    ptr_12_40->field_393216 = ptr_12_904
+    u32[4 + ptr_12_40 + 0x60000] = ptr_12_904
+    // @4999
+
+    block_499e:
+    // @499e
+    u32[8 + ptr_12_40 + 0x60000] = ptr_12_480
+
+    // @3ef0
+
+    // @3e57
+    return
+    block_26300:
+    // @26300
+    if (!(0xFEFD0000 >=u ptr_12 - 768)) {
+        // @26314
+        return
+    }
+    }
+    // @26434
+    if (ptr_487_184 >u 0x186A0 <u 0) goto block_264cc;
+
+    // @2647c
+
+    // @26481
+    if (!(ptr_487_184 >u 100 <u 0)) {
+        // @264c7
+        // @2660d
+        goto block_26708;
+    }
+    // @2665e
+
+    block_26708:
+    // @26708
+    goto block_2651a;
+    block_264cc:
+    // @264cc
+    if (!(ptr_487_184 >u 0x989680 <u 0)) {
+        // @26515
+        // @2670d
+        goto block_2680e;
+    }
+    // @26760
+
+    block_2680e:
+    // @2680e
+
+    block_2651a:
+    // @2651a
+    r10 = 2
+    r0 = 878
+    goto block_3aa2;
+    block_3501:
+    // @3501
+    ptr_0 = ptr_12 - 640
+    ptr_0_40 = var_210
+
+    if (17 <u 0x3FFFFFFC <u 0) {
+        // @3573
+        goto block_3578;
     } else {
         // @3555
     }
     // @3571
     return
+    block_3578:
+    // @3578
+    ptr_0_104 = RESULT_PTR
+    let var_58 = 32 >>u (32 << 4 - (32 >>u (32 << (0xFFFFFFF0 & 32 >>u (32 << 19 + ptr_0_40)))))
+    ptr_0_208 = var_58
+    let var_69 = 32 >>u (32 << var_58 + (32 >>u (32 << 4 + RESULT_PTR)))
+    ptr_0_240 = var_69
+    let var_70 = u32[52]
+    ptr_0_248 = var_70
+    let var_97 = 32 >>u (32 << (0xFFFFFFF0 & 32 >>u (32 << 15 + (32 >>u (32 << (16 << var_70))))))
+    ptr_0_320 = var_97
+
+    if (var_69 <u var_97 <u 0) {
+        // @38e5
+        goto block_38ea;
     } else {
         // @3745
     }
@@ -834,6 +1098,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @398c
     // @38e5
 
+    block_38ea:
     // @38ea
     RESULT_PTR = ptr_0_240
     ptr_0_104->field_393216 = ptr_0_208
