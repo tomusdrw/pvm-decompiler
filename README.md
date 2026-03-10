@@ -102,6 +102,12 @@ git config core.hooksPath .githooks
 - `CONTRIBUTING.md`: contributor workflow and expectations
 - `CHANGELOG.md`: release and change history
 
+## Related Projects
+
+- [wasm-pvm](https://github.com/tomusdrw/wasm-pvm) — WASM to PVM compiler
+- [anan-as](https://github.com/tomusdrw/anan-as) — AssemblyScript interpreter for PVM
+- [PVM Debugger](https://github.com/fluffylabs/pvm-debugger) ([live](https://pvm.fluffylabs.dev)) — PVM debugger from FluffyLabs
+
 ## Community
 
 - Code of Conduct: `CODE_OF_CONDUCT.md`
