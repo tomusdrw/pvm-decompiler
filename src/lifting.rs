@@ -566,10 +566,7 @@ impl LiftedProgram {
             } => {
                 // Detect wasm-pvm 0.5.0 r8 retrieval: load from [r1 + R8_CAPTURE_SLOT_OFFSET]
                 // is reading the secondary host call return value captured by a host_call_*b variant.
-                if base == 1
-                    && offset == R8_CAPTURE_SLOT_OFFSET
-                    && matches!(width, MemWidth::U64)
-                {
+                if base == 1 && offset == R8_CAPTURE_SLOT_OFFSET && matches!(width, MemWidth::U64) {
                     Expression::Call {
                         name: "host_call_r8".into(),
                         args: vec![],
@@ -4710,10 +4707,7 @@ mod tests {
             src: 8,
             offset: R8_CAPTURE_SLOT_OFFSET,
         };
-        let cfg = build_test_cfg(
-            0,
-            vec![(0, vec![(0, ecalli), (4, store_r8)], vec![])],
-        );
+        let cfg = build_test_cfg(0, vec![(0, vec![(0, ecalli), (4, store_r8)], vec![])]);
         let dataflow = DataFlowAnalysis::analyze(&cfg);
         let lifted = LiftedProgram::analyze(&cfg, &dataflow);
 
