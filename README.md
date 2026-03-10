@@ -2,6 +2,10 @@
 
 Decompiler for PVM (Polkadot Virtual Machine) bytecode that emits structured, readable pseudo-code.
 
+## Disclaimer
+
+This project is heavily vibe-coded. Here be dragons.
+
 ## Status
 
 This project is under active development and output is best-effort. It is useful for reverse engineering and inspection, but generated pseudo-code is not guaranteed to be source-equivalent for every binary.
