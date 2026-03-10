@@ -7,7 +7,7 @@ fn main(r1: u64, r7: u64, r8: u64) {
     // @0006
     var_0 = 2
 
-    if (0xFEFD0000 >=u ptr_0) {
+    if (ptr_0 >=u 0xFEFD0000) {
         // @022e
         u32[0x30000] = 1036
         call_indirect(var_0)
@@ -41,7 +41,7 @@ fn func_1(r1: u64) {
     let var_13 = RESULT_LEN
     var_16 = var_13 << 16
 
-    if (var_7 <u var_16) {
+    if (var_16 <u var_7) {
         // @006e
         let var_25 = var_7 - var_16 + 0xFFFF >>u 16
         ptr_0_144 = var_25 << 32 >>u 32
@@ -49,11 +49,11 @@ fn func_1(r1: u64) {
         var_37 = RESULT_LEN
         var_38 = var_37 + var_35
 
-        if (var_37 <u var_38) {
+        if (var_38 <u var_37) {
             // @00d9
             r4 = -1
         } else {
-            if (var_38 <u 256) {
+            if (256 <u var_38) {
                 // @00d9
                 r4 = -1
             } else {
@@ -84,11 +84,11 @@ fn func_1(r1: u64) {
     var_57 = RESULT_LEN
     var_58 = var_57 + ptr_0_144
 
-    if (var_57 <u var_58) {
+    if (var_58 <u var_57) {
         // @0166
         r4 = -1
     } else {
-        if (var_58 <u 256) {
+        if (256 <u var_58) {
             // @0166
             r4 = -1
         } else {
@@ -99,7 +99,7 @@ fn func_1(r1: u64) {
         }
     }
 
-    if (var_58 <u 256) {
+    if (256 <u var_58) {
         // @0166
         r4 = -1
     } else {

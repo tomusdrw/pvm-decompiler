@@ -7,7 +7,7 @@ fn main(r1: u64, r7: u64, r8: u64) {
     // @0006
     var_0 = 2
 
-    if (0xFEFD0000 >=u ptr_0) {
+    if (ptr_0 >=u 0xFEFD0000) {
         // @0661
         u32[0x30008] = 1036
         call_indirect(var_0)
@@ -52,7 +52,7 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
     let var_12 = HEAP_PAGES
     var_15 = var_12 << 16
 
-    if (var_7 <u var_15) {
+    if (var_15 <u var_7) {
         // @006d
         let var_24 = ptr_0_72 - var_15 + 0xFFFF >>u 16
         ptr_0_144 = var_24 << 32 >>u 32
@@ -60,11 +60,11 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
         var_36 = HEAP_PAGES
         var_37 = var_36 + var_34
 
-        if (var_36 <u var_37) {
+        if (var_37 <u var_36) {
             // @00d9
             r4 = -1
         } else {
-            if (var_37 <u 256) {
+            if (256 <u var_37) {
                 // @00d9
                 r4 = -1
             } else {
@@ -94,7 +94,7 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
         let ptr_0_280 = var_73
         var_76 = var_73 << 16
 
-        if (var_72 <u var_76) {
+        if (var_76 <u var_72) {
             // @01a8
             let var_85 = ptr_0_264 - var_76 + 0xFFFF >>u 16
             ptr_0_328 = var_85 << 32 >>u 32
@@ -102,11 +102,11 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
             var_97 = HEAP_PAGES
             var_98 = var_97 + var_95
 
-            if (var_97 <u var_98) {
+            if (var_98 <u var_97) {
                 // @0217
                 r4 = -1
             } else {
-                if (var_98 <u 256) {
+                if (256 <u var_98) {
                     // @0217
                     r4 = -1
                 } else {
@@ -125,11 +125,11 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
         var_48 = HEAP_PAGES
         var_49 = var_48 + ptr_0_144
 
-        if (var_48 <u var_49) {
+        if (var_49 <u var_48) {
             // @0125
             r4 = -1
         } else {
-            if (var_49 <u 256) {
+            if (256 <u var_49) {
                 // @0125
                 r4 = -1
             } else {
@@ -145,11 +145,11 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
     var_48 = HEAP_PAGES
     var_49 = var_48 + ptr_0_144
 
-    if (var_48 <u var_49) {
+    if (var_49 <u var_48) {
         // @0125
         r4 = -1
     } else {
-        if (var_49 <u 256) {
+        if (256 <u var_49) {
             // @0125
             r4 = -1
         } else {
@@ -160,7 +160,7 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
         }
     }
 
-    if (var_49 <u 256) {
+    if (256 <u var_49) {
         // @0125
         r4 = -1
     } else {
@@ -193,7 +193,7 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
     ptr_0_280 = var_73
     var_76 = var_73 << 16
 
-    if (var_72 <u var_76) {
+    if (var_76 <u var_72) {
         // @01a8
         var_85 = ptr_0_264 - var_76 + 0xFFFF >>u 16
         ptr_0_328 = var_85 << 32 >>u 32
@@ -201,11 +201,11 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
         var_97 = HEAP_PAGES
         var_98 = var_97 + var_95
 
-        if (var_97 <u var_98) {
+        if (var_98 <u var_97) {
             // @0217
             r4 = -1
         } else {
-            if (var_98 <u 256) {
+            if (256 <u var_98) {
                 // @0217
                 r4 = -1
             } else {
@@ -223,7 +223,7 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
     // @01a3
     goto block_0281;
     } else {
-        if (var_98 <u 256) {
+        if (256 <u var_98) {
             // @0217
             r4 = -1
         } else {
@@ -234,7 +234,7 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
         }
     }
 
-    if (var_98 <u 256) {
+    if (256 <u var_98) {
         // @0217
         r4 = -1
     } else {
@@ -273,11 +273,11 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
         var_109 = HEAP_PAGES
         var_110 = var_109 + ptr_0_328
 
-        if (var_109 <u var_110) {
+        if (var_110 <u var_109) {
             // @0263
             r4 = -1
         } else {
-            if (var_110 <u 256) {
+            if (256 <u var_110) {
                 // @0263
                 r4 = -1
             } else {
@@ -293,11 +293,11 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
     var_109 = HEAP_PAGES
     var_110 = var_109 + ptr_0_328
 
-    if (var_109 <u var_110) {
+    if (var_110 <u var_109) {
         // @0263
         r4 = -1
     } else {
-        if (var_110 <u 256) {
+        if (256 <u var_110) {
             // @0263
             r4 = -1
         } else {
@@ -308,7 +308,7 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
         }
     }
 
-    if (var_110 <u 256) {
+    if (256 <u var_110) {
         // @0263
         r4 = -1
     } else {
@@ -345,7 +345,7 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
     u32[r2 + 0x33000] = 0
     var_168 = 4
 
-    while (0xFEFD0000 >=u r1 - 648 - 136) {
+    while (r1 - 648 - 136 >=u 0xFEFD0000) {
         // @05bd
         ptr_7 = ptr_0 - 136
 
@@ -385,7 +385,7 @@ fn func_3(r0: u64, r1: u64, r9: u64, r12: u64) {
 
     let ptr_0
     let var_48
-    if (0xFEFD0000 >=u r1 - 272) {
+    if (r1 - 272 >=u 0xFEFD0000) {
         // @03bd
         let var_4 = HEAP_PTR
         ptr_0_40 = var_4
@@ -397,7 +397,7 @@ fn func_3(r0: u64, r1: u64, r9: u64, r12: u64) {
         let var_15 = HEAP_PAGES
         var_18 = var_15 << 16
 
-        if (var_13 <u var_18) {
+        if (var_18 <u var_13) {
             // @0424
             let var_27 = var_13 - var_18 + 0xFFFF >>u 16
             ptr_0_136 = var_27 << 32 >>u 32
@@ -405,11 +405,11 @@ fn func_3(r0: u64, r1: u64, r9: u64, r12: u64) {
             var_39 = HEAP_PAGES
             var_40 = var_39 + var_37
 
-            if (var_39 <u var_40) {
+            if (var_40 <u var_39) {
                 // @048f
                 r4 = -1
             } else {
-                if (var_40 <u 256) {
+                if (256 <u var_40) {
                     // @048f
                     r4 = -1
                 } else {
@@ -446,11 +446,11 @@ fn func_3(r0: u64, r1: u64, r9: u64, r12: u64) {
     var_73 = HEAP_PAGES
     var_74 = var_73 + ptr_0_136
 
-    if (var_73 <u var_74) {
+    if (var_74 <u var_73) {
         // @0538
         r4 = -1
     } else {
-        if (var_74 <u 256) {
+        if (256 <u var_74) {
             // @0538
             r4 = -1
         } else {
@@ -461,7 +461,7 @@ fn func_3(r0: u64, r1: u64, r9: u64, r12: u64) {
         }
     }
 
-    if (var_74 <u 256) {
+    if (256 <u var_74) {
         // @0538
         r4 = -1
     } else {
@@ -491,7 +491,7 @@ fn func_3(r0: u64, r1: u64, r9: u64, r12: u64) {
 }
 
 fn func_4(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64) {
-    if (0xFEFD0000 >=u r1 - 72) {
+    if (r1 - 72 >=u 0xFEFD0000) {
         // @056e
         u32[r9 + 0x33000] = r10
         u32[r9 + 0x33004] = r11

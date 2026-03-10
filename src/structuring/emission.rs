@@ -5012,7 +5012,8 @@ mod tests {
                     reg2: 2,
                     offset: 4,
                 },
-                "r1 == r2",
+                // PVM: BranchOp { reg1: a, reg2: b } branches when b op a
+                "r2 == r1",
             ),
             (
                 Instruction::BranchNe {
@@ -5020,7 +5021,7 @@ mod tests {
                     reg2: 3,
                     offset: 4,
                 },
-                "r2 != r3",
+                "r3 != r2",
             ),
             (
                 Instruction::BranchLtS {
@@ -5028,7 +5029,7 @@ mod tests {
                     reg2: 4,
                     offset: 4,
                 },
-                "r3 <s r4",
+                "r4 <s r3",
             ),
             (
                 Instruction::BranchGeS {
@@ -5036,7 +5037,7 @@ mod tests {
                     reg2: 5,
                     offset: 4,
                 },
-                "r4 >=s r5",
+                "r5 >=s r4",
             ),
             (
                 Instruction::BranchLtU {
@@ -5044,7 +5045,7 @@ mod tests {
                     reg2: 6,
                     offset: 4,
                 },
-                "r5 <u r6",
+                "r6 <u r5",
             ),
             (
                 Instruction::BranchGeU {
@@ -5052,7 +5053,7 @@ mod tests {
                     reg2: 7,
                     offset: 4,
                 },
-                "r6 >=u r7",
+                "r7 >=u r6",
             ),
         ];
 

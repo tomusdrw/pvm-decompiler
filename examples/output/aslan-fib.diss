@@ -32,7 +32,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @000a
     var_0 = 2
 
-    if (0xFEFD0000 >=u r1 - 16 - 256) {
+    if (r1 - 16 - 256 >=u 0xFEFD0000) {
         // @4815
 
         if (var_2481 == 0) {
@@ -72,7 +72,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
         }
     }
 
-    if (0xFEFD0000 >=u ptr_116 - 408) {
+    if (ptr_116 - 408 >=u 0xFEFD0000) {
         // @1d08
         ptr_110 = ptr_116 - 408
         ptr_110_16 = var_37
@@ -89,7 +89,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
         let var_1130 = HEAP_PAGES
         var_1133 = var_1130 << 16
 
-        if (var_1128 <u var_1133) {
+        if (var_1133 <u var_1128) {
             // @1d98
             let var_1142 = var_1128 - var_1133 + 0xFFFF >>u 16
             ptr_110_192 = var_1142 << 32 >>u 32
@@ -97,11 +97,11 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
             var_1154 = HEAP_PAGES
             var_1155 = var_1154 + var_1152
 
-            if (var_1154 <u var_1155) {
+            if (var_1155 <u var_1154) {
                 // @1e05
                 r4 = -1
             } else {
-                if (var_1155 <u 1024) {
+                if (1024 <u var_1155) {
                     // @1e05
                     r4 = -1
                 } else {
@@ -120,7 +120,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @1d07
     return
         } else {
-            if (var_1155 <u 1024) {
+            if (1024 <u var_1155) {
                 // @1e05
                 r4 = -1
             } else {
@@ -138,7 +138,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @1d93
     goto block_1e25;
     } else {
-        if (var_1155 <u 1024) {
+        if (1024 <u var_1155) {
             // @1e05
             r4 = -1
         } else {
@@ -149,7 +149,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
         }
     }
 
-    if (var_1155 <u 1024) {
+    if (1024 <u var_1155) {
         // @1e05
         r4 = -1
     } else {
@@ -191,11 +191,11 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     var_1206 = HEAP_PAGES
     var_1207 = var_1206 + ptr_110_192
 
-    if (var_1206 <u var_1207) {
+    if (var_1207 <u var_1206) {
         // @1f07
         r4 = -1
     } else {
-        if (var_1207 <u 1024) {
+        if (1024 <u var_1207) {
             // @1f07
             r4 = -1
         } else {
@@ -206,7 +206,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
         }
     }
 
-    if (var_1207 <u 1024) {
+    if (1024 <u var_1207) {
         // @1f07
         r4 = -1
     } else {
@@ -287,7 +287,7 @@ fn func_1(r1: u64, r7: u64, r12: u64) {
     var_2 = u64[r1 + 1376]
     var_3 = 46
 
-    if (0xFEFD0000 >=u r1 - 528) {
+    if (r1 - 528 >=u 0xFEFD0000) {
         // @2222
         ptr_0 = r1 - 528
         ptr_0_24 = r7
@@ -414,21 +414,21 @@ fn func_2(r0: u64, r1: u64, r5: u64, r6: u64, r7: u64, r12: u64) {
 }
 
 fn func_3(r1: u64) {
-    if (0xFEFD0000 >=u r1 - 64) {
+    if (r1 - 64 >=u 0xFEFD0000) {
         // @1ba9
         return
     }
 }
 
 fn func_4(r0: u64, r1: u64, r5: u64, r6: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
-    if (0xFEFD0000 >=u r1 - 112) {
+    if (r1 - 112 >=u 0xFEFD0000) {
         // @1bc1
         return
     }
 }
 
 fn func_5(r0: u64, r1: u64, r5: u64, r6: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
-    if (0xFEFD0000 >=u r1 - 144) {
+    if (r1 - 144 >=u 0xFEFD0000) {
         // @1c54
         r7 = 0
         return
@@ -508,7 +508,7 @@ fn func_7(r1: u64, r7: u64) {
 }
 
 fn func_8(r0: u64, r1: u64, r9: u64, r10: u64) {
-    if (0xFEFD0000 >=u r1 - 128) {
+    if (r1 - 128 >=u 0xFEFD0000) {
         // @30b3
         call_indirect(r0)
     }
@@ -557,7 +557,7 @@ fn func_12(r1: u64, r7: u64) {
     u64[r1 + 368] = u64[r1 + 40]
     u64[r1 + 376] = r7
 
-    while (u64[r1 + 200] <u var_11) {
+    while (var_11 <u u64[r1 + 200]) {
         // @3d40
         let var_11 = u64[r1 + 368]
         u64[r1 + 384] = var_11
@@ -637,7 +637,7 @@ fn func_14(r1: u64, r7: u64) {
 }
 
 fn func_15(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64) {
-    if (0xFEFD0000 >=u r1 - 144) {
+    if (r1 - 144 >=u 0xFEFD0000) {
         // @478d
         u8[u32[r9 + 0x33004] + r10 << 32 >>u 32 + 0x33000] = r11
         call_indirect(r0)

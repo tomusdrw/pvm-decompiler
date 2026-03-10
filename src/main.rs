@@ -1318,12 +1318,8 @@ mod integration_tests {
             .expect("fibonacci.pvm fixture should exist");
         let output = decompile_bytes(&buffer).expect("decompilation should succeed");
 
-        // The loop condition renders the branch-taken direction as the continue
-        // condition.  With the current wasm-pvm2 compiler the operands appear
-        // swapped (n < i instead of i < n) — this is a compiler-side issue, not
-        // a decompiler bug.
         assert!(
-            output.contains("while (ptr_0_56 <u ptr_0_72)"),
+            output.contains("while (ptr_0_72 <u ptr_0_56)"),
             "Loop header exit-branch conditions should render as continue conditions: {}",
             output
         );

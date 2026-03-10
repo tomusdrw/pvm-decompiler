@@ -1196,41 +1196,43 @@ impl InstructionShape {
                 value: 0,
             },
 
-            // Branch with two registers
+            // Branch with two registers.
+            // PVM convention: BranchOp { reg1: a, reg2: b } branches when b op a.
+            // Swap operands so the shape reads naturally as "reg1 op reg2".
             Instruction::BranchEq { reg1, reg2, offset } => Self::BranchReg {
                 cond: "==",
-                reg1: *reg1,
-                reg2: *reg2,
+                reg1: *reg2,
+                reg2: *reg1,
                 offset: *offset,
             },
             Instruction::BranchNe { reg1, reg2, offset } => Self::BranchReg {
                 cond: "!=",
-                reg1: *reg1,
-                reg2: *reg2,
+                reg1: *reg2,
+                reg2: *reg1,
                 offset: *offset,
             },
             Instruction::BranchGeU { reg1, reg2, offset } => Self::BranchReg {
                 cond: ">=u",
-                reg1: *reg1,
-                reg2: *reg2,
+                reg1: *reg2,
+                reg2: *reg1,
                 offset: *offset,
             },
             Instruction::BranchLtU { reg1, reg2, offset } => Self::BranchReg {
                 cond: "<u",
-                reg1: *reg1,
-                reg2: *reg2,
+                reg1: *reg2,
+                reg2: *reg1,
                 offset: *offset,
             },
             Instruction::BranchLtS { reg1, reg2, offset } => Self::BranchReg {
                 cond: "<s",
-                reg1: *reg1,
-                reg2: *reg2,
+                reg1: *reg2,
+                reg2: *reg1,
                 offset: *offset,
             },
             Instruction::BranchGeS { reg1, reg2, offset } => Self::BranchReg {
                 cond: ">=s",
-                reg1: *reg1,
-                reg2: *reg2,
+                reg1: *reg2,
+                reg2: *reg1,
                 offset: *offset,
             },
 

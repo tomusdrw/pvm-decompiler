@@ -135,35 +135,37 @@ pub(crate) fn extract_condition(instr: &Instruction) -> Option<Condition> {
             lhs: Operand::Reg(*reg),
             rhs: Operand::Imm(*value),
         }),
+        // PVM convention: BranchOp { reg1: a, reg2: b } branches when b op a.
+        // So we swap operands: lhs=reg2, rhs=reg1.
         Instruction::BranchEq { reg1, reg2, .. } => Some(Condition {
             op: CondOp::Eq,
-            lhs: Operand::Reg(*reg1),
-            rhs: Operand::Reg(*reg2),
+            lhs: Operand::Reg(*reg2),
+            rhs: Operand::Reg(*reg1),
         }),
         Instruction::BranchNe { reg1, reg2, .. } => Some(Condition {
             op: CondOp::Ne,
-            lhs: Operand::Reg(*reg1),
-            rhs: Operand::Reg(*reg2),
+            lhs: Operand::Reg(*reg2),
+            rhs: Operand::Reg(*reg1),
         }),
         Instruction::BranchLtS { reg1, reg2, .. } => Some(Condition {
             op: CondOp::LtS,
-            lhs: Operand::Reg(*reg1),
-            rhs: Operand::Reg(*reg2),
+            lhs: Operand::Reg(*reg2),
+            rhs: Operand::Reg(*reg1),
         }),
         Instruction::BranchGeS { reg1, reg2, .. } => Some(Condition {
             op: CondOp::GeS,
-            lhs: Operand::Reg(*reg1),
-            rhs: Operand::Reg(*reg2),
+            lhs: Operand::Reg(*reg2),
+            rhs: Operand::Reg(*reg1),
         }),
         Instruction::BranchGeU { reg1, reg2, .. } => Some(Condition {
             op: CondOp::GeU,
-            lhs: Operand::Reg(*reg1),
-            rhs: Operand::Reg(*reg2),
+            lhs: Operand::Reg(*reg2),
+            rhs: Operand::Reg(*reg1),
         }),
         Instruction::BranchLtU { reg1, reg2, .. } => Some(Condition {
             op: CondOp::LtU,
-            lhs: Operand::Reg(*reg1),
-            rhs: Operand::Reg(*reg2),
+            lhs: Operand::Reg(*reg2),
+            rhs: Operand::Reg(*reg1),
         }),
         _ => None,
     }
@@ -276,6 +278,8 @@ mod tests {
                 Operand::Reg(10),
                 Operand::Imm(20),
             ),
+            // PVM convention: BranchOp { reg1: a, reg2: b } branches when b op a.
+            // So extracted condition has lhs=reg2, rhs=reg1.
             (
                 Instruction::BranchEq {
                     reg1: 1,
@@ -283,8 +287,8 @@ mod tests {
                     offset: 4,
                 },
                 CondOp::Eq,
-                Operand::Reg(1),
                 Operand::Reg(2),
+                Operand::Reg(1),
             ),
             (
                 Instruction::BranchNe {
@@ -293,8 +297,8 @@ mod tests {
                     offset: 4,
                 },
                 CondOp::Ne,
-                Operand::Reg(2),
                 Operand::Reg(3),
+                Operand::Reg(2),
             ),
             (
                 Instruction::BranchLtS {
@@ -303,8 +307,8 @@ mod tests {
                     offset: 4,
                 },
                 CondOp::LtS,
-                Operand::Reg(3),
                 Operand::Reg(4),
+                Operand::Reg(3),
             ),
             (
                 Instruction::BranchGeS {
@@ -313,8 +317,8 @@ mod tests {
                     offset: 4,
                 },
                 CondOp::GeS,
-                Operand::Reg(4),
                 Operand::Reg(5),
+                Operand::Reg(4),
             ),
             (
                 Instruction::BranchLtU {
@@ -323,8 +327,8 @@ mod tests {
                     offset: 4,
                 },
                 CondOp::LtU,
-                Operand::Reg(5),
                 Operand::Reg(6),
+                Operand::Reg(5),
             ),
             (
                 Instruction::BranchGeU {
@@ -333,8 +337,8 @@ mod tests {
                     offset: 4,
                 },
                 CondOp::GeU,
-                Operand::Reg(6),
                 Operand::Reg(7),
+                Operand::Reg(6),
             ),
         ];
 

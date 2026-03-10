@@ -7,7 +7,7 @@ fn main(r1: u64, r7: u64, r8: u64) {
     // @0006
     var_0 = 2
 
-    if (0xFEFD0000 >=u ptr_0) {
+    if (ptr_0 >=u 0xFEFD0000) {
         // @0315
         u32[0x30004] = 1036
         call_indirect(var_0)
@@ -32,7 +32,6 @@ fn func_1(r1: u64, r10: u64, r11: u64) {
     let var_61: u32
 
     let ptr_0
-    let ptr_2
     let var_51
     // @0015
     r8 = u64[r1 + 8]
@@ -45,7 +44,7 @@ fn func_1(r1: u64, r10: u64, r11: u64) {
     let var_18 = HEAP_PTR
     var_21 = var_18 << 16
 
-    if (var_13 <u var_21) {
+    if (var_21 <u var_13) {
         // @007f
         let var_30 = var_13 - var_21 + 0xFFFF >>u 16
         ptr_0_160 = var_30 << 32 >>u 32
@@ -53,11 +52,11 @@ fn func_1(r1: u64, r10: u64, r11: u64) {
         var_42 = HEAP_PTR
         var_43 = var_42 + var_40
 
-        if (var_42 <u var_43) {
+        if (var_43 <u var_42) {
             // @00ea
             r4 = -1
         } else {
-            if (var_43 <u 256) {
+            if (256 <u var_43) {
                 // @00ea
                 r4 = -1
             } else {
@@ -92,11 +91,11 @@ fn func_1(r1: u64, r10: u64, r11: u64) {
     var_60 = HEAP_PTR
     var_61 = var_60 + ptr_0_160
 
-    if (var_60 <u var_61) {
+    if (var_61 <u var_60) {
         // @0180
         r4 = -1
     } else {
-        if (var_61 <u 256) {
+        if (256 <u var_61) {
             // @0180
             r4 = -1
         } else {
@@ -107,7 +106,7 @@ fn func_1(r1: u64, r10: u64, r11: u64) {
         }
     }
 
-    if (var_61 <u 256) {
+    if (256 <u var_61) {
         // @0180
         r4 = -1
     } else {
@@ -134,7 +133,7 @@ fn func_1(r1: u64, r10: u64, r11: u64) {
     var_56 = ptr_0_40->field_208896
     var_58 = 4
 
-    for (let ptr_2 = ptr_0_40; 0xFEFD0000 >=u r1 - 384 - 120; ptr_2 = ptr_4_48 - 1 << 32 >>u 32) {
+    while (r1 - 384 - 120 >=u 0xFEFD0000) {
         // @0280
         ptr_4 = ptr_0 - 120
         ptr_4_48 = var_56

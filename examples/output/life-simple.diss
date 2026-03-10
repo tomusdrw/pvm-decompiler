@@ -34,7 +34,7 @@ fn main(r1: u64, r7: u64) {
     var_7 = 4
     var_8 = 2
 
-    if (0xFEFD0000 >=u r1 - 616 - 440) {
+    if (r1 - 616 - 440 >=u 0xFEFD0000) {
         // @043c
         ptr_0 = var_0 - 440
         ptr_0_24 = var_5
@@ -43,14 +43,14 @@ fn main(r1: u64, r7: u64) {
         ptr_0_48 = 0
     }
 
-    while (ptr_0_40 <s ptr_0_48) {
+    while (ptr_0_48 <s ptr_0_40) {
         // @046a
         ptr_0_56 = ptr_0_40
 
         // @0483
         ptr_0_80 = 0
 
-        while (ptr_0_56 <s ptr_0_80) {
+        while (ptr_0_80 <s ptr_0_56) {
             // @04ae
             ptr_0_96 = 0
             ptr_0_104 = -1
@@ -165,7 +165,7 @@ fn func_2(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_96
 
     let var_20
-    if (0xFEFD0000 >=u r1 - 304) {
+    if (r1 - 304 >=u 0xFEFD0000) {
         // @02b1
         ptr_0_64 = 0
         ptr_0_72 = -1
