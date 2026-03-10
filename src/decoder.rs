@@ -128,8 +128,8 @@ pub fn decode_spi(data: &[u8]) -> Result<DecodedProgram, Box<dyn Error>> {
     // Parse SPI header
     let ro_data_len = cursor.read_u24()?;
     let rw_data_len = cursor.read_u24()?;
-    let _heap_pages = cursor.read_u16()?;
-    let _stack_size = cursor.read_u24()?;
+    cursor.read_u16()?; // heap_pages
+    cursor.read_u24()?; // stack_size
 
     // Skip ro_data and rw_data sections
     if cursor.remaining() < ro_data_len as usize {
