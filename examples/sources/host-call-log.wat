@@ -1,6 +1,6 @@
 (module
   (import "env" "pvm_ptr" (func $pvm_ptr (param i64) (result i64)))
-  (import "env" "host_call" (func $host_call (param i64 i64 i64 i64 i64 i64)))
+  (import "env" "host_call_5" (func $host_call_5 (param i64 i64 i64 i64 i64 i64) (result i64)))
   (memory (export "memory") 1)
   ;; "test-log" at offset 0 (8 bytes)
   (data (i32.const 0) "test-log")
@@ -13,13 +13,13 @@
     ;; r9 = target_len (8)
     ;; r10 = msg_ptr (PVM address of "Hello from PVM!")
     ;; r11 = msg_len (15)
-    (call $host_call
+    (drop (call $host_call_5
       (i64.const 100)
       (i64.const 3)
       (call $pvm_ptr (i64.const 0))
       (i64.const 8)
       (call $pvm_ptr (i64.const 8))
-      (i64.const 15))
+      (i64.const 15)))
     ;; Return result: store 42 at offset 24, return (ptr=24, len=4)
     (i32.store (i32.const 24) (i32.const 42))
     (i64.const 17179869208)))

@@ -1,44 +1,31 @@
-fn main(r1: u64, r7: u64, r8: u64) {
-    let ptr_0_128
-    let ptr_0_80
+fn main(r1: u64, r7: u64) {
+    let ptr_0_72
 
-    // @000a
+    // @0006
     let var_1 = u32[r7]
 
     switch (var_1) {
         case 0:
-            // @00b1
-            ptr_0_80 = 100
+            // @007b
+            ptr_0_72 = 100
 
         case 1:
-            // @00a5
-            ptr_0_80 = 200
+            // @006f
+            ptr_0_72 = 200
 
         case 2:
-            // @0099
-            ptr_0_80 = 300
+            // @0063
+            ptr_0_72 = 300
 
         default:
-            // @0040
-            ptr_0_80 = 0
+            // @0032
+            ptr_0_72 = 999
+
+            break;
     }
 
-    if (!(ptr_0_80)) {
-        // @00bc
-        ptr_0_128 = 999
-        goto block_00d5;
-    } else {
-        // @0094
-        ptr_0_128 = 999
-    }
-    // @00c9
-    // @00bc
-
-    block_00d5:
-    // @00d5
-    u32[0x20000] = ptr_0_128
-
-    // @004a
+    // @003a
+    u32[0x3000] = ptr_0_72
     halt()
 }
 

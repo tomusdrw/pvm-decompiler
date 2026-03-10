@@ -1,27 +1,25 @@
-fn main(r1: u64, r7: u64, r8: u64) {
+fn main(r1: u64, r7: u64) {
+    let ptr_0_72
     let ptr_0_80
     let ptr_0_88
-    let ptr_0_96
 
     // @0000
 
-    // @000a
+    // @0006
     let ptr_0_56 = u32[r7]
-    ptr_0_80 = 0
-    ptr_0_88 = 1
-    ptr_0_96 = 0
+    ptr_0_72 = 0
+    ptr_0_80 = 1
+    ptr_0_88 = 0
 
-    while (ptr_0_80 <u ptr_0_56) {
-        // @00b9
-        ptr_0_80 = ptr_0_80 + 1
-        ptr_0_88 = ptr_0_96 + ptr_0_88
-        ptr_0_96 = ptr_0_88
+    while (ptr_0_56 <u ptr_0_72) {
+        // @0075
+        ptr_0_72 = ptr_0_72 + 1
+        ptr_0_80 = ptr_0_88 + ptr_0_80 << 32 >>u 32
+        ptr_0_88 = ptr_0_80
     }
 
-    // @0052
-    u32[0x20000] = ptr_0_96
-
-    // @003a
+    // @0033
+    u32[0x3000] = ptr_0_88
     halt()
 }
 

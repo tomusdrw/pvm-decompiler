@@ -5,7 +5,7 @@ fn main(r1: u64, r7: u64, r8: u64) {
     // @0000
 
     // @0006
-    var_0 = 2; jump 1936
+    var_0 = 2
 
     if (0xFEFD0000 >=u ptr_0) {
         // @07b1
@@ -172,7 +172,7 @@ fn func_1(r1: u64) {
 
     if (ptr_0_248 <s ptr_0_592) {
         // @0326
-        var_153 = 4; jump 257
+        var_153 = 4
     } else {
         // @0321
         goto block_0358;

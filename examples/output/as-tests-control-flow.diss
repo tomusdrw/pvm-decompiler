@@ -1,91 +1,173 @@
-fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+fn main(r1: u64, r7: u64, r8: u64) {
+    let var_0: u64
+
+    let ptr_0
     // @0000
 
-    // @000a
-    func_1(r1 - 16)
+    // @0006
+    var_0 = 2
+
+    if (0xFEFD0000 >=u ptr_0) {
+        // @02dd
+        u32[0x30004] = 1036
+        call_indirect(var_0)
+    }
 }
 
 fn func_1(r1: u64) {
+    let ptr_0_160
+    let ptr_0_280
+    let ptr_0_288
+    let ptr_0_336
+    let ptr_0_344
     let ptr_0_40
-    let ptr_0_512
-    let ptr_0_568
-    let ptr_0_576
-    let ptr_0_680
-    let ptr_0_688
-    let ptr_0_760
-    let ptr_0_768
-    let ptr_0_88
+    let ptr_0_400
+    let ptr_0_408
+    let ptr_0_80
+    let ptr_0_96
+    let var_13: u32
+    let var_21: u32
+    let var_40: u64
+    let var_42: u64
+    let var_43: u32
+    let var_62: u64
+    let var_66: u64
+    let var_67: u32
 
-    // @0021
-    ptr_0_40 = u64[r1] - 0x50000
-    ptr_0_88 = heap_alloc(272)
+    let var_51
+    // @0015
+    r8 = u64[r1 + 8]
+    ptr_0_40 = u64[r1] - 0x33000
+    let var_4 = RESULT_LEN
+    let var_9 = 32
+    ptr_0_80 = var_4 + 4 << var_9 >>u var_9
+    var_13 = var_4 + 272
+    ptr_0_96 = var_13 << var_9 >>u var_9
+    let var_18 = HEAP_PTR
+    var_21 = var_18 << 16
 
-    // @0268
-    RESULT_PTR = ptr_0_88
-    let ptr_0_464 = *ptr_0_40
-    ptr_0_512 = 2
+    if (var_13 <u var_21) {
+        // @007f
+        let var_30 = var_13 - var_21 + 0xFFFF >>u 16
+        ptr_0_160 = var_30 << 32 >>u 32
+        if (r2 != 0) var_40 = r3
+        var_42 = HEAP_PTR
+        var_43 = var_42 + var_40
 
-    if (*ptr_0_40 <=s 10) {
-        // @02d9
-        ptr_0_568 = 0
-        ptr_0_576 = ptr_0_512
-        goto block_0376;
+        if (var_42 <u var_43) {
+            // @00ea
+            r4 = -1
+        } else {
+            if (var_43 <u 256) {
+                // @00ea
+                r4 = -1
+            } else {
+                // @00d5
+                HEAP_PTR = var_43
+                let ptr_1 = sbrk(var_43 - var_42 << 16)
+                goto block_00ee;
+            }
+        }
     } else {
-        // @02d1
+        // @007a
+        goto block_010a;
     }
 
-    // @02d1
-    ptr_0_512 = 1
+    block_00ee:
+    if (var_51 == 0) {
+        // @010a
+        RESULT_LEN = ptr_0_96
+        u32[r2 + 0x33000] = 268
+        RESULT_PTR = ptr_0_80
+        let ptr_0_224 = ptr_0_40->field_208896
+        r4 = 2
+        if (r2 != 0) var_62 = 1
+        ptr_0_280 = 0
+        ptr_0_288 = var_62
+        goto block_01a9;
+    } else {
+        // @0105
+    }
+    // @0156
+    var_66 = HEAP_PTR
+    var_67 = var_66 + ptr_0_160
 
-    // @02d9
-    ptr_0_568 = 0
-    ptr_0_576 = ptr_0_512
-
-    block_0376:
-    while (ptr_0_568 <s ptr_0_464) {
-        // @03d3
-        ptr_0_568 = ptr_0_568 + 1
-        ptr_0_576 = ptr_0_576 + 1
+    if (var_66 <u var_67) {
+        // @0187
+        r4 = -1
+    } else {
+        if (var_67 <u 256) {
+            // @0187
+            r4 = -1
+        } else {
+            // @0172
+            HEAP_PTR = var_67
+            let ptr_3 = sbrk(var_67 - var_66 << 16)
+            goto block_018b;
+        }
     }
 
-    // @03bb
+    if (var_67 <u 256) {
+        // @0187
+        r4 = -1
+    } else {
+        // @0172
+        HEAP_PTR = var_67
+        ptr_3 = sbrk(var_67 - var_66 << 16)
+        goto block_018b;
+    }
 
-    // @0418
+    // @0172
+    HEAP_PTR = var_67
+    ptr_3 = sbrk(var_67 - var_66 << 16)
+    // @0187
+    r4 = -1
 
-    // @041d
+    block_018b:
+    // @018b
 
-    // @03c0
-    ptr_0_680 = 0
-    ptr_0_688 = ptr_0_576
+    block_010a:
+    // @010a
+    RESULT_LEN = ptr_0_96
+    u32[r2 + 0x33000] = 268
+    RESULT_PTR = ptr_0_80
+    ptr_0_224 = ptr_0_40->field_208896
+    r4 = 2
+    if (r2 != 0) var_62 = 1
+    ptr_0_280 = 0
+    ptr_0_288 = var_62
 
-    while (ptr_0_680 <s 5) {
-        // @0496
-        ptr_0_760 = 0
-        ptr_0_768 = ptr_0_688
+    block_01a9:
+    while (ptr_0_224 <s ptr_0_280) {
+        // @01cf
+        ptr_0_280 = ptr_0_280 + 1
+        ptr_0_288 = ptr_0_288 + 1 << 32 >>u 32
+    }
 
-        while (ptr_0_760 <s 5 & ptr_0_760 <=s 2) {
-            // @055f
-            ptr_0_760 = ptr_0_760 + 1
-            ptr_0_768 = ptr_0_768 + 1
+    // @01b7
+    ptr_0_336 = 0
+    ptr_0_344 = ptr_0_288
+
+    while (ptr_0_336 <s 5) {
+        // @0211
+        ptr_0_400 = 0
+        ptr_0_408 = ptr_0_344
+
+        while (ptr_0_400 <s 3) {
+            // @027e
+            ptr_0_400 = ptr_0_400 + 1
+            ptr_0_408 = ptr_0_408 + 1 << 32 >>u 32
         }
 
-        // @0534
-        ptr_0_680 = ptr_0_680 + 1
-        ptr_0_688 = ptr_0_768
+        // @02b0
+        ptr_0_336 = ptr_0_336 + 1
+        ptr_0_344 = ptr_0_408
     }
 
-    // @0458
+    // @020c
 
-    // @04a9
-
-    // @04ae
-
-    // @045d
-    u32[RESULT_PTR + 0x50000] = ptr_0_688
-    RESULT_LEN = 4
-    HEAP_PTR = 4
-
-    // @010d
+    // @0224
+    u32[RESULT_PTR + 0x33000] = ptr_0_344
     halt()
 }
 

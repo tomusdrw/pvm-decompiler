@@ -5,7 +5,7 @@ fn main(r1: u64, r7: u64, r8: u64) {
     // @0000
 
     // @0006
-    var_0 = 2; jump 756
+    var_0 = 2
 
     if (0xFEFD0000 >=u ptr_0) {
         // @0315
@@ -79,7 +79,7 @@ fn func_1(r1: u64, r10: u64, r11: u64) {
         u32[r2 + 0x33000] = 268
         RESULT_PTR = ptr_0_80
         var_56 = ptr_0_40->field_208896
-        var_58 = 4; jump 314
+        var_58 = 4
     } else {
         // @0105
         goto block_014f;
@@ -132,7 +132,7 @@ fn func_1(r1: u64, r10: u64, r11: u64) {
     u32[r2 + 0x33000] = 268
     RESULT_PTR = ptr_0_80
     var_56 = ptr_0_40->field_208896
-    var_58 = 4; jump 314
+    var_58 = 4
 
     for (let ptr_2 = ptr_0_40; 0xFEFD0000 >=u r1 - 384 - 120; ptr_2 = ptr_4_48 - 1 << 32 >>u 32) {
         // @0280

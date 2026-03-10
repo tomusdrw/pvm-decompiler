@@ -627,11 +627,10 @@ impl LiftedProgram {
                     value
                 ))
             }
-            InstructionShape::LoadImmJump { dst, value, offset } => Expression::Raw(format!(
-                "{} = {}; jump {}",
+            InstructionShape::LoadImmJump { dst, value, .. } => Expression::Raw(format!(
+                "{} = {}",
                 self.var_name_for_def(pc, dst),
                 value,
-                offset
             )),
             InstructionShape::LoadImmJumpInd { base, dst, value } => Expression::Raw(format!(
                 "{} = {}; jump_ind {}",

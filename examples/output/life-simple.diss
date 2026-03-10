@@ -1,358 +1,207 @@
-fn main(r1: u64, r7: u64, r8: u64, r12: u64) {
+fn main(r1: u64, r7: u64) {
     let ptr_0: ptr
-    let ptr_0_160
-    let ptr_0_168
+    let ptr_0_104
+    let ptr_0_128
+    let ptr_0_136
+    let ptr_0_24
+    let ptr_0_280
+    let ptr_0_32
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
-    let ptr_0_64
     let ptr_0_80
-    let ptr_0_88
-    let ptr_2_144
-    let ptr_2_64
-    let ptr_5_144
-    let ptr_5_464
-    let ptr_5_48
-    let ptr_5_56
-    let ptr_5_600
-    let ptr_5_608
-    let ptr_5_64
-    let var_274: u64
-    let var_65: u32
+    let ptr_0_96
+    let var_112: u64
+    let var_5: u64
+    let var_6: u64
+    let var_7: u64
+    let var_8: u64
 
-    let ptr_2
-    let ptr_2_40
-    let ptr_2_56
+    let var_0
+    let var_2
+    let var_3
+    let var_38
+    let var_4
     // @0000
 
-    // @06d7
-    var_274 = r7 - 0x50000
-    let ptr_5_40 = var_274
-    ptr_5_48 = r8
-    let var_276 = 0
-    ptr_5_56 = var_276
-    let var_278 = var_276 + 4
-    ptr_5_64 = var_278
-    u8[var_278 + 0x50000] = 1
-    u8[0x20005] = 1
-    u8[0x20006] = 1
-    func_1(r1 - 1376)
+    // @0006
+    r7 = r7 - 0x33000
+    u8[var_2 + 0x33000] = 1
+    u8[var_3 + 0x33000] = 1
+    u8[var_4 + 0x33000] = 1
+    var_5 = 0
+    var_6 = 0x30200
+    var_7 = 4
+    var_8 = 2
 
-    // @0488
-    let ptr_5_200 = var_274
-
-    if (u8[ptr_5_40 + ptr_5_64 * ptr_5_56 + ptr_5_144 + 0x50000] != 0) {
-        if (!(ptr_5_200 ^ 2) | !(ptr_5_200 ^ 3)) {
-            // @068f
-            ptr_5_600 = 1
-            goto block_06a6;
-        } else {
-            // @05ac
-            goto block_069b;
-        }
+    if (0xFEFD0000 >=u r1 - 616 - 440) {
+        // @043c
+        ptr_0 = var_0 - 440
+        ptr_0_24 = var_5
+        ptr_0_32 = var_6
+        ptr_0_40 = var_7
+        ptr_0_48 = 0
     }
 
-    block_03a8:
-    // @03a8
-    if (ptr_2_64 >=s ptr_2_56) goto block_03a3;
+    while (ptr_0_40 <s ptr_0_48) {
+        // @046a
+        ptr_0_56 = ptr_0_40
 
-    // @03e6
-
-    // @03f0
-    ptr_2_144 = 0
-
-    block_041b:
-    // @041b
-    if (!(ptr_2_144 >=s ptr_2_56)) {
-        // @0462
-        if (0xFEFD0000 >=u ptr_2 - 624) {
-        // @001f
-        ptr_0 = ptr_2 - 624
-        ptr_0_40 = ptr_2_40
-        ptr_0_48 = ptr_2_144
-        ptr_0_56 = ptr_2_64
-        ptr_0_64 = ptr_2_56
+        // @0483
         ptr_0_80 = 0
-        ptr_0_88 = 0xFFFFFFFF
-        goto block_0077;
+
+        while (ptr_0_56 <s ptr_0_80) {
+            // @04ae
+            ptr_0_96 = 0
+            ptr_0_104 = -1
+
+            while (ptr_0_104 <=s 1) {
+                // @04c8
+                ptr_0_128 = ptr_0_96
+                ptr_0_136 = -1
+
+                while (ptr_0_136 <=s 1) {
+                    if (var_38 == 0) {
+                        // @0519
+                        ptr_0_280 = ptr_0_128
+                        goto block_05b2;
+                    } else {
+                        // @0514
+                        goto block_0526;
+                    }
+                        }
+                    } else {
+                        // @0540
+                        return
+                    }
+
+                    // @05b2
+                    ptr_0_128 = ptr_0_280
+                    ptr_0_136 = ptr_0_136 + 1
+                }
+
+                // @04e0
+                ptr_0_96 = ptr_0_128
+                ptr_0_104 = ptr_0_104 + 1
+            }
+
+            // @05cc
+            let var_87 = ptr_0_48 * ptr_0_56 + ptr_0_80
+            if (r2 == 0) var_112 = r3
+            u8[var_87 + ptr_0_32 << 32 >>u 32 + 0x33000] = var_112
+            ptr_0_80 = ptr_0_80 + 1
+
+            continue
         }
+
+        // @048d
+        ptr_0_48 = ptr_0_48 + 1
     }
-    // @03fb
-    ptr_2_64 = ptr_2_64 + 1
-    goto block_03a8;
-    block_03a3:
-    // @038f
-    return
-    } else {
-        // @05ea
-    }
-    // @06bf
-    // @06b3
-    ptr_5_608 = 1
 
-    // @06ca
-    ptr_5_464 = ptr_5_608
+    // @047e
 
-    block_05ef:
-    // @05ef
-    u8[ptr_5_48 + ptr_5_64 * ptr_5_56 + ptr_5_144 + 0x50000] = ptr_5_464
-    ptr_5_144 = ptr_5_144 + 1
-    goto block_041b;
-    block_069b:
-    // @069b
-    ptr_5_600 = 0
+    // @045c
+    r1 = ptr_0 + 440
+    call_indirect(var_8)
 
-    block_06a6:
-    // @06a6
-    ptr_5_464 = ptr_5_600
-    goto block_05ef;
-    block_0077:
-    // @0077
-    if (!(ptr_0_88 >s 1)) {
-        // @00a8
-        // @00b2
-        ptr_0_160 = ptr_0_80
-        ptr_0_168 = 0xFFFFFFFF
-        while (ptr_0_168 <=s 1) {
-        // @0138
-        if ((ptr_0_168 | ptr_0_88) != 0) goto block_0181;
-        // @0181
-        var_65 = ptr_0_48 + ptr_0_168 + ptr_0_64
-        break
-        }
-    }
-    // @006c
-
-    // @0055
+    // @0540
     return
 }
 
 fn func_1(r1: u64) {
-    // @0759
-    u32[0x50300] = 4
-    u32[0x50304] = 4
-    let var_2 = u8[0x50200]
-    u64[r1 + 176] = var_2
-    let var_4 = 0x30200
-    u64[r1 + 184] = var_4
-    let var_6 = var_4 + 1
-    u64[r1 + 192] = var_6
-    u64[r1 + 200] = var_6
-    let var_7 = u8[var_6 + 0x50000]
-    u64[r1 + 208] = var_7
-    u64[r1 + 216] = var_7
-    let var_11 = var_7 << 8
-    u64[r1 + 224] = var_11
-    u64[r1 + 232] = var_11
-    u64[r1 + 240] = var_2
-    u64[r1 + 248] = var_11
-    let var_19 = var_2 | var_11
-    u64[r1 + 256] = var_19
-    u64[r1 + 264] = var_19
-    let var_22 = 0x30200
-    u64[r1 + 272] = var_22
-    let var_24 = var_22 + 2
-    u64[r1 + 280] = var_24
-    u64[r1 + 288] = var_24
-    let var_25 = u8[var_24 + 0x50000]
-    u64[r1 + 296] = var_25
-    u64[r1 + 304] = var_25
-    let var_29 = var_25 << 16
-    u64[r1 + 312] = var_29
-    u64[r1 + 320] = var_29
-    let var_32 = 0x30200
-    u64[r1 + 328] = var_32
-    let var_34 = var_32 + 3
-    u64[r1 + 336] = var_34
-    u64[r1 + 344] = var_34
-    let var_35 = u8[var_34 + 0x50000]
-    u64[r1 + 352] = var_35
-    u64[r1 + 360] = var_35
-    let var_39 = var_35 << 24
-    u64[r1 + 368] = var_39
-    u64[r1 + 376] = var_39
-    u64[r1 + 384] = var_29
-    u64[r1 + 392] = var_39
-    let var_47 = var_29 | var_39
-    u64[r1 + 400] = var_47
-    u64[r1 + 408] = var_47
-    u64[r1 + 416] = var_19
-    u64[r1 + 424] = var_47
-    let var_55 = var_19 | var_47
-    u64[r1 + 432] = var_55
-    u64[r1 + 440] = var_55
-    u32[0x50308] = var_55
-    let var_59 = 0x30200
-    u64[r1 + 456] = var_59
-    let var_61 = var_59 + 4
-    u64[r1 + 464] = var_61
-    u64[r1 + 472] = var_61
-    let var_62 = u8[var_61 + 0x50000]
-    u64[r1 + 480] = var_62
-    let var_64 = 0x30200
-    u64[r1 + 488] = var_64
-    let var_66 = var_64 + 5
-    u64[r1 + 496] = var_66
-    u64[r1 + 504] = var_66
-    let var_67 = u8[var_66 + 0x50000]
-    u64[r1 + 512] = var_67
-    u64[r1 + 520] = var_67
-    let var_71 = var_67 << 8
-    u64[r1 + 528] = var_71
-    u64[r1 + 536] = var_71
-    u64[r1 + 544] = var_62
-    u64[r1 + 552] = var_71
-    let var_79 = var_62 | var_71
-    u64[r1 + 560] = var_79
-    u64[r1 + 568] = var_79
-    let var_82 = 0x30200
-    u64[r1 + 576] = var_82
-    let var_84 = var_82 + 6
-    u64[r1 + 584] = var_84
-    u64[r1 + 592] = var_84
-    let var_85 = u8[var_84 + 0x50000]
-    u64[r1 + 600] = var_85
-    u64[r1 + 608] = var_85
-    let var_89 = var_85 << 16
-    u64[r1 + 616] = var_89
-    u64[r1 + 624] = var_89
-    let var_92 = 0x30200
-    u64[r1 + 632] = var_92
-    let var_94 = var_92 + 7
-    u64[r1 + 640] = var_94
-    u64[r1 + 648] = var_94
-    let var_95 = u8[var_94 + 0x50000]
-    u64[r1 + 656] = var_95
-    u64[r1 + 664] = var_95
-    let var_99 = var_95 << 24
-    u64[r1 + 672] = var_99
-    u64[r1 + 680] = var_99
-    u64[r1 + 688] = var_89
-    u64[r1 + 696] = var_99
-    let var_107 = var_89 | var_99
-    u64[r1 + 704] = var_107
-    u64[r1 + 712] = var_107
-    u64[r1 + 720] = var_79
-    u64[r1 + 728] = var_107
-    let var_115 = var_79 | var_107
-    u64[r1 + 736] = var_115
-    u64[r1 + 744] = var_115
-    u32[0x5030C] = var_115
-    let var_119 = 0x30200
-    u64[r1 + 760] = var_119
-    let var_121 = var_119 + 8
-    u64[r1 + 768] = var_121
-    u64[r1 + 776] = var_121
-    let var_122 = u8[var_121 + 0x50000]
-    u64[r1 + 784] = var_122
-    let var_124 = 0x30200
-    u64[r1 + 792] = var_124
-    let var_126 = var_124 + 9
-    u64[r1 + 800] = var_126
-    u64[r1 + 808] = var_126
-    let var_127 = u8[var_126 + 0x50000]
-    u64[r1 + 816] = var_127
-    u64[r1 + 824] = var_127
-    let var_131 = var_127 << 8
-    u64[r1 + 832] = var_131
-    u64[r1 + 840] = var_131
-    u64[r1 + 848] = var_122
-    u64[r1 + 856] = var_131
-    let var_139 = var_122 | var_131
-    u64[r1 + 864] = var_139
-    u64[r1 + 872] = var_139
-    let var_142 = 0x30200
-    u64[r1 + 880] = var_142
-    let var_144 = var_142 + 10
-    u64[r1 + 888] = var_144
-    u64[r1 + 896] = var_144
-    let var_145 = u8[var_144 + 0x50000]
-    u64[r1 + 904] = var_145
-    u64[r1 + 912] = var_145
-    let var_149 = var_145 << 16
-    u64[r1 + 920] = var_149
-    u64[r1 + 928] = var_149
-    let var_152 = 0x30200
-    u64[r1 + 936] = var_152
-    let var_154 = var_152 + 11
-    u64[r1 + 944] = var_154
-    u64[r1 + 952] = var_154
-    let var_155 = u8[var_154 + 0x50000]
-    u64[r1 + 960] = var_155
-    u64[r1 + 968] = var_155
-    let var_159 = var_155 << 24
-    u64[r1 + 976] = var_159
-    u64[r1 + 984] = var_159
-    u64[r1 + 992] = var_149
-    u64[r1 + 1000] = var_159
-    let var_167 = var_149 | var_159
-    u64[r1 + 1008] = var_167
-    u64[r1 + 1016] = var_167
-    u64[r1 + 1024] = var_139
-    u64[r1 + 1032] = var_167
-    let var_175 = var_139 | var_167
-    u64[r1 + 1040] = var_175
-    u64[r1 + 1048] = var_175
-    u32[0x50310] = var_175
-    let var_179 = 0x30200
-    u64[r1 + 1064] = var_179
-    let var_181 = var_179 + 12
-    u64[r1 + 1072] = var_181
-    u64[r1 + 1080] = var_181
-    let var_182 = u8[var_181 + 0x50000]
-    u64[r1 + 1088] = var_182
-    let var_184 = 0x30200
-    u64[r1 + 1096] = var_184
-    let var_186 = var_184 + 13
-    u64[r1 + 1104] = var_186
-    u64[r1 + 1112] = var_186
-    let var_187 = u8[var_186 + 0x50000]
-    u64[r1 + 1120] = var_187
-    u64[r1 + 1128] = var_187
-    let var_191 = var_187 << 8
-    u64[r1 + 1136] = var_191
-    u64[r1 + 1144] = var_191
-    u64[r1 + 1152] = var_182
-    u64[r1 + 1160] = var_191
-    let var_199 = var_182 | var_191
-    u64[r1 + 1168] = var_199
-    u64[r1 + 1176] = var_199
-    let var_202 = 0x30200
-    u64[r1 + 1184] = var_202
-    let var_204 = var_202 + 14
-    u64[r1 + 1192] = var_204
-    u64[r1 + 1200] = var_204
-    let var_205 = u8[var_204 + 0x50000]
-    u64[r1 + 1208] = var_205
-    u64[r1 + 1216] = var_205
-    let var_209 = var_205 << 16
-    u64[r1 + 1224] = var_209
-    u64[r1 + 1232] = var_209
-    let var_212 = 0x30200
-    u64[r1 + 1240] = var_212
-    let var_214 = var_212 + 15
-    u64[r1 + 1248] = var_214
-    u64[r1 + 1256] = var_214
-    let var_215 = u8[var_214 + 0x50000]
-    u64[r1 + 1264] = var_215
-    u64[r1 + 1272] = var_215
-    let var_219 = var_215 << 24
-    u64[r1 + 1280] = var_219
-    u64[r1 + 1288] = var_219
-    u64[r1 + 1296] = var_209
-    u64[r1 + 1304] = var_219
-    let var_227 = var_209 | var_219
-    u64[r1 + 1312] = var_227
-    u64[r1 + 1320] = var_227
-    u64[r1 + 1328] = var_199
-    u64[r1 + 1336] = var_227
-    let var_235 = var_199 | var_227
-    u64[r1 + 1344] = var_235
-    u64[r1 + 1352] = var_235
-    u32[0x50314] = var_235
-    u64[r1 + 1368] = 0x1800030300
-
-    // @0cf5
+    let var_0
+    let var_1
+    // @003c
+    u32[var_0 + 0x33000] = 4
+    u32[var_1 + 0x33000] = 4
+    let var_2 = u8[0x33200]
+    u64[r1 + 104] = var_2
+    u64[r1 + 136] = var_2
+    let var_11 = u8[0x33201] << 8 | var_2
+    u64[r1 + 144] = var_11
+    let var_15 = u8[0x33202] << 16
+    u64[r1 + 168] = var_15
+    let var_29 = (var_11 | var_15 | u8[0x33203] << 24) << 32 >>u 32
+    u64[r1 + 216] = var_29
+    u32[0x33308] = var_29
+    let var_31 = u8[0x33204]
+    u64[r1 + 232] = var_31
+    u64[r1 + 264] = var_31
+    let var_40 = u8[0x33205] << 8 | var_31
+    u64[r1 + 272] = var_40
+    let var_44 = u8[0x33206] << 16
+    u64[r1 + 296] = var_44
+    let var_58 = (var_40 | var_44 | u8[0x33207] << 24) << 32 >>u 32
+    u64[r1 + 344] = var_58
+    u32[0x3330C] = var_58
+    let var_60 = u8[0x33208]
+    u64[r1 + 360] = var_60
+    u64[r1 + 392] = var_60
+    let var_69 = u8[0x33209] << 8 | var_60
+    u64[r1 + 400] = var_69
+    let var_73 = u8[0x3320A] << 16
+    u64[r1 + 424] = var_73
+    let var_87 = (var_69 | var_73 | u8[0x3320B] << 24) << 32 >>u 32
+    u64[r1 + 472] = var_87
+    u32[0x33310] = var_87
+    let var_89 = u8[0x3320C]
+    u64[r1 + 488] = var_89
+    u64[r1 + 520] = var_89
+    let var_98 = u8[0x3320D] << 8 | var_89
+    u64[r1 + 528] = var_98
+    let var_102 = u8[0x3320E] << 16
+    u64[r1 + 552] = var_102
+    let var_116 = (var_98 | var_102 | u8[0x3320F] << 24) << 32 >>u 32
+    u64[r1 + 600] = var_116
+    u32[0x33314] = var_116
     halt()
+}
+
+fn func_2(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0_104
+    let ptr_0_288
+    let ptr_0_64
+    let ptr_0_72
+    let ptr_0_96
+
+    let var_20
+    if (0xFEFD0000 >=u r1 - 304) {
+        // @02b1
+        ptr_0_64 = 0
+        ptr_0_72 = -1
+    }
+
+    while (ptr_0_72 <=s 1) {
+        // @02fb
+        ptr_0_96 = ptr_0_64
+        ptr_0_104 = -1
+
+        while (ptr_0_104 <=s 1) {
+            if (var_20 == 0) {
+                // @0347
+                ptr_0_288 = ptr_0_96
+                goto block_0410;
+            } else {
+                // @0342
+                goto block_0353;
+            }
+                }
+            } else {
+                // @0380
+                return
+            }
+
+            // @0410
+            ptr_0_96 = ptr_0_288
+            ptr_0_104 = ptr_0_104 + 1
+        }
+
+        // @0311
+        ptr_0_64 = ptr_0_96
+        ptr_0_72 = ptr_0_72 + 1
+    }
+
+    // @0380
+    return
 }
 
