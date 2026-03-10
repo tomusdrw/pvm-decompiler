@@ -15,6 +15,11 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use wasm_pvm::pvm::Instruction;
 
+/// Stack offset used by wasm-pvm 0.5.0 to capture the secondary return value (r8)
+/// from host calls. The `host_call_*b` variants store r8 at `[SP - 0x108]` after
+/// the ecalli, and `host_call_r8` loads it back from the same slot.
+const R8_CAPTURE_SLOT_OFFSET: i32 = -0x108;
+
 /// Formatting context threaded through expression rendering.
 /// Replaces the former thread-local `MEMORY_BASE` global state.
 #[derive(Debug, Clone, Default)]
@@ -524,9 +529,20 @@ impl LiftedProgram {
 
         for &block_pc in &sorted_blocks {
             if let Some(block) = cfg.blocks.get(&block_pc) {
-                for (pc, instr) in &block.instructions {
+                let instrs = &block.instructions;
+                for (i, (pc, instr)) in instrs.iter().enumerate() {
                     let expr = self.instruction_to_expression(*pc, instr);
                     self.expressions.insert(*pc, expr);
+
+                    // Detect wasm-pvm 0.5.0 r8 capture pattern:
+                    // store_u64 [r1 + R8_CAPTURE_SLOT_OFFSET] = r8 immediately after ecalli.
+                    // This is a compiler artifact — eliminate the store.
+                    if is_r8_capture_store(instr) && i > 0 {
+                        let prev_shape = InstructionShape::classify(&instrs[i - 1].1);
+                        if matches!(prev_shape, InstructionShape::Ecalli { .. }) {
+                            self.eliminated_pcs.insert(*pc);
+                        }
+                    }
                 }
             }
         }
@@ -547,7 +563,21 @@ impl LiftedProgram {
                 base,
                 offset,
                 ..
-            } => self.make_load(pc, width, base, offset),
+            } => {
+                // Detect wasm-pvm 0.5.0 r8 retrieval: load from [r1 + R8_CAPTURE_SLOT_OFFSET]
+                // is reading the secondary host call return value captured by a host_call_*b variant.
+                if base == 1
+                    && offset == R8_CAPTURE_SLOT_OFFSET
+                    && matches!(width, MemWidth::U64)
+                {
+                    Expression::Call {
+                        name: "host_call_r8".into(),
+                        args: vec![],
+                    }
+                } else {
+                    self.make_load(pc, width, base, offset)
+                }
+            }
             InstructionShape::Store {
                 width,
                 base,
@@ -1602,6 +1632,21 @@ fn ecalli_name(index: u32) -> String {
         100 => "log".into(),
         _ => format!("ecalli({})", index),
     }
+}
+
+/// Check if an instruction is a store of r8 to the host-call r8 capture slot.
+/// This is the wasm-pvm 0.5.0 pattern: `store_u64 [r1 + R8_CAPTURE_SLOT_OFFSET] = r8`.
+fn is_r8_capture_store(instr: &Instruction) -> bool {
+    let shape = InstructionShape::classify(instr);
+    matches!(
+        shape,
+        InstructionShape::Store {
+            width: MemWidth::U64,
+            base: 1,
+            src: 8,
+            offset,
+        } if offset == R8_CAPTURE_SLOT_OFFSET
+    )
 }
 
 /// - `x + 0`, `x - 0`, `x | 0`, `x ^ 0`, `x << 0`, `x >>u 0`, `x >>s 0` → `x`
@@ -4654,5 +4699,100 @@ mod tests {
             "42 + 10 + var_c",
             "Should resolve eliminated var_b but keep live var_c"
         );
+    }
+
+    #[test]
+    fn test_r8_capture_store_eliminated_after_ecalli() {
+        // ecalli(3) at PC 0, followed by store [r1 - 0x108] = r8 at PC 4
+        let ecalli = Instruction::Ecalli { index: 3 };
+        let store_r8 = Instruction::StoreIndU64 {
+            base: 1,
+            src: 8,
+            offset: R8_CAPTURE_SLOT_OFFSET,
+        };
+        let cfg = build_test_cfg(
+            0,
+            vec![(0, vec![(0, ecalli), (4, store_r8)], vec![])],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        assert!(
+            lifted.eliminated_pcs.contains(&4),
+            "r8 capture store after ecalli should be eliminated"
+        );
+        assert!(
+            !lifted.eliminated_pcs.contains(&0),
+            "ecalli itself should not be eliminated"
+        );
+    }
+
+    #[test]
+    fn test_r8_capture_store_not_eliminated_without_ecalli() {
+        // store [r1 - 0x108] = r8 at PC 0, NOT preceded by ecalli
+        let store_r8 = Instruction::StoreIndU64 {
+            base: 1,
+            src: 8,
+            offset: R8_CAPTURE_SLOT_OFFSET,
+        };
+        let cfg = build_test_cfg(0, vec![(0, vec![(0, store_r8)], vec![])]);
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        assert!(
+            !lifted.eliminated_pcs.contains(&0),
+            "r8 capture store without preceding ecalli should not be eliminated"
+        );
+    }
+
+    #[test]
+    fn test_r8_retrieval_load_renders_as_host_call_r8() {
+        // load r4 = [r1 - 0x108]
+        let load_r8 = Instruction::LoadIndU64 {
+            dst: 4,
+            base: 1,
+            offset: R8_CAPTURE_SLOT_OFFSET,
+        };
+        let cfg = build_test_cfg(0, vec![(0, vec![(0, load_r8.clone())], vec![])]);
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let mut lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        let line = lifted.format_pc(0, &load_r8);
+        assert!(
+            line.as_deref().unwrap().contains("host_call_r8()"),
+            "load from r8 capture slot should render as host_call_r8(), got: {:?}",
+            line
+        );
+    }
+
+    #[test]
+    fn test_is_r8_capture_store() {
+        // Positive: store [r1 - 0x108] = r8
+        assert!(is_r8_capture_store(&Instruction::StoreIndU64 {
+            base: 1,
+            src: 8,
+            offset: R8_CAPTURE_SLOT_OFFSET,
+        }));
+
+        // Negative: wrong register
+        assert!(!is_r8_capture_store(&Instruction::StoreIndU64 {
+            base: 1,
+            src: 7,
+            offset: R8_CAPTURE_SLOT_OFFSET,
+        }));
+
+        // Negative: wrong base
+        assert!(!is_r8_capture_store(&Instruction::StoreIndU64 {
+            base: 2,
+            src: 8,
+            offset: R8_CAPTURE_SLOT_OFFSET,
+        }));
+
+        // Negative: wrong offset
+        assert!(!is_r8_capture_store(&Instruction::StoreIndU64 {
+            base: 1,
+            src: 8,
+            offset: -100,
+        }));
     }
 }

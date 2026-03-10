@@ -1732,6 +1732,42 @@ mod integration_tests {
     }
 
     #[test]
+    fn test_host_call_r8_capture_full_pipeline() {
+        let buffer = std::fs::read("examples/compiled/host-call-r8-capture.pvm")
+            .expect("host-call-r8-capture.pvm fixture should exist");
+        let output = decompile_bytes(&buffer).expect("decompilation should succeed");
+
+        assert!(
+            output.contains("fn main"),
+            "Output should contain main function: {}",
+            output
+        );
+        // The ecalli 3 should be recognized as read()
+        assert!(
+            output.contains("read()"),
+            "Should recognize ecalli 3 as read(): {}",
+            output
+        );
+        // The r8 capture store should be eliminated (not visible in output)
+        assert!(
+            !output.contains("-264"),
+            "r8 capture store offset should not appear in output: {}",
+            output
+        );
+        assert!(
+            !output.contains("-0x108"),
+            "r8 capture store offset should not appear in output: {}",
+            output
+        );
+        // The r8 retrieval should render as host_call_r8()
+        assert!(
+            output.contains("host_call_r8()"),
+            "r8 retrieval should render as host_call_r8(): {}",
+            output
+        );
+    }
+
+    #[test]
     fn test_aslan_fib_full_pipeline() {
         let buffer = std::fs::read("examples/compiled/aslan-fib.pvm")
             .expect("aslan-fib.pvm fixture should exist");

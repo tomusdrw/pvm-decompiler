@@ -1,0 +1,7 @@
+fn main(r0: u64, r1: u64, r3: u64, r5: u64, r6: u64, r7: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    // @0006
+    read()
+    u64[0x3010] = host_call_r8()
+    halt()
+}
+
