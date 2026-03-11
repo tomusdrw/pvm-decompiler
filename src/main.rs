@@ -130,10 +130,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Fast path: Normal verbosity + PseudoCode mode + no refinement
     // delegates entirely to the library's decompile_to_pseudocode().
-    if verbosity == Verbosity::Normal
-        && output_mode == OutputMode::PseudoCode
-        && !enable_refine
-    {
+    if verbosity == Verbosity::Normal && output_mode == OutputMode::PseudoCode && !enable_refine {
         let result = pvm_decompiler::decompile_to_pseudocode(&buffer)?;
         for warning in &result.warnings {
             eprintln!("Warning: {}", warning);
