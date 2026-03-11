@@ -124,6 +124,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
+    let mut file = fs::File::open(&filename)?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+
+    // Fast path: Normal verbosity + PseudoCode mode + no refinement
+    // delegates entirely to the library's decompile_to_pseudocode().
+    if verbosity == Verbosity::Normal
+        && output_mode == OutputMode::PseudoCode
+        && !enable_refine
+    {
+        let result = pvm_decompiler::decompile_to_pseudocode(&buffer)?;
+        for warning in &result.warnings {
+            eprintln!("Warning: {}", warning);
+        }
+        print!("{}", result.pseudo_code);
+        return Ok(());
+    }
+
+    // Full pipeline for verbose/debug output, LLVM/decompile modes, or --refine
     use std::fmt::Write as FmtWrite;
     let mut all_output = String::new();
     let mut pending_refinements: Vec<(String, String)> = Vec::new();
@@ -131,10 +150,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if verbosity >= Verbosity::Verbose {
         let _ = writeln!(all_output, "Reading {}...", filename);
     }
-
-    let mut file = fs::File::open(&filename)?;
-    let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)?;
 
     // Strip metadata prefix if present, then try SPI format, fall back to raw blob
     let stripped = decoder::try_strip_metadata(&buffer)?;
