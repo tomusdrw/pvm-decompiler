@@ -10,10 +10,34 @@ license = "MIT"
 keywords = ["pvm", "polkadot", "decompiler", "bytecode", "reverse-engineering"]
 categories = ["command-line-utilities", "development-tools", "compilers"]
 
+[lib]
+name = "pvm_decompiler"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "pvm-decompiler"
+path = "src/main.rs"
+required-features = ["native"]
+
+[features]
+default = ["native"]
+native = ["dep:atty", "dep:reqwest", "dep:tempfile", "dep:wait-timeout"]
+wasm = ["dep:wasm-bindgen", "dep:serde", "dep:console_error_panic_hook"]
+
 [dependencies]
-atty = "0.2"
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 serde_json = "1.0"
-tempfile = "3.13"
-wait-timeout = "0.2"
-wasm-pvm = "0.5.0"
+wasm-pvm = { version = "0.5.2", default-features = false }
+
+# native-only
+atty = { version = "0.2", optional = true }
+reqwest = { version = "0.12", optional = true, default-features = false, features = ["blocking", "json", "rustls-tls"] }
+tempfile = { version = "3.13", optional = true }
+wait-timeout = { version = "0.2", optional = true }
+
+# wasm-only
+wasm-bindgen = { version = "0.2", optional = true }
+serde = { version = "1.0", optional = true, features = ["derive"] }
+console_error_panic_hook = { version = "0.1", optional = true }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"

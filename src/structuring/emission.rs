@@ -6755,8 +6755,9 @@ mod tests {
         // fully structured output can legitimately contain no gotos.
         let bytes = std::fs::read("examples/compiled/as-fibonacci.pvm")
             .expect("as-fibonacci.pvm fixture required");
-        let output =
-            crate::decompile_bytes(&bytes).expect("as-fibonacci should decompile successfully");
+        let output = crate::decompile_to_pseudocode(&bytes)
+            .map(|o| o.pseudo_code)
+            .expect("as-fibonacci should decompile successfully");
 
         // No raw jump offsets should remain
         assert!(

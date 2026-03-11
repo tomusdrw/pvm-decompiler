@@ -228,9 +228,10 @@ impl ControlFlowGraph {
     }
 }
 
-/// Test helper: build a CFG from a list of (start_pc, instructions, successors).
+/// Build a CFG from a list of (start_pc, instructions, successors).
 /// Predecessors are computed automatically from the successor lists.
-#[cfg(test)]
+/// Primarily intended for testing.
+#[allow(clippy::type_complexity)]
 pub fn build_test_cfg(
     entry: usize,
     blocks: Vec<(usize, Vec<(usize, Instruction)>, Vec<usize>)>,

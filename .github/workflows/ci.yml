@@ -8,7 +8,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  LLVM_SYS_181_PREFIX: /usr/lib/llvm-18
 
 jobs:
   test:
@@ -17,13 +16,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v6
-
-    - name: Install LLVM 18
-      run: |
-        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-        sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-18 main"
-        sudo apt-get update
-        sudo apt-get install -y llvm-18-dev libpolly-18-dev
 
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
@@ -44,3 +36,35 @@ jobs:
 
     - name: Enforce Output Quality Thresholds
       run: ./scripts/check_output_quality.sh
+
+  wasm:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: wasm32-unknown-unknown
+
+    - name: Check WASM compilation
+      run: cargo check --target wasm32-unknown-unknown --no-default-features --features wasm
+
+    - name: Clippy (WASM)
+      run: cargo clippy --target wasm32-unknown-unknown --no-default-features --features wasm -- -D warnings
+
+    - name: Install wasm-pack
+      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+    - name: Build WASM package
+      run: wasm-pack build --target bundler --no-default-features --features wasm
+
+    - name: Verify package contents
+      run: |
+        test -f pkg/pvm_decompiler_bg.wasm
+        test -f pkg/pvm_decompiler.js
+        test -f pkg/pvm_decompiler.d.ts
+        test -f pkg/package.json
+        echo "All expected package files present"

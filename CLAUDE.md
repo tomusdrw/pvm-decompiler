@@ -14,6 +14,14 @@
 
 - **Always regenerate examples before each commit.** Run `./run_examples.sh` to update all example outputs so they reflect the latest changes.
 
+## Architecture
+
+- **Library + binary crate.** `src/lib.rs` exposes the public API (`decompile_to_pseudocode`). `src/main.rs` is the CLI binary.
+- **Feature flags:** `native` (default) enables CLI deps (atty, reqwest, tempfile, wait-timeout) and the `decompile`, `llm_refine` modules. `wasm` enables wasm-bindgen bindings in `src/wasm.rs`.
+- **WASM target:** `@fluffylabs/pvm-decompiler` npm package. Build with `./scripts/build-wasm.sh` or `wasm-pack build --target bundler --no-default-features --features wasm`. The `pkg/` directory is gitignored build output.
+- **CI:** The `wasm` job in `ci.yml` checks WASM compilation and builds the package. `publish-npm.yml` publishes to npm on GitHub release (requires `NPM_TOKEN` secret).
+
 ## Testing
 
 - **Bug fixes must include a regression test.** When the user reports something broken and asks for a fix, implement the fix and add/adjust a unit or integration test in the same change so the issue is covered and prevented from regressing. If a test is not feasible, explicitly explain why.
+- **WASM bindings cannot be tested natively** — `JsValue` types abort on non-wasm targets. The underlying logic is covered by `lib_tests`. For actual WASM integration tests, use `wasm-pack test`.

@@ -4,27 +4,20 @@ use std::fs;
 use std::io::Read;
 use wasm_pvm::pvm::Instruction;
 
-mod cfg;
-mod dataflow;
-mod decoder;
-mod decompile;
-mod functions;
-mod instruction;
-mod ir;
-mod lifting;
-mod llm_refine;
-mod llvm_lift;
-mod structuring;
-mod varint;
-
-use cfg::ControlFlowGraph;
-use dataflow::DataFlowAnalysis;
-use functions::{
-    build_call_graph, build_function_cfg, detect_direct_call_patterns, detect_epilogues,
-    detect_functions, detect_heap_alloc_pattern, detect_prologue,
+use pvm_decompiler::cfg::ControlFlowGraph;
+use pvm_decompiler::dataflow::DataFlowAnalysis;
+use pvm_decompiler::decoder;
+use pvm_decompiler::functions::{
+    self, build_call_graph, build_function_cfg, detect_direct_call_patterns, detect_epilogues,
+    detect_functions, detect_prologue,
 };
-use lifting::{Expression, LiftedProgram};
-use structuring::{DominatorTree, FunctionSignature, StructuralAnalysis};
+use pvm_decompiler::lifting::LiftedProgram;
+use pvm_decompiler::structuring::{DominatorTree, FunctionSignature, StructuralAnalysis};
+use pvm_decompiler::{
+    apply_heap_alloc_suppression, prune_unreachable_trivial_functions,
+    redundant_call_setup_pcs_for_function, redundant_halt_setup_pcs_for_function,
+    unsuppress_blocks_with_live_incoming_edges,
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Verbosity {
@@ -72,7 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut verbosity = Verbosity::Normal;
     let mut output_mode = OutputMode::PseudoCode;
     let mut enable_refine = false;
-    let mut backend_choice: Option<decompile::DecompilerBackend> = None;
+    let mut backend_choice: Option<pvm_decompiler::decompile::DecompilerBackend> = None;
     let mut filename = None;
 
     for arg in &args[1..] {
@@ -93,11 +86,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             _ if arg.starts_with("--backend=") => {
                 let val = &arg["--backend=".len()..];
                 backend_choice = Some(match val {
-                    "retdec" => decompile::DecompilerBackend::RetDec,
-                    "rellic" => decompile::DecompilerBackend::Rellic,
-                    "rellic-docker" => decompile::DecompilerBackend::RellicDocker,
-                    "llvm-cbe" => decompile::DecompilerBackend::LlvmCbe,
-                    "builtin" => decompile::DecompilerBackend::Builtin,
+                    "retdec" => pvm_decompiler::decompile::DecompilerBackend::RetDec,
+                    "rellic" => pvm_decompiler::decompile::DecompilerBackend::Rellic,
+                    "rellic-docker" => pvm_decompiler::decompile::DecompilerBackend::RellicDocker,
+                    "llvm-cbe" => pvm_decompiler::decompile::DecompilerBackend::LlvmCbe,
+                    "builtin" => pvm_decompiler::decompile::DecompilerBackend::Builtin,
                     _ => {
                         eprintln!(
                             "Unknown backend: {}. Options: retdec, rellic, rellic-docker, llvm-cbe, builtin",
@@ -226,7 +219,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // If --llvm or --decompile, branch into the LLVM IR path
     if output_mode == OutputMode::LlvmIr || output_mode == OutputMode::Decompile {
         eprintln!("Generating LLVM IR...");
-        let llvm_ir = llvm_lift::lift_program(&program, &cfg, &detected_functions);
+        let llvm_ir = pvm_decompiler::llvm_lift::lift_program(&program, &cfg, &detected_functions);
 
         if output_mode == OutputMode::LlvmIr {
             // Just output the LLVM IR
@@ -236,7 +229,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Full decompile pipeline
         eprintln!("Running decompiler...");
-        let available = decompile::detect_available_backends();
+        let available = pvm_decompiler::decompile::detect_available_backends();
         eprintln!(
             "  Available backends: {}",
             available
@@ -246,21 +239,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .join(", ")
         );
 
-        let result = decompile::decompile(&llvm_ir, backend_choice)?;
+        let result = pvm_decompiler::decompile::decompile(&llvm_ir, backend_choice)?;
         eprintln!("  Used backend: {}", result.backend_used);
         for w in &result.warnings {
             eprintln!("  Warning: {}", w);
         }
 
         if enable_refine {
-            if llm_refine::is_llm_available() {
+            if pvm_decompiler::llm_refine::is_llm_available() {
                 eprintln!("Running LLM refinement...");
                 let context = format!(
                     "PVM bytecode decompiled from {}. {} function(s) detected.",
                     filename,
                     detected_functions.len()
                 );
-                match llm_refine::refine(&result.c_code, &context) {
+                match pvm_decompiler::llm_refine::refine(&result.c_code, &context) {
                     Ok(refined) => {
                         eprintln!(
                             "  Completed {} refinement round(s)",
@@ -327,13 +320,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Build a flat lookup from callee_entry_pc → callee_name for pseudo-code emission.
-    // This lets the emitter recognize Jump targets that are function entries.
     let mut call_targets: std::collections::HashMap<usize, String> =
         std::collections::HashMap::new();
-    // Build exact direct-call mapping: Jump PC → callee name.
     let mut direct_call_sites: std::collections::HashMap<usize, String> =
         std::collections::HashMap::new();
-    // PCs to eliminate from output (e.g., LoadImm64 setting return address in call patterns)
     let mut call_pattern_eliminated_pcs: std::collections::HashSet<usize> =
         std::collections::HashSet::new();
     for calls in call_graph.values() {
@@ -341,7 +331,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             call_targets.insert(call.callee_entry_pc, call.callee_name.clone());
         }
     }
-    // Add direct call pattern sites: map Jump instruction PC to callee name.
     for pat in &direct_call_patterns {
         direct_call_sites.insert(pat.jump_pc, pat.callee_name.clone());
         call_pattern_eliminated_pcs.insert(pat.load_imm_pc);
@@ -352,7 +341,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         detected_functions.iter().map(|f| f.entry_pc).collect();
 
     // Precompute per-function CFG/dataflow once and collect parameter registers
-    // for explicit call argument rendering.
     let mut function_cfgs: HashMap<usize, ControlFlowGraph> = HashMap::new();
     let mut function_dataflow: HashMap<usize, DataFlowAnalysis> = HashMap::new();
     let mut function_params_by_name: HashMap<String, Vec<u8>> = HashMap::new();
@@ -392,7 +380,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
 
         if verbosity >= Verbosity::Verbose {
-            // In verbose mode, use line-based output instead of overwriting
             eprintln!(
                 "[{}/{}] Processing {} ({} blocks)...",
                 func_idx + 1,
@@ -456,8 +443,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             lifted.eliminated_pcs.insert(pc);
         }
         // Eliminate redundant constant call-setup writes for direct-call patterns
-        // (e.g., trampoline selector registers) when they are not callee params
-        // and not live after the call returns.
         let redundant_call_setup_pcs = redundant_call_setup_pcs_for_function(
             &func_cfg,
             &dataflow,
@@ -468,21 +453,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             lifted.eliminated_pcs.insert(pc);
         }
         // Suppress callee/dispatch blocks that were misassigned to this function.
-        // Build a stop-set: caller blocks, return PCs, and orphan continuation PCs
-        // (jump-table entries that build_function_cfg connected as synthetic edges).
         let jump_table_pcs: HashSet<usize> =
             program.jump_table.iter().map(|&e| e as usize).collect();
         let mut suppression_stop_pcs: HashSet<usize> = direct_call_patterns
             .iter()
             .flat_map(|p| [p.caller_block_pc, p.return_pc])
             .collect();
-        // Add orphan jump-table continuation blocks to the stop set so the
-        // suppression BFS doesn't swallow post-call body blocks.
         for &bp in func.block_pcs.iter() {
             if bp != func.entry_pc && jump_table_pcs.contains(&bp) {
                 if let Some(block) = func_cfg.blocks.get(&bp) {
-                    // A jump-table block whose only predecessor is a synthetic
-                    // trampoline edge is a continuation — protect it.
                     if block.predecessors.iter().all(|&pred| {
                         direct_call_patterns
                             .iter()
@@ -568,7 +547,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Batch-refine all functions in parallel if --refine is enabled
     if enable_refine {
-        if llm_refine::is_llm_available() {
+        if pvm_decompiler::llm_refine::is_llm_available() {
             let total = pending_refinements.len();
             eprintln!("Refining {} functions in parallel...", total);
             let filename_ref = &filename;
@@ -601,7 +580,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             handles.push(s.spawn(move || {
                                 let refined =
                                     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                                        llm_refine::refine_pseudo_code(&pseudo, &name, &context)
+                                        pvm_decompiler::llm_refine::refine_pseudo_code(
+                                            &pseudo, &name, &context,
+                                        )
                                     }));
                                 match refined {
                                     Ok(Ok(code)) => {
@@ -665,169 +646,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/// Run the full decompilation pipeline on raw bytes and return pseudo-code output.
-#[cfg(test)]
-fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> {
-    let stripped = decoder::try_strip_metadata(buffer)?;
-    let program = decoder::decode_spi(stripped).or_else(|_| decoder::decode_blob(stripped))?;
-    let cfg = ControlFlowGraph::build(&program);
-    let detected_functions =
-        prune_unreachable_trivial_functions(&cfg, &program, functions::detect_functions(&cfg));
-    let call_graph = functions::build_call_graph(&cfg, &detected_functions, &program);
-
-    let direct_call_patterns =
-        functions::detect_direct_call_patterns(&cfg, &detected_functions, &program);
-
-    let mut call_targets: HashMap<usize, String> = HashMap::new();
-    let mut direct_call_sites: HashMap<usize, String> = HashMap::new();
-    let mut call_pattern_eliminated_pcs: std::collections::HashSet<usize> =
-        std::collections::HashSet::new();
-    for calls in call_graph.values() {
-        for call in calls {
-            call_targets.insert(call.callee_entry_pc, call.callee_name.clone());
-        }
-    }
-    for pat in &direct_call_patterns {
-        direct_call_sites.insert(pat.jump_pc, pat.callee_name.clone());
-        call_pattern_eliminated_pcs.insert(pat.load_imm_pc);
-    }
-
-    let function_entry_pcs: std::collections::HashSet<usize> =
-        detected_functions.iter().map(|f| f.entry_pc).collect();
-
-    let mut function_cfgs: HashMap<usize, ControlFlowGraph> = HashMap::new();
-    let mut function_dataflow: HashMap<usize, DataFlowAnalysis> = HashMap::new();
-    let mut function_params_by_name: HashMap<String, Vec<u8>> = HashMap::new();
-    for func in &detected_functions {
-        let func_cfg =
-            functions::build_function_cfg(&cfg, func, &direct_call_patterns, &program.jump_table);
-        let dataflow = DataFlowAnalysis::analyze(&func_cfg);
-        let mut params: Vec<u8> = dataflow
-            .live_in
-            .get(&func.entry_pc)
-            .cloned()
-            .unwrap_or_default()
-            .into_iter()
-            .collect();
-        params.sort();
-        function_params_by_name.insert(func.name.clone(), params);
-        function_dataflow.insert(func.entry_pc, dataflow);
-        function_cfgs.insert(func.entry_pc, func_cfg);
-    }
-
-    let mut output = String::new();
-    for func in &detected_functions {
-        let func_cfg = function_cfgs.remove(&func.entry_pc).unwrap_or_else(|| {
-            functions::build_function_cfg(&cfg, func, &direct_call_patterns, &program.jump_table)
-        });
-        let dom_tree = structuring::DominatorTree::compute(&func_cfg);
-        let dataflow = function_dataflow
-            .remove(&func.entry_pc)
-            .unwrap_or_else(|| DataFlowAnalysis::analyze(&func_cfg));
-        let mut lifted =
-            lifting::LiftedProgram::analyze_with_dom_tree(&func_cfg, &dataflow, &dom_tree);
-        lifted.call_targets = call_targets.clone();
-        lifted.direct_call_sites = direct_call_sites.clone();
-        lifted.call_param_regs = function_params_by_name.clone();
-        lifted.memory_base = program.memory_base;
-
-        // Detect epilogues and prologues
-        let epilogues = functions::detect_epilogues(&func_cfg);
-        let prologue_pcs = functions::detect_prologue(&func_cfg, func.entry_pc);
-        for (block_pc, kind) in &epilogues {
-            match kind {
-                functions::EpilogueKind::Return { eliminated_pcs }
-                | functions::EpilogueKind::Halt { eliminated_pcs } => {
-                    for &pc in eliminated_pcs {
-                        lifted.eliminated_pcs.insert(pc);
-                    }
-                }
-            }
-            lifted.epilogue_blocks.insert(*block_pc, kind.clone());
-        }
-        for &pc in &prologue_pcs {
-            lifted.eliminated_pcs.insert(pc);
-        }
-        let redundant_halt_setup_pcs = redundant_halt_setup_pcs_for_function(&func_cfg, &epilogues);
-        for pc in redundant_halt_setup_pcs {
-            lifted.eliminated_pcs.insert(pc);
-        }
-        for &pc in &call_pattern_eliminated_pcs {
-            lifted.eliminated_pcs.insert(pc);
-        }
-        let redundant_call_setup_pcs = redundant_call_setup_pcs_for_function(
-            &func_cfg,
-            &dataflow,
-            &direct_call_patterns,
-            &function_params_by_name,
-        );
-        for pc in redundant_call_setup_pcs {
-            lifted.eliminated_pcs.insert(pc);
-        }
-        let jump_table_pcs: HashSet<usize> =
-            program.jump_table.iter().map(|&e| e as usize).collect();
-        let mut suppression_stop_pcs: HashSet<usize> = direct_call_patterns
-            .iter()
-            .flat_map(|p| [p.caller_block_pc, p.return_pc])
-            .collect();
-        for &bp in func.block_pcs.iter() {
-            if bp != func.entry_pc && jump_table_pcs.contains(&bp) {
-                if let Some(block) = func_cfg.blocks.get(&bp) {
-                    if block.predecessors.iter().all(|&pred| {
-                        direct_call_patterns
-                            .iter()
-                            .any(|pat| pat.jump_target_pc == pred)
-                    }) {
-                        suppression_stop_pcs.insert(bp);
-                    }
-                }
-            }
-        }
-        for pat in &direct_call_patterns {
-            if func.block_pcs.contains(&pat.jump_target_pc) && pat.callee_name != func.name {
-                let mut queue = std::collections::VecDeque::new();
-                queue.push_back(pat.jump_target_pc);
-                while let Some(bp) = queue.pop_front() {
-                    if lifted.suppressed_blocks.insert(bp)
-                        && let Some(block) = func_cfg.blocks.get(&bp)
-                    {
-                        for &succ in &block.successors {
-                            if !lifted.suppressed_blocks.contains(&succ)
-                                && !suppression_stop_pcs.contains(&succ)
-                            {
-                                queue.push_back(succ);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        unsuppress_blocks_with_live_incoming_edges(&mut lifted, &func_cfg, &direct_call_patterns);
-
-        apply_heap_alloc_suppression(&mut lifted, &func_cfg, func.entry_pc, program.memory_base);
-
-        let structural = structuring::StructuralAnalysis::analyze_with_dom_tree(
-            &func_cfg,
-            &program,
-            dom_tree,
-            function_entry_pcs.clone(),
-        );
-
-        let params = function_params_by_name
-            .get(&func.name)
-            .cloned()
-            .unwrap_or_default();
-        let sig = structuring::FunctionSignature {
-            name: func.name.clone(),
-            params,
-        };
-
-        output.push_str(&structural.pseudo_code(&func_cfg, Some(&lifted), Some(&sig)));
-        output.push('\n');
-    }
-    Ok(output)
-}
-
 fn write_cfg(cfg: &ControlFlowGraph, out: &mut String) {
     use std::fmt::Write;
     let _ = writeln!(out, "Entry PC: {:#06x}", cfg.entry_pc);
@@ -870,336 +688,15 @@ fn write_cfg(cfg: &ControlFlowGraph, out: &mut String) {
     }
 }
 
-fn prune_unreachable_trivial_functions(
-    cfg: &ControlFlowGraph,
-    program: &decoder::DecodedProgram,
-    detected_functions: Vec<functions::Function>,
-) -> Vec<functions::Function> {
-    let jump_table_targets: HashSet<usize> =
-        program.jump_table.iter().map(|&pc| pc as usize).collect();
-
-    detected_functions
-        .into_iter()
-        .filter(|func| {
-            if func.entry_pc == cfg.entry_pc || jump_table_targets.contains(&func.entry_pc) {
-                return true;
-            }
-
-            let has_any_predecessor = cfg
-                .blocks
-                .get(&func.entry_pc)
-                .is_some_and(|block| !block.predecessors.is_empty());
-            if has_any_predecessor {
-                return true;
-            }
-
-            !is_trivial_unreachable_stub(cfg, func)
-        })
-        .collect()
-}
-
-fn is_trivial_unreachable_stub(cfg: &ControlFlowGraph, func: &functions::Function) -> bool {
-    if func.block_pcs.is_empty() {
-        return true;
-    }
-
-    for block_pc in &func.block_pcs {
-        let Some(block) = cfg.blocks.get(block_pc) else {
-            continue;
-        };
-        for (_, instr) in &block.instructions {
-            if !matches!(instr, Instruction::Trap | Instruction::Fallthrough) {
-                return false;
-            }
-        }
-    }
-
-    true
-}
-
-fn redundant_call_setup_pcs_for_function(
-    func_cfg: &ControlFlowGraph,
-    dataflow: &DataFlowAnalysis,
-    direct_call_patterns: &[functions::DirectCallPattern],
-    function_params_by_name: &HashMap<String, Vec<u8>>,
-) -> HashSet<usize> {
-    let mut eliminated: HashSet<usize> = HashSet::new();
-
-    for pat in direct_call_patterns {
-        let Some(block) = func_cfg.blocks.get(&pat.caller_block_pc) else {
-            continue;
-        };
-        let Some(jump_idx) = block
-            .instructions
-            .iter()
-            .position(|(pc, _)| *pc == pat.jump_pc)
-        else {
-            continue;
-        };
-
-        let param_regs: HashSet<u8> = function_params_by_name
-            .get(&pat.callee_name)
-            .cloned()
-            .unwrap_or_default()
-            .into_iter()
-            .collect();
-        let live_after: HashSet<u8> = dataflow
-            .live_in
-            .get(&pat.return_pc)
-            .cloned()
-            .unwrap_or_default();
-
-        for idx in 0..jump_idx {
-            let (pc, instr) = &block.instructions[idx];
-
-            // Return-address setup is handled separately.
-            if *pc == pat.load_imm_pc {
-                continue;
-            }
-            // Restrict to literal constant setup writes.
-            if !matches!(
-                instr,
-                Instruction::LoadImm { .. } | Instruction::LoadImm64 { .. }
-            ) {
-                continue;
-            }
-
-            let shape = crate::instruction::InstructionShape::classify(instr);
-            let Some(reg) = shape.def_reg() else {
-                continue;
-            };
-            if reg == 0 || param_regs.contains(&reg) || live_after.contains(&reg) {
-                continue;
-            }
-
-            // Keep assignments that feed other instructions before the call.
-            let mut used_before_kill = false;
-            for (_, next_instr) in &block.instructions[idx + 1..=jump_idx] {
-                let next_shape = crate::instruction::InstructionShape::classify(next_instr);
-                let (defs, uses) = next_shape.def_use();
-                if uses.contains(&reg) {
-                    used_before_kill = true;
-                    break;
-                }
-                if defs.contains(&reg) {
-                    break;
-                }
-            }
-            if used_before_kill {
-                continue;
-            }
-
-            eliminated.insert(*pc);
-        }
-    }
-
-    eliminated
-}
-
-fn redundant_halt_setup_pcs_for_function(
-    func_cfg: &ControlFlowGraph,
-    epilogues: &HashMap<usize, functions::EpilogueKind>,
-) -> HashSet<usize> {
-    let mut eliminated = HashSet::new();
-
-    for (&block_pc, kind) in epilogues {
-        let functions::EpilogueKind::Halt {
-            eliminated_pcs: halt_epilogue_pcs,
-        } = kind
-        else {
-            continue;
-        };
-        let Some(block) = func_cfg.blocks.get(&block_pc) else {
-            continue;
-        };
-
-        let halt_epilogue_set: HashSet<usize> = halt_epilogue_pcs.iter().copied().collect();
-        let mut needed_regs: HashSet<u8> = HashSet::new();
-
-        for (pc, instr) in block.instructions.iter().rev() {
-            if halt_epilogue_set.contains(pc) {
-                continue;
-            }
-
-            let shape = crate::instruction::InstructionShape::classify(instr);
-            let (defs, uses) = shape.def_use();
-
-            if is_halt_setup_side_effecting(&shape) {
-                for reg in defs {
-                    needed_regs.remove(&reg);
-                }
-                needed_regs.extend(uses);
-                continue;
-            }
-
-            let defs_needed = defs.iter().any(|reg| needed_regs.contains(reg));
-            if !defs_needed && is_eliminable_halt_setup_shape(&shape) {
-                eliminated.insert(*pc);
-                continue;
-            }
-
-            for reg in defs {
-                needed_regs.remove(&reg);
-            }
-            needed_regs.extend(uses);
-        }
-    }
-
-    eliminated
-}
-
-fn apply_heap_alloc_suppression(
-    lifted: &mut LiftedProgram,
-    func_cfg: &ControlFlowGraph,
-    func_entry_pc: usize,
-    memory_base: Option<u64>,
-) {
-    if let Some(heap_alloc) = detect_heap_alloc_pattern(func_cfg, func_entry_pc, memory_base) {
-        for &pc in &heap_alloc.eliminated_pcs {
-            lifted.eliminated_pcs.insert(pc);
-        }
-        for &pc in &heap_alloc.heap_ptr_arithmetic_pcs {
-            lifted.eliminated_pcs.insert(pc);
-        }
-        for &pc in &heap_alloc.header_write_pcs {
-            lifted.eliminated_pcs.insert(pc);
-        }
-        for &block_pc in &heap_alloc.sbrk_blocks {
-            lifted.suppressed_blocks.insert(block_pc);
-        }
-        lifted.hidden_labels.insert(heap_alloc.convergence_block_pc);
-        lifted.linear_memory_offset = heap_alloc.linear_memory_offset;
-
-        // Resolve the data pointer variable name: find the stack variable from
-        // the eliminated arithmetic range that is still referenced in non-eliminated code.
-        let arith_pcs: HashSet<usize> =
-            heap_alloc.heap_ptr_arithmetic_pcs.iter().copied().collect();
-        let mut arith_vars: Vec<String> = Vec::new();
-        for &pc in &heap_alloc.heap_ptr_arithmetic_pcs {
-            if let Some(Expression::Store { base, offset, .. }) = lifted.expressions.get(&pc)
-                && let Expression::Var(base_name) = base.as_ref()
-                && let Some(name) = lifted.stack_vars.get(&(base_name.clone(), *offset))
-            {
-                arith_vars.push(name.clone());
-            }
-        }
-        'outer: for var_name in &arith_vars {
-            for (pc, expr) in &lifted.expressions {
-                if arith_pcs.contains(pc) || lifted.eliminated_pcs.contains(pc) {
-                    continue;
-                }
-                if expr_uses_var(expr, var_name) {
-                    lifted.heap_alloc_data_ptr = Some(var_name.clone());
-                    break 'outer;
-                }
-            }
-        }
-
-        lifted.heap_alloc = Some(heap_alloc);
-    }
-}
-
-fn unsuppress_blocks_with_live_incoming_edges(
-    lifted: &mut LiftedProgram,
-    func_cfg: &ControlFlowGraph,
-    direct_call_patterns: &[functions::DirectCallPattern],
-) {
-    if lifted.suppressed_blocks.is_empty() {
-        return;
-    }
-
-    let allowed_call_edges: HashSet<(usize, usize)> = direct_call_patterns
-        .iter()
-        .map(|pat| (pat.caller_block_pc, pat.jump_target_pc))
-        .collect();
-
-    let mut queue = std::collections::VecDeque::new();
-    for &block_pc in &lifted.suppressed_blocks {
-        let Some(block) = func_cfg.blocks.get(&block_pc) else {
-            continue;
-        };
-        let has_live_incoming_edge = block.predecessors.iter().any(|pred| {
-            !lifted.suppressed_blocks.contains(pred)
-                && !allowed_call_edges.contains(&(*pred, block_pc))
-        });
-        if has_live_incoming_edge {
-            queue.push_back(block_pc);
-        }
-    }
-
-    while let Some(block_pc) = queue.pop_front() {
-        if !lifted.suppressed_blocks.remove(&block_pc) {
-            continue;
-        }
-        if let Some(block) = func_cfg.blocks.get(&block_pc) {
-            for &succ in &block.successors {
-                if lifted.suppressed_blocks.contains(&succ) {
-                    queue.push_back(succ);
-                }
-            }
-        }
-    }
-}
-
-fn is_halt_setup_side_effecting(shape: &crate::instruction::InstructionShape) -> bool {
-    use crate::instruction::InstructionShape;
-    matches!(
-        shape,
-        InstructionShape::Store { .. }
-            | InstructionShape::StoreAbsolute { .. }
-            | InstructionShape::StoreImm { .. }
-            | InstructionShape::StoreImmInd { .. }
-            | InstructionShape::Jump { .. }
-            | InstructionShape::JumpInd { .. }
-            | InstructionShape::LoadImmJump { .. }
-            | InstructionShape::LoadImmJumpInd { .. }
-            | InstructionShape::BranchImm { .. }
-            | InstructionShape::BranchReg { .. }
-            | InstructionShape::Ecalli { .. }
-            | InstructionShape::Unknown { .. }
-            | InstructionShape::NoOp { name: "trap" }
-    )
-}
-
-fn is_eliminable_halt_setup_shape(shape: &crate::instruction::InstructionShape) -> bool {
-    use crate::instruction::InstructionShape;
-    matches!(
-        shape,
-        InstructionShape::NoOp {
-            name: "fallthrough"
-        } | InstructionShape::LoadImm { .. }
-            | InstructionShape::BinReg { .. }
-            | InstructionShape::BinImm { .. }
-            | InstructionShape::BinImmRev { .. }
-            | InstructionShape::Unary { .. }
-            | InstructionShape::Load { .. }
-            | InstructionShape::LoadAbsolute { .. }
-            | InstructionShape::CmovReg { .. }
-            | InstructionShape::CmovImm { .. }
-    )
-}
-
-/// Check if an expression tree references a variable by name.
-fn expr_uses_var(expr: &Expression, name: &str) -> bool {
-    match expr {
-        Expression::Var(n) => n == name,
-        Expression::BinOp { lhs, rhs, .. } => expr_uses_var(lhs, name) || expr_uses_var(rhs, name),
-        Expression::UnaryOp { operand, .. } => expr_uses_var(operand, name),
-        Expression::Load { base, .. } => expr_uses_var(base, name),
-        Expression::Store { base, value, .. } => {
-            expr_uses_var(base, name) || expr_uses_var(value, name)
-        }
-        Expression::Call { args, .. } => args.iter().any(|a| expr_uses_var(a, name)),
-        Expression::Raw(text) => text
-            .split(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
-            .any(|tok| tok == name),
-        Expression::Const(_) => false,
-    }
-}
-
 #[cfg(test)]
 mod integration_tests {
-    use super::*;
+    use pvm_decompiler::decompile_to_pseudocode;
+
+    fn decompile_bytes(buffer: &[u8]) -> Result<String, Box<dyn std::error::Error>> {
+        decompile_to_pseudocode(buffer)
+            .map(|out| out.pseudo_code)
+            .map_err(|e| e.into())
+    }
 
     fn count_non_signature_main_calls(output: &str) -> usize {
         output
@@ -1267,19 +764,16 @@ mod integration_tests {
             .expect("fibonacci.pvm fixture should exist");
         let output = decompile_bytes(&buffer).expect("decompilation should succeed");
 
-        // Should produce at least one function
         assert!(
             output.contains("fn "),
             "Output should contain function definitions: {}",
             output
         );
-        // Should have control flow
         assert!(
             output.contains("while") || output.contains("for") || output.contains("if"),
             "Fibonacci should contain loops or branches: {}",
             output
         );
-        // Should have a function terminator
         assert!(
             output.contains("return") || output.contains("halt()"),
             "Functions should have return or halt terminators: {}",
@@ -1361,7 +855,6 @@ mod integration_tests {
             .expect("br-table.pvm fixture should exist");
         let output = decompile_bytes(&buffer).expect("decompilation should succeed");
 
-        // br-table programs should produce switch/case statements
         assert!(
             output.contains("switch") || output.contains("fn "),
             "br-table should produce structured output: {}",
@@ -1389,7 +882,6 @@ mod integration_tests {
             );
         }
 
-        // Golden-style checks for selector definition/flow.
         assert!(
             output.contains("let var_1 = u32[r7]"),
             "br-table should keep selector definition: {}",
@@ -1410,7 +902,6 @@ mod integration_tests {
             .expect("simple-add.pvm fixture should exist");
         let output = decompile_bytes(&buffer).expect("decompilation should succeed");
 
-        // Should produce a main function and preserve the explicit addition operation.
         assert!(
             output.contains("fn main"),
             "Output should contain main function: {}",
@@ -1483,13 +974,12 @@ mod integration_tests {
 
     #[test]
     fn test_redundant_call_setup_elimination_is_precise() {
-        use crate::cfg::build_test_cfg;
+        use pvm_decompiler::cfg::build_test_cfg;
+        use pvm_decompiler::dataflow::DataFlowAnalysis;
+        use pvm_decompiler::redundant_call_setup_pcs_for_function;
+        use std::collections::HashMap;
+        use wasm_pvm::pvm::Instruction;
 
-        // Caller block setup:
-        // - r9 constant: redundant trampoline selector-like setup (should be removed)
-        // - r7 constant: callee parameter (must be kept)
-        // - r6 constant: live after return (must be kept)
-        // - r0 constant: return address setup (handled separately, must be ignored here)
         let cfg = build_test_cfg(
             0,
             vec![
@@ -1524,7 +1014,7 @@ mod integration_tests {
 
         let dataflow = DataFlowAnalysis::analyze(&cfg);
 
-        let patterns = vec![crate::functions::DirectCallPattern {
+        let patterns = vec![pvm_decompiler::functions::DirectCallPattern {
             caller_block_pc: 0,
             load_imm_pc: 12,
             jump_pc: 16,
@@ -1558,13 +1048,11 @@ mod integration_tests {
 
     #[test]
     fn test_redundant_halt_setup_elimination_is_precise() {
-        use crate::cfg::build_test_cfg;
+        use pvm_decompiler::cfg::build_test_cfg;
+        use pvm_decompiler::functions::detect_epilogues;
+        use pvm_decompiler::redundant_halt_setup_pcs_for_function;
+        use wasm_pvm::pvm::Instruction;
 
-        // Halt block setup:
-        // - r4 feeds a store side effect (must be kept)
-        // - r5/r6 chain is dead and should be removed
-        // - r7 constant after side-effect is dead and should be removed
-        // - final LoadImm r2 + JumpInd r2 are epilogue instructions (handled by epilogue detection)
         let cfg = build_test_cfg(
             0,
             vec![(
@@ -1638,7 +1126,6 @@ mod integration_tests {
             "Output should contain function definitions: {}",
             output
         );
-        // The square-in-loop should produce a while loop with multiplication
         assert!(
             output.contains("while"),
             "as-tests-functions should contain a loop (square-in-loop): {}",
@@ -1662,13 +1149,11 @@ mod integration_tests {
             "Output should contain function definitions: {}",
             output
         );
-        // Node creation stores value and next pointer at adjacent offsets
         assert!(
             output.contains("0x33004"),
             "Linked list should show adjacent memory stores for node fields: {}",
             output
         );
-        // Recursive sumList produces an indirect call
         assert!(
             output.contains("call_indirect"),
             "Linked list recursive traversal should produce indirect call: {}",
@@ -1687,13 +1172,11 @@ mod integration_tests {
             "Output should contain function definitions: {}",
             output
         );
-        // The clear() loop iterates over 256 cells
         assert!(
             output.contains("256"),
             "Game of Life should reference cell count 256 (16x16): {}",
             output
         );
-        // Seed stores should be present as u8 byte stores
         assert!(
             output.contains("u8["),
             "Game of Life should contain byte-level stores for cell grid: {}",
@@ -1712,13 +1195,11 @@ mod integration_tests {
             "Output should contain main function: {}",
             output
         );
-        // The ecalli 100 should be recognized as log()
         assert!(
             output.contains("log()"),
             "Host call log should recognize ecalli 100 as log(): {}",
             output
         );
-        // Should store 42 as the result
         assert!(
             output.contains("42"),
             "Host call log should contain result value 42: {}",
@@ -1742,13 +1223,11 @@ mod integration_tests {
             "Output should contain main function: {}",
             output
         );
-        // The ecalli 3 should be recognized as read()
         assert!(
             output.contains("read()"),
             "Should recognize ecalli 3 as read(): {}",
             output
         );
-        // The r8 capture store should be eliminated (not visible in output)
         assert!(
             !output.contains("-264"),
             "r8 capture store offset should not appear in output: {}",
@@ -1759,7 +1238,6 @@ mod integration_tests {
             "r8 capture store offset should not appear in output: {}",
             output
         );
-        // The r8 retrieval should render as host_call_r8()
         assert!(
             output.contains("host_call_r8()"),
             "r8 retrieval should render as host_call_r8(): {}",
@@ -1778,7 +1256,6 @@ mod integration_tests {
             "Output should contain main function: {}",
             output
         );
-        // Should have multiple functions (framework overhead)
         let func_count = output.matches("fn ").count();
         assert!(
             func_count >= 5,
@@ -1810,7 +1287,7 @@ mod integration_tests {
         for fixture in &fixtures {
             let buffer = match std::fs::read(fixture) {
                 Ok(b) => b,
-                Err(_) => continue, // skip missing fixtures
+                Err(_) => continue,
             };
             let result = decompile_bytes(&buffer);
             assert!(
@@ -1832,11 +1309,10 @@ mod integration_tests {
     fn test_jam_fuzzy_service_subset_without_placeholders() {
         let buffer = match std::fs::read("examples/compiled/pvm.jam") {
             Ok(b) => b,
-            Err(_) => return, // Skip when fixture is unavailable in this environment.
+            Err(_) => return,
         };
         let output = decompile_bytes(&buffer).expect("decompilation should succeed");
 
-        // Keep this focused to a stable prefix so it acts like a targeted golden subset.
         let subset = output.lines().take(600).collect::<Vec<_>>().join("\n");
         assert!(
             !subset.contains("if (...)") && !subset.contains("while (...)"),
@@ -1856,8 +1332,6 @@ mod integration_tests {
             .expect("as-fibonacci.pvm fixture should exist");
         let output = decompile_bytes(&buffer).expect("decompilation should succeed");
 
-        // The fibonacci function (func_1) should reference RESULT_PTR / RESULT_LEN
-        // globals and contain a while loop for the fibonacci computation.
         assert!(
             output.contains("RESULT_PTR"),
             "as-fibonacci should reference RESULT_PTR:\n{}",
