@@ -1322,11 +1322,7 @@ impl LiftedProgram {
     /// Recover stack variables: name stack memory slots (ptr_N + offset) as local
     /// variables, replacing Load expressions with Var references. Stores are kept
     /// but formatted as assignments by `format_pc`.
-    fn recover_stack_variables(
-        &mut self,
-        cfg: &ControlFlowGraph,
-        dom_tree: &crate::DominatorTree,
-    ) {
+    fn recover_stack_variables(&mut self, cfg: &ControlFlowGraph, dom_tree: &crate::DominatorTree) {
         // 1. Scan ALL expressions (including eliminated) for Load/Store with ptr_* base.
         // Eliminated expressions may still be referenced by other expressions
         // (e.g., folded into branch conditions).
@@ -1392,9 +1388,9 @@ impl LiftedProgram {
                 }
             };
             let all_dominated = load_blocks.iter().all(|&load_block| {
-                store_blocks
-                    .iter()
-                    .any(|&store_block| store_block != load_block && dom_tree.dominates(store_block, load_block))
+                store_blocks.iter().any(|&store_block| {
+                    store_block != load_block && dom_tree.dominates(store_block, load_block)
+                })
             });
             if all_dominated {
                 let name = format!("{}_{}", base, offset);
@@ -2273,9 +2269,7 @@ fn collect_slot_load_blocks(
             }
             collect_slot_load_blocks(base, block, out);
         }
-        Expression::Store {
-            base, value, ..
-        } => {
+        Expression::Store { base, value, .. } => {
             collect_slot_load_blocks(base, block, out);
             collect_slot_load_blocks(value, block, out);
         }
