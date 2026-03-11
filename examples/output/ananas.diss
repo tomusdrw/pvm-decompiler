@@ -1,18 +1,18 @@
 fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0: ptr
     let ptr_0_104
     let ptr_0_208
     let ptr_0_240
     let ptr_0_248
     let ptr_0_320
+    let ptr_0_40
     let ptr_0_472
     let ptr_0_528
     let ptr_1088: ptr
     let ptr_12: ptr
     let ptr_12_40
-    let ptr_12_48
-    let ptr_12_56
     let ptr_12_904
-    let ptr_14: ptr
+    let ptr_13: ptr
     let ptr_23: ptr
     let ptr_24: ptr
     let ptr_25: ptr
@@ -24,13 +24,8 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let var_884: u64
     let var_885: u64
 
-    let ptr_12_328
-    let ptr_12_480
-    let ptr_12_584
-    let ptr_12_80
-    let ptr_12_840
-    let ptr_25_0
     let ptr_992
+    let var_210
     // @0000
 
     if (r1 - 16 - 256 >=u 0xFEFD0000) {
@@ -50,27 +45,37 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @4bb8
     return
     block_399c:
-    if (ptr_14 - 192 >=u 0xFEFD0000) {
-        // @39b1
-        ptr_12 = ptr_14 - 192
-        ptr_12_40 = var_883
-        ptr_12_48 = var_884
-        ptr_12_56 = var_885
-        func_13(ptr_12, r7)
+    // @399c
+    if (!(ptr_12 - 192 >=u 0xFEFD0000)) {
+        // @39b0
+        return
     }
+    // @39b1
+    ptr_12 = ptr_13 - 192
+    ptr_12_40 = var_883
+    func_13(ptr_12, r7)
 
-    // @39b0
-    return
+    // @34ec
+    if (ptr_12 - 640 >=u 0xFEFD0000) goto block_3501;
+
+    // @4bee
+    ptr_12_40 = r7
+    RESULT_LEN = r7
+    r9 = 2032
+    r10 = 8
+    r11 = 0
+    r0 = 20
+    goto block_399c;
     } else {
         // @4585
-        let ptr_24_0 = ptr_25_0
+        let ptr_24_0 = ptr_25->field_0
         r2 = ptr_24 + 1
         r3 = ptr_25 + 1
     }
 
-    while (ptr_12_584 - 1 != 0) {
+    while (ptr_12->field_584 - 1 != 0) {
         // @4585
-        ptr_24_0 = ptr_25_0
+        ptr_24_0 = ptr_25->field_0
         r2 = ptr_24 + 1
         r3 = ptr_25 + 1
     }
@@ -80,14 +85,14 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @459d
 
     // @4327
-    u32[16 + (32 >>u (32 << 4 - ptr_12_840)) + 0x60000] = ptr_12_480
-    let var_538 = 32 >>u (32 << 16 + ptr_12_840)
+    u32[16 + (32 >>u (32 << 4 - ptr_12->field_840)) + 0x60000] = ptr_12->field_480
+    let var_538 = 32 >>u (32 << 16 + ptr_12->field_840)
     ptr_12_904 = var_538
-    let var_560 = 32 >>u (32 << ptr_12_80 - ptr_12_480)
-    ptr_23 = (32 >>u (32 << ptr_12_80 + var_538)) + 0x60000
+    let var_560 = 32 >>u (32 << ptr_12->field_80 - ptr_12->field_480)
+    ptr_23 = (32 >>u (32 << ptr_12->field_80 + var_538)) + 0x60000
 
     if (var_560 == 0) {
-        if ((ptr_12_328 ^ ptr_12_904) <u 0 <u 0) {
+        if ((ptr_12->field_328 ^ ptr_12_904) <u 0 <u 0) {
             // @4999
             goto block_499e;
         } else {
@@ -102,7 +107,7 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
         r2 = ptr_23 + 1
     }
 
-    if ((ptr_12_328 ^ ptr_12_904) <u 0 <u 0) {
+    if ((ptr_12->field_328 ^ ptr_12_904) <u 0 <u 0) {
         // @4999
         goto block_499e;
     } else {
@@ -116,17 +121,40 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_499e:
     // @499e
-    u32[8 + ptr_12_40 + 0x60000] = ptr_12_480
+    u32[8 + ptr_12_40 + 0x60000] = ptr_12->field_480
 
     // @3ef0
 
     // @3e57
     return
+    block_3501:
+    // @3501
+    ptr_0 = ptr_12 - 640
+    ptr_0_40 = var_210
+
+    if (17 <u 0x3FFFFFFC <u 0) {
+        // @3573
+        goto block_3578;
     } else {
         // @3555
     }
     // @3571
     return
+    block_3578:
+    // @3578
+    ptr_0_104 = RESULT_PTR
+    let var_58 = 32 >>u (32 << 4 - (32 >>u (32 << (0xFFFFFFF0 & 32 >>u (32 << 19 + ptr_0_40)))))
+    ptr_0_208 = var_58
+    let var_69 = 32 >>u (32 << var_58 + (32 >>u (32 << 4 + RESULT_PTR)))
+    ptr_0_240 = var_69
+    let var_70 = u32[52]
+    ptr_0_248 = var_70
+    let var_97 = 32 >>u (32 << (0xFFFFFFF0 & 32 >>u (32 << 15 + (32 >>u (32 << (16 << var_70))))))
+    ptr_0_320 = var_97
+
+    if (var_69 <u var_97 <u 0) {
+        // @38e5
+        goto block_38ea;
     } else {
         // @3745
     }
@@ -220,15 +248,18 @@ fn main(r1: u64, r7: u64, r8: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @398c
     // @38e5
 
+    block_38ea:
     // @38ea
     RESULT_PTR = ptr_0_240
     ptr_0_104->field_393216 = ptr_0_208
 
     // @355a
+    r7 = ptr_0->field_88
     return
 }
 
 fn func_1(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     if (r1 - 136 >=u 0xFEFD0000) {
         // @001f
         u32[r9 + 0x60000] = 0
@@ -238,14 +269,14 @@ fn func_1(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     }
 
     // @008f
+    r7 = ptr_0->field_128
     return
 }
 
 fn func_2(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_200
 
-    let ptr_0_208
-    let ptr_0_272
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -278,7 +309,7 @@ fn func_2(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @01c5
 
     block_0228:
-    while (ptr_0_200 <u ptr_0_272 >=u 0) {
+    while (ptr_0_200 <u u64[r1 - 584] >=u 0) {
         // @0402
     }
 
@@ -307,12 +338,13 @@ fn func_2(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_01cf:
     // @01cf
-    ptr_0_40->field_393216 = ptr_0_208
+    ptr_0_40->field_393216 = ptr_0->field_208
     u32[4 + ptr_0_40 + 0x60000] = 0
     u32[8 + ptr_0_40 + 0x60000] = 0
     u32[12 + ptr_0_40 + 0x60000] = 0
 
     // @0123
+    r7 = ptr_0->field_120
     return
 }
 
@@ -351,8 +383,7 @@ fn func_5(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_168
     let ptr_0_304
 
-    let ptr_0_312
-    let ptr_0_376
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_64
@@ -389,7 +420,7 @@ fn func_5(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @1397
 
     block_13fc:
-    while (ptr_0_304 <u ptr_0_376 >=u 0) {
+    while (ptr_0_304 <u u64[r1 - 584] >=u 0) {
         // @15d7
     }
 
@@ -419,15 +450,17 @@ fn func_5(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_13a1:
     // @13a1
     ptr_0_40->field_393216 = ptr_0_144
-    u32[4 + ptr_0_40 + 0x60000] = ptr_0_312
+    u32[4 + ptr_0_40 + 0x60000] = ptr_0->field_312
     u32[8 + ptr_0_40 + 0x60000] = 0
     u32[12 + ptr_0_40 + 0x60000] = 0
 
     // @12f3
+    r7 = ptr_0->field_224
     return
 }
 
 fn func_6(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     if (r1 - 1064 >=u 0xFEFD0000) {
         // @17e0
         let var_5 = u32[4 + r10 + 0x60000]
@@ -440,6 +473,7 @@ fn func_6(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     }
 
     // @1e42
+    r7 = ptr_0->field_1056
     return
 }
 
@@ -451,12 +485,9 @@ fn func_7(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_296
     let ptr_0_432
 
-    let ptr_0_1160
-    let ptr_0_1224
+    let ptr_0
     let ptr_0_40
-    let ptr_0_440
     let ptr_0_48
-    let ptr_0_496
     let ptr_0_56
     let ptr_0_64
     if (r1 - 1808 >=u 0xFEFD0000) {
@@ -501,7 +532,7 @@ fn func_7(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @2100
 
     block_215f:
-    while (ptr_0_432 <u ptr_0_496 >=u 0) {
+    while (ptr_0_432 <u u64[r1 - 1312] >=u 0) {
         // @233a
     }
 
@@ -552,7 +583,7 @@ fn func_7(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @25ba
 
     block_2621:
-    while (ptr_0_1152 <u ptr_0_1224 >=u 0) {
+    while (ptr_0_1152 <u u64[r1 - 584] >=u 0) {
         // @27fc
     }
 
@@ -583,15 +614,17 @@ fn func_7(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     block_25c4:
     // @25c4
     ptr_0_40->field_393216 = ptr_0_144
-    u32[4 + ptr_0_40 + 0x60000] = ptr_0_440
-    u32[8 + ptr_0_40 + 0x60000] = ptr_0_1160
+    u32[4 + ptr_0_40 + 0x60000] = ptr_0->field_440
+    u32[8 + ptr_0_40 + 0x60000] = ptr_0->field_1160
     u32[12 + ptr_0_40 + 0x60000] = 0
 
     // @205b
+    r7 = ptr_0->field_352
     return
 }
 
 fn func_8(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     if (r1 - 240 >=u 0xFEFD0000) {
         // @2a05
         let var_17 = u8[32 >>u (32 << r11 + u32[4 + r10 + 0x60000]) + 0x60000]
@@ -602,6 +635,7 @@ fn func_8(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     }
 
     // @2b1c
+    r7 = ptr_0->field_232
     return
 }
 
@@ -611,9 +645,8 @@ fn func_9(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_168
     let ptr_0_304
 
-    let ptr_0_312
+    let ptr_0
     let ptr_0_40
-    let ptr_0_400
     let ptr_0_48
     let ptr_0_64
     if (r1 - 984 >=u 0xFEFD0000) {
@@ -651,7 +684,7 @@ fn func_9(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @2cfe
 
     block_2d8d:
-    while (ptr_0_304 <u ptr_0_400 >=u 0) {
+    while (ptr_0_304 <u u64[r1 - 584] >=u 0) {
         // @2f68
     }
 
@@ -682,10 +715,11 @@ fn func_9(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @2d08
     ptr_0_40->field_393216 = ptr_0_144
     u32[4 + ptr_0_40 + 0x60000] = 32 >>u (32 << (15 & ptr_0_120))
-    u32[8 + ptr_0_40 + 0x60000] = ptr_0_312
+    u32[8 + ptr_0_40 + 0x60000] = ptr_0->field_312
     u32[12 + ptr_0_40 + 0x60000] = 0
 
     // @2c5a
+    r7 = ptr_0->field_224
     return
 }
 
@@ -727,6 +761,7 @@ fn func_10(r1: u64, r7: u64) {
 }
 
 fn func_11(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     if (r1 - 328 >=u 0xFEFD0000) {
         // @332a
         let var_5 = u32[4 + r10 + 0x60000]
@@ -738,6 +773,7 @@ fn func_11(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     }
 
     // @34d4
+    r7 = ptr_0->field_320
     return
 }
 
@@ -860,6 +896,7 @@ fn func_24(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -890,6 +927,7 @@ fn func_24(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_7bdd:
     // @7bdd
+    r7 = ptr_0->field_368
     return
 }
 
@@ -898,6 +936,7 @@ fn func_25(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -928,6 +967,7 @@ fn func_25(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_7e68:
     // @7e68
+    r7 = ptr_0->field_416
     return
 }
 
@@ -936,6 +976,7 @@ fn func_26(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -966,6 +1007,7 @@ fn func_26(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_80a2:
     // @80a2
+    r7 = ptr_0->field_368
     return
 }
 
@@ -974,6 +1016,7 @@ fn func_27(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1004,6 +1047,7 @@ fn func_27(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_832d:
     // @832d
+    r7 = ptr_0->field_416
     return
 }
 
@@ -1012,6 +1056,7 @@ fn func_28(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1042,6 +1087,7 @@ fn func_28(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_8567:
     // @8567
+    r7 = ptr_0->field_368
     return
 }
 
@@ -1050,6 +1096,7 @@ fn func_29(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1080,6 +1127,7 @@ fn func_29(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_87f2:
     // @87f2
+    r7 = ptr_0->field_416
     return
 }
 
@@ -1088,6 +1136,7 @@ fn func_30(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1118,6 +1167,7 @@ fn func_30(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_8a80:
     // @8a80
+    r7 = ptr_0->field_424
     return
 }
 
@@ -1126,6 +1176,7 @@ fn func_31(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1156,6 +1207,7 @@ fn func_31(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_8d0e:
     // @8d0e
+    r7 = ptr_0->field_424
     return
 }
 
@@ -1164,6 +1216,7 @@ fn func_32(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1194,6 +1247,7 @@ fn func_32(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_8f9f:
     // @8f9f
+    r7 = ptr_0->field_416
     return
 }
 
@@ -1202,6 +1256,7 @@ fn func_33(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1235,10 +1290,12 @@ fn func_33(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_929d:
     // @929d
+    r7 = ptr_0->field_448
     return
 }
 
 fn func_34(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1268,6 +1325,7 @@ fn func_34(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_941a:
     // @941a
+    r7 = ptr_0->field_248
     return
     block_947b:
     // @947b
@@ -1277,6 +1335,7 @@ fn func_34(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 }
 
 fn func_35(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1306,6 +1365,7 @@ fn func_35(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_9609:
     // @9609
+    r7 = ptr_0->field_248
     return
     block_966a:
     // @966a
@@ -1315,6 +1375,7 @@ fn func_35(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 }
 
 fn func_36(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1344,6 +1405,7 @@ fn func_36(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_97f3:
     // @97f3
+    r7 = ptr_0->field_248
     return
     block_9854:
     // @9854
@@ -1353,6 +1415,7 @@ fn func_36(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 }
 
 fn func_37(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1382,6 +1445,7 @@ fn func_37(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_99e0:
     // @99e0
+    r7 = ptr_0->field_248
     return
     block_9a41:
     // @9a41
@@ -1391,6 +1455,7 @@ fn func_37(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 }
 
 fn func_38(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1420,6 +1485,7 @@ fn func_38(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_9bcd:
     // @9bcd
+    r7 = ptr_0->field_248
     return
     block_9c2e:
     // @9c2e
@@ -1429,6 +1495,7 @@ fn func_38(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 }
 
 fn func_39(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1458,6 +1525,7 @@ fn func_39(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_9db7:
     // @9db7
+    r7 = ptr_0->field_248
     return
     block_9e18:
     // @9e18
@@ -1467,6 +1535,7 @@ fn func_39(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 }
 
 fn func_40(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1496,6 +1565,7 @@ fn func_40(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_9fa1:
     // @9fa1
+    r7 = ptr_0->field_248
     return
     block_a002:
     // @a002
@@ -1505,6 +1575,7 @@ fn func_40(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 }
 
 fn func_41(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1534,6 +1605,7 @@ fn func_41(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_a18e:
     // @a18e
+    r7 = ptr_0->field_248
     return
     block_a1ef:
     // @a1ef
@@ -1543,6 +1615,7 @@ fn func_41(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 }
 
 fn func_42(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1572,6 +1645,7 @@ fn func_42(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_a37b:
     // @a37b
+    r7 = ptr_0->field_248
     return
     block_a3dc:
     // @a3dc
@@ -1581,6 +1655,7 @@ fn func_42(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 }
 
 fn func_43(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1610,6 +1685,7 @@ fn func_43(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_a565:
     // @a565
+    r7 = ptr_0->field_248
     return
     block_a5c6:
     // @a5c6
@@ -1621,6 +1697,7 @@ fn func_43(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 fn func_44(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_128
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1659,6 +1736,7 @@ fn func_44(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_a823:
     // @a823
+    r7 = ptr_0->field_368
     return
     block_a884:
     // @a884
@@ -1670,6 +1748,7 @@ fn func_44(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 fn func_45(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_128
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1708,6 +1787,7 @@ fn func_45(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_aae3:
     // @aae3
+    r7 = ptr_0->field_368
     return
     block_ab44:
     // @ab44
@@ -1719,6 +1799,7 @@ fn func_45(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 fn func_46(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_136
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1757,6 +1838,7 @@ fn func_46(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_ad9e:
     // @ad9e
+    r7 = ptr_0->field_368
     return
     block_adff:
     // @adff
@@ -1768,6 +1850,7 @@ fn func_46(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 fn func_47(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_136
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1806,6 +1889,7 @@ fn func_47(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_b059:
     // @b059
+    r7 = ptr_0->field_368
     return
     block_b0ba:
     // @b0ba
@@ -1817,6 +1901,7 @@ fn func_47(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 fn func_48(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_136
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1855,6 +1940,7 @@ fn func_48(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_b317:
     // @b317
+    r7 = ptr_0->field_368
     return
     block_b378:
     // @b378
@@ -1866,6 +1952,7 @@ fn func_48(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 fn func_49(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_136
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1904,6 +1991,7 @@ fn func_49(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_b5d5:
     // @b5d5
+    r7 = ptr_0->field_368
     return
     block_b636:
     // @b636
@@ -1913,6 +2001,7 @@ fn func_49(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 }
 
 fn func_50(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     if (r1 - 112 >=u 0xFEFD0000) {
         // @b671
         u32[r9 + 0x60000] = 1
@@ -1920,12 +2009,14 @@ fn func_50(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     }
 
     // @b6c1
+    r7 = ptr_0->field_104
     return
 }
 
 fn func_51(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_128
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1946,12 +2037,14 @@ fn func_51(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_b84b:
     // @b84b
+    r7 = ptr_0->field_264
     return
 }
 
 fn func_52(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_128
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -1973,6 +2066,7 @@ fn func_52(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_b9c7:
     // @b9c7
+    r7 = ptr_0->field_256
     return
 }
 
@@ -1981,6 +2075,7 @@ fn func_53(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_232
     let ptr_0_304
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -2011,12 +2106,14 @@ fn func_53(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_bc5c:
     // @bc5c
+    r7 = ptr_0->field_416
     return
 }
 
 fn func_54(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_128
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -2038,12 +2135,14 @@ fn func_54(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_bee8:
     // @bee8
+    r7 = ptr_0->field_272
     return
 }
 
 fn func_55(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_128
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -2065,6 +2164,7 @@ fn func_55(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_c047:
     // @c047
+    r7 = ptr_0->field_240
     return
 }
 
@@ -4489,6 +4589,7 @@ fn func_75(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -4519,6 +4620,7 @@ fn func_75(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1179e:
     // @1179e
+    r7 = ptr_0->field_384
     return
 }
 
@@ -4527,6 +4629,7 @@ fn func_76(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -4557,6 +4660,7 @@ fn func_76(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_119f9:
     // @119f9
+    r7 = ptr_0->field_384
     return
 }
 
@@ -4565,6 +4669,7 @@ fn func_77(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -4595,6 +4700,7 @@ fn func_77(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_11c54:
     // @11c54
+    r7 = ptr_0->field_384
     return
 }
 
@@ -4605,6 +4711,7 @@ fn func_78(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_328
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -4644,6 +4751,7 @@ fn func_78(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_11f80:
     // @11f80
+    r7 = ptr_0->field_504
     return
 }
 
@@ -4654,6 +4762,7 @@ fn func_79(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_328
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -4693,6 +4802,7 @@ fn func_79(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_122ac:
     // @122ac
+    r7 = ptr_0->field_504
     return
 }
 
@@ -4703,6 +4813,7 @@ fn func_80(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_328
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -4742,6 +4853,7 @@ fn func_80(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_125d8:
     // @125d8
+    r7 = ptr_0->field_504
     return
 }
 
@@ -4752,6 +4864,7 @@ fn func_81(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_328
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -4791,6 +4904,7 @@ fn func_81(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_12919:
     // @12919
+    r7 = ptr_0->field_512
     return
 }
 
@@ -4801,6 +4915,7 @@ fn func_82(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_328
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -4840,6 +4955,7 @@ fn func_82(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_12c5a:
     // @12c5a
+    r7 = ptr_0->field_512
     return
 }
 
@@ -4850,6 +4966,7 @@ fn func_83(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_328
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -4889,6 +5006,7 @@ fn func_83(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_12f9b:
     // @12f9b
+    r7 = ptr_0->field_512
     return
 }
 
@@ -4897,6 +5015,7 @@ fn func_84(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -4927,6 +5046,7 @@ fn func_84(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1320a:
     // @1320a
+    r7 = ptr_0->field_400
     return
 }
 
@@ -4935,6 +5055,7 @@ fn func_85(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -4965,6 +5086,7 @@ fn func_85(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_13477:
     // @13477
+    r7 = ptr_0->field_400
     return
 }
 
@@ -4974,6 +5096,7 @@ fn func_86(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_216
     let ptr_0_280
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5005,6 +5128,7 @@ fn func_86(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_136f9:
     // @136f9
+    r7 = ptr_0->field_408
     return
 }
 
@@ -5013,6 +5137,7 @@ fn func_87(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5043,6 +5168,7 @@ fn func_87(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_13954:
     // @13954
+    r7 = ptr_0->field_384
     return
 }
 
@@ -5051,6 +5177,7 @@ fn func_88(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5081,6 +5208,7 @@ fn func_88(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_13baf:
     // @13baf
+    r7 = ptr_0->field_384
     return
 }
 
@@ -5090,6 +5218,7 @@ fn func_89(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_208
     let ptr_0_272
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5121,6 +5250,7 @@ fn func_89(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_13e0a:
     // @13e0a
+    r7 = ptr_0->field_384
     return
 }
 
@@ -5131,6 +5261,7 @@ fn func_90(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_336
     let ptr_0_408
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5170,6 +5301,7 @@ fn func_90(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_141a5:
     // @141a5
+    r7 = ptr_0->field_576
     return
 }
 
@@ -5180,6 +5312,7 @@ fn func_91(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_336
     let ptr_0_400
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5219,6 +5352,7 @@ fn func_91(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_14530:
     // @14530
+    r7 = ptr_0->field_560
     return
 }
 
@@ -5229,6 +5363,7 @@ fn func_92(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_320
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5268,6 +5403,7 @@ fn func_92(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_14870:
     // @14870
+    r7 = ptr_0->field_520
     return
 }
 
@@ -5279,6 +5415,7 @@ fn func_93(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_432
     let ptr_0_640
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5361,6 +5498,7 @@ fn func_93(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[8 + ptr_0_40 + 0x60000] = 0
 
     // @149d2
+    r7 = ptr_0->field_232
     return
 }
 
@@ -5373,6 +5511,7 @@ fn func_94(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_712
     let ptr_0_848
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5448,6 +5587,7 @@ fn func_94(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[8 + ptr_0_40 + 0x60000] = 0
 
     // @14fa7
+    r7 = ptr_0->field_400
     return
     block_1517d:
     // @1517d
@@ -5480,6 +5620,7 @@ fn func_95(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_456
     let ptr_0_640
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5547,6 +5688,7 @@ fn func_95(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[8 + ptr_0_40 + 0x60000] = 0
 
     // @155c7
+    r7 = ptr_0->field_384
     return
 }
 
@@ -5559,6 +5701,7 @@ fn func_96(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_728
     let ptr_0_864
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5668,6 +5811,7 @@ fn func_96(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[8 + ptr_0_40 + 0x60000] = 0
 
     // @15a98
+    r7 = ptr_0->field_384
     return
 }
 
@@ -5678,6 +5822,7 @@ fn func_97(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_320
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5717,6 +5862,7 @@ fn func_97(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_161c2:
     // @161c2
+    r7 = ptr_0->field_504
     return
 }
 
@@ -5727,6 +5873,7 @@ fn func_98(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_328
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5766,6 +5913,7 @@ fn func_98(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_164ee:
     // @164ee
+    r7 = ptr_0->field_504
     return
 }
 
@@ -5776,6 +5924,7 @@ fn func_99(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_320
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5815,6 +5964,7 @@ fn func_99(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1681a:
     // @1681a
+    r7 = ptr_0->field_504
     return
 }
 
@@ -5826,6 +5976,7 @@ fn func_100(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_632
     let ptr_0_696
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5902,6 +6053,7 @@ fn func_100(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[8 + ptr_0_40 + 0x60000] = 0
 
     // @16979
+    r7 = ptr_0->field_232
     return
 }
 
@@ -5914,6 +6066,7 @@ fn func_101(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_680
     let ptr_0_816
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -5989,6 +6142,7 @@ fn func_101(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[8 + ptr_0_40 + 0x60000] = 0
 
     // @16fb1
+    r7 = ptr_0->field_368
     return
     block_17187:
     // @17187
@@ -6023,6 +6177,7 @@ fn func_102(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_768
     let ptr_0_832
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -6123,6 +6278,7 @@ fn func_102(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[8 + ptr_0_40 + 0x60000] = 0
 
     // @174c6
+    r7 = ptr_0->field_232
     return
 }
 
@@ -6135,6 +6291,7 @@ fn func_103(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_680
     let ptr_0_816
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -6210,6 +6367,7 @@ fn func_103(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[8 + ptr_0_40 + 0x60000] = 0
 
     // @17be5
+    r7 = ptr_0->field_368
     return
     block_17db5:
     // @17db5
@@ -6242,11 +6400,10 @@ fn func_104(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_392
     let ptr_0_456
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
-    let ptr_0_504
     let ptr_0_56
-    let ptr_0_656
     if (r1 - 1040 >=u 0xFEFD0000) {
         // @17fc0
         ptr_0_136 = 32 >>u (32 << u32[8 + r10 + 0x60000])
@@ -6298,7 +6455,7 @@ fn func_104(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @183bf
 
     block_183c4:
-    if (ptr_0_656 <u 0) {
+    if (u64[r1 - 1040 + 656] <u 0) {
         // @18589
         goto block_1858e;
     } else {
@@ -6311,11 +6468,12 @@ fn func_104(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_182d4:
     // @182d4
-    ptr_0_192->field_393216 = ptr_0_504
+    ptr_0_192->field_393216 = ptr_0->field_504
     ptr_0_40->field_393216 = 0
     u32[8 + ptr_0_40 + 0x60000] = 0
 
     // @182bc
+    r7 = ptr_0->field_496
     return
 }
 
@@ -6329,6 +6487,7 @@ fn func_105(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_360
     let ptr_0_432
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -6374,6 +6533,7 @@ fn func_105(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_18af6:
     // @18af6
+    r7 = ptr_0->field_648
     return
 }
 
@@ -6385,9 +6545,9 @@ fn func_106(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_392
     let ptr_0_456
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
-    let ptr_0_504
     let ptr_0_56
     if (r1 - 920 >=u 0xFEFD0000) {
         // @18b23
@@ -6431,11 +6591,12 @@ fn func_106(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_18e37:
     // @18e37
-    ptr_0_192->field_393216 = ptr_0_504
+    ptr_0_192->field_393216 = ptr_0->field_504
     ptr_0_40->field_393216 = 0
     u32[8 + ptr_0_40 + 0x60000] = 0
 
     // @18e1f
+    r7 = ptr_0->field_496
     return
     block_1902d:
     // @1902d
@@ -6450,6 +6611,7 @@ fn func_107(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_392
     let ptr_0_496
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -6498,6 +6660,7 @@ fn func_107(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_194b4:
     // @194b4
+    r7 = ptr_0->field_536
     return
 }
 
@@ -6509,6 +6672,7 @@ fn func_108(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_392
     let ptr_0_496
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -6557,6 +6721,7 @@ fn func_108(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1981f:
     // @1981f
+    r7 = ptr_0->field_536
     return
 }
 
@@ -6568,6 +6733,7 @@ fn func_109(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_392
     let ptr_0_496
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -6616,6 +6782,7 @@ fn func_109(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_19b8a:
     // @19b8a
+    r7 = ptr_0->field_536
     return
 }
 
@@ -6627,6 +6794,7 @@ fn func_110(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_392
     let ptr_0_496
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -6675,10 +6843,12 @@ fn func_110(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_19ef5:
     // @19ef5
+    r7 = ptr_0->field_536
     return
 }
 
 fn func_111(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     if (r1 - 104 >=u 0xFEFD0000) {
         // @19f21
         u32[r9 + 0x60000] = 3
@@ -6686,10 +6856,12 @@ fn func_111(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     }
 
     // @19f65
+    r7 = ptr_0->field_96
     return
 }
 
 fn func_112(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     if (r1 - 104 >=u 0xFEFD0000) {
         // @19f8f
         u32[r9 + 0x60000] = 0
@@ -6697,10 +6869,12 @@ fn func_112(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     }
 
     // @19fd2
+    r7 = ptr_0->field_96
     return
 }
 
 fn func_113(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     if (r1 - 128 >=u 0xFEFD0000) {
         // @19ffc
         u32[r9 + 0x60000] = 3
@@ -6709,6 +6883,7 @@ fn func_113(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     }
 
     // @1a063
+    r7 = ptr_0->field_120
     return
 }
 
@@ -6737,6 +6912,7 @@ fn func_117(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -6767,12 +6943,14 @@ fn func_117(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1be42:
     // @1be42
+    r7 = ptr_0->field_360
     return
 }
 
 fn func_118(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_304
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -6819,12 +6997,14 @@ fn func_118(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[8 + ptr_0_40 + 0x60000] = 0
 
     // @1bfa1
+    r7 = ptr_0->field_232
     return
 }
 
 fn func_119(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_304
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -6871,6 +7051,7 @@ fn func_119(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[8 + ptr_0_40 + 0x60000] = 0
 
     // @1c23c
+    r7 = ptr_0->field_232
     return
 }
 
@@ -6879,6 +7060,7 @@ fn func_120(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_360
     let ptr_0_432
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -6949,6 +7131,7 @@ fn func_120(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[8 + ptr_0_40 + 0x60000] = 0
 
     // @1c4d5
+    r7 = ptr_0->field_232
     return
 }
 
@@ -6957,6 +7140,7 @@ fn func_121(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_360
     let ptr_0_432
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7027,6 +7211,7 @@ fn func_121(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     u32[8 + ptr_0_40 + 0x60000] = 0
 
     // @1c841
+    r7 = ptr_0->field_232
     return
 }
 
@@ -7035,6 +7220,7 @@ fn func_122(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7067,6 +7253,7 @@ fn func_122(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1ccbd:
     // @1ccbd
+    r7 = ptr_0->field_384
     return
 }
 
@@ -7076,6 +7263,7 @@ fn func_123(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_208
     let ptr_0_272
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7108,6 +7296,7 @@ fn func_123(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1cf2e:
     // @1cf2e
+    r7 = ptr_0->field_384
     return
 }
 
@@ -7116,6 +7305,7 @@ fn func_124(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7148,6 +7338,7 @@ fn func_124(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1d1f1:
     // @1d1f1
+    r7 = ptr_0->field_440
     return
 }
 
@@ -7157,6 +7348,7 @@ fn func_125(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_208
     let ptr_0_272
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7189,6 +7381,7 @@ fn func_125(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1d4b4:
     // @1d4b4
+    r7 = ptr_0->field_440
     return
 }
 
@@ -7199,6 +7392,7 @@ fn func_126(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_328
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7239,6 +7433,7 @@ fn func_126(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1d7f6:
     // @1d7f6
+    r7 = ptr_0->field_504
     return
 }
 
@@ -7249,6 +7444,7 @@ fn func_127(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_344
     let ptr_0_408
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7289,6 +7485,7 @@ fn func_127(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1dba7:
     // @1dba7
+    r7 = ptr_0->field_576
     return
 }
 
@@ -7299,6 +7496,7 @@ fn func_128(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_328
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7339,6 +7537,7 @@ fn func_128(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1dee9:
     // @1dee9
+    r7 = ptr_0->field_504
     return
 }
 
@@ -7349,6 +7548,7 @@ fn func_129(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_344
     let ptr_0_408
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7389,6 +7589,7 @@ fn func_129(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1e29a:
     // @1e29a
+    r7 = ptr_0->field_576
     return
 }
 
@@ -7397,6 +7598,7 @@ fn func_130(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7427,6 +7629,7 @@ fn func_130(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1e518:
     // @1e518
+    r7 = ptr_0->field_408
     return
 }
 
@@ -7435,6 +7638,7 @@ fn func_131(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7465,6 +7669,7 @@ fn func_131(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1e796:
     // @1e796
+    r7 = ptr_0->field_408
     return
 }
 
@@ -7473,6 +7678,7 @@ fn func_132(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7503,6 +7709,7 @@ fn func_132(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1ea14:
     // @1ea14
+    r7 = ptr_0->field_408
     return
 }
 
@@ -7511,6 +7718,7 @@ fn func_133(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7541,6 +7749,7 @@ fn func_133(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1ec92:
     // @1ec92
+    r7 = ptr_0->field_408
     return
 }
 
@@ -7551,6 +7760,7 @@ fn func_134(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_328
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7590,6 +7800,7 @@ fn func_134(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1efe1:
     // @1efe1
+    r7 = ptr_0->field_528
     return
 }
 
@@ -7600,6 +7811,7 @@ fn func_135(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_328
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7639,6 +7851,7 @@ fn func_135(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1f330:
     // @1f330
+    r7 = ptr_0->field_528
     return
 }
 
@@ -7647,6 +7860,7 @@ fn func_136(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7677,6 +7891,7 @@ fn func_136(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1f5dd:
     // @1f5dd
+    r7 = ptr_0->field_440
     return
 }
 
@@ -7685,6 +7900,7 @@ fn func_137(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7715,6 +7931,7 @@ fn func_137(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1f88a:
     // @1f88a
+    r7 = ptr_0->field_440
     return
 }
 
@@ -7723,6 +7940,7 @@ fn func_138(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7753,6 +7971,7 @@ fn func_138(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1fb3b:
     // @1fb3b
+    r7 = ptr_0->field_440
     return
 }
 
@@ -7762,6 +7981,7 @@ fn func_139(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_208
     let ptr_0_272
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7793,6 +8013,7 @@ fn func_139(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_1fdf6:
     // @1fdf6
+    r7 = ptr_0->field_448
     return
 }
 
@@ -7802,6 +8023,7 @@ fn func_140(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_208
     let ptr_0_272
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7833,6 +8055,7 @@ fn func_140(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_200b1:
     // @200b1
+    r7 = ptr_0->field_448
     return
 }
 
@@ -7842,6 +8065,7 @@ fn func_141(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_208
     let ptr_0_272
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7873,6 +8097,7 @@ fn func_141(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_2032e:
     // @2032e
+    r7 = ptr_0->field_408
     return
 }
 
@@ -7881,6 +8106,7 @@ fn func_142(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7911,6 +8137,7 @@ fn func_142(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_205cb:
     // @205cb
+    r7 = ptr_0->field_424
     return
 }
 
@@ -7919,6 +8146,7 @@ fn func_143(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7949,6 +8177,7 @@ fn func_143(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_20868:
     // @20868
+    r7 = ptr_0->field_424
     return
 }
 
@@ -7957,6 +8186,7 @@ fn func_144(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_192
     let ptr_0_256
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -7987,6 +8217,7 @@ fn func_144(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_20b05:
     // @20b05
+    r7 = ptr_0->field_424
     return
 }
 
@@ -7996,6 +8227,7 @@ fn func_145(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_208
     let ptr_0_272
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -8027,6 +8259,7 @@ fn func_145(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_20d60:
     // @20d60
+    r7 = ptr_0->field_384
     return
 }
 
@@ -8036,6 +8269,7 @@ fn func_146(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_208
     let ptr_0_272
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -8067,6 +8301,7 @@ fn func_146(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_20fbb:
     // @20fbb
+    r7 = ptr_0->field_384
     return
 }
 
@@ -8076,6 +8311,7 @@ fn func_147(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_208
     let ptr_0_272
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -8107,6 +8343,7 @@ fn func_147(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_2122a:
     // @2122a
+    r7 = ptr_0->field_400
     return
 }
 
@@ -8117,6 +8354,7 @@ fn func_148(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_344
     let ptr_0_408
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -8156,6 +8394,7 @@ fn func_148(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_215d3:
     // @215d3
+    r7 = ptr_0->field_584
     return
 }
 
@@ -8166,6 +8405,7 @@ fn func_149(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_344
     let ptr_0_408
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -8205,6 +8445,7 @@ fn func_149(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_2197c:
     // @2197c
+    r7 = ptr_0->field_584
     return
 }
 
@@ -8215,6 +8456,7 @@ fn func_150(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_344
     let ptr_0_408
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -8254,6 +8496,7 @@ fn func_150(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_21cde:
     // @21cde
+    r7 = ptr_0->field_544
     return
 }
 
@@ -8264,6 +8507,7 @@ fn func_151(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_328
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -8303,6 +8547,7 @@ fn func_151(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_2200a:
     // @2200a
+    r7 = ptr_0->field_504
     return
 }
 
@@ -8313,6 +8558,7 @@ fn func_152(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_328
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -8352,6 +8598,7 @@ fn func_152(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_22336:
     // @22336
+    r7 = ptr_0->field_504
     return
 }
 
@@ -8362,6 +8609,7 @@ fn func_153(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_328
     let ptr_0_392
 
+    let ptr_0
     let ptr_0_40
     let ptr_0_48
     let ptr_0_56
@@ -8401,6 +8649,7 @@ fn func_153(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
 
     block_22662:
     // @22662
+    r7 = ptr_0->field_504
     return
 }
 
@@ -9662,15 +9911,15 @@ fn func_170(r1: u64) {
 }
 
 fn func_171(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     let ptr_0_40
-    let ptr_0_64
     let ptr_1
     if (r1 - 312 >=u 0xFEFD0000) {
         // @254c9
         let ptr_0_48 = u32[0x339DC]
     }
 
-    for (let ptr_1 = 0x39DC; var_16 >>u (var_16 << (255 & ptr_0_48)) <u ptr_0_64 >=u 0; ptr_1 = 32 >>u (32 << 1 + ptr_0_64)) {
+    for (let ptr_1 = 0x39DC; var_16 >>u (var_16 << (255 & ptr_0_48)) <u u64[r1 - 248] >=u 0; ptr_1 = 32 >>u (32 << 1 + ptr_0->field_64)) {
         // @25507
         let var_16 = 32
 
@@ -9678,7 +9927,7 @@ fn func_171(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
         let var_42 = 32
         let var_52 = 32
 
-        if (u8[var_42 >>u (var_42 << u32[0x339D4] + ptr_0_64) + 0x60000] >=u var_52 >>u (var_52 << (255 & ptr_0_40)) <u 0) {
+        if (u8[var_42 >>u (var_42 << u32[0x339D4] + u64[r1 - 312 + 64]) + 0x60000] >=u var_52 >>u (var_52 << (255 & ptr_0_40)) <u 0) {
             // @25682
             goto block_25687;
         } else {
@@ -9696,6 +9945,7 @@ fn func_171(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     // @25577
 
     // @254f0
+    r7 = ptr_0->field_56
     return
 }
 
@@ -9723,14 +9973,11 @@ fn func_172(r1: u64) {
 }
 
 fn func_174(r1: u64, r7: u64, r12: u64) {
+    let ptr_0: ptr
     let ptr_0_40
     let var_310: u64
     let var_311: u64
 
-    let ptr_0_64
-    let ptr_0_664
-    let ptr_0_672
-    let ptr_0_72
     // @260db
     u64[r1 + 248] = r7
     var_310 = u64[r1 + 40]
@@ -9738,41 +9985,42 @@ fn func_174(r1: u64, r7: u64, r12: u64) {
 
     if (r1 - 976 >=u 0xFEFD0000) {
         // @258f9
+        ptr_0 = r1 - 976
         ptr_0_40 = r7
     }
 
-    while (ptr_0_72 <=u 0x2710 >=u 0) {
+    while (ptr_0->field_72 <=u 0x2710 >=u 0) {
         // @259bd
-        let var_40 = 32 >>u (32 << 0x2710 %u ptr_0_72)
-        u64[32 >>u (32 << (32 >>u (32 << (1 << (32 >>u (32 << 4 - ptr_0_64))))) + ptr_0_40) + 0x60000] = 32 << u32[32 >>u (32 << 0x3C7C + (32 >>u (32 << (2 << (32 >>u (32 << 100 %u var_40)))))) + 0x60000] | u32[32 >>u (32 << 0x3C7C + (32 >>u (32 << (2 << (32 >>u (32 << 100 /u var_40)))))) + 0x60000]
+        let var_40 = 32 >>u (32 << 0x2710 %u ptr_0->field_72)
+        u64[32 >>u (32 << (32 >>u (32 << (1 << (32 >>u (32 << 4 - ptr_0->field_64))))) + ptr_0_40) + 0x60000] = 32 << u32[32 >>u (32 << 0x3C7C + (32 >>u (32 << (2 << (32 >>u (32 << 100 %u var_40)))))) + 0x60000] | u32[32 >>u (32 << 0x3C7C + (32 >>u (32 << (2 << (32 >>u (32 << 100 /u var_40)))))) + 0x60000]
     }
 
     // @25bd4
 
     // @25bd9
 
-    if (ptr_0_72 <=u 100 <u 0) {
+    if (ptr_0->field_72 <=u 100 <u 0) {
         // @25d24
         goto block_25d29;
     } else {
         // @259b8
     }
     // @25bde
-    u32[32 >>u (32 << (32 >>u (32 << (1 << (32 >>u (32 << 2 - ptr_0_64))))) + ptr_0_40) + 0x60000] = u32[32 >>u (32 << 0x3C7C + (32 >>u (32 << (2 << (32 >>u (32 << 100 %u ptr_0_72)))))) + 0x60000]
+    u32[32 >>u (32 << (32 >>u (32 << (1 << (32 >>u (32 << 2 - ptr_0->field_64))))) + ptr_0_40) + 0x60000] = u32[32 >>u (32 << 0x3C7C + (32 >>u (32 << (2 << (32 >>u (32 << 100 %u ptr_0->field_72)))))) + 0x60000]
     // @25d24
 
     block_25d29:
-    if (ptr_0_672 <=u 10 <u 0) {
+    if (ptr_0->field_672 <=u 10 <u 0) {
         // @25e6e
-        u16[32 >>u (32 << (32 >>u (32 << (1 << (32 >>u (32 << 1 - ptr_0_664))))) + ptr_0_40) + 0x60000] = 32 >>u (32 << 48 + ptr_0_672)
+        u16[32 >>u (32 << (32 >>u (32 << (1 << (32 >>u (32 << 1 - ptr_0->field_664))))) + ptr_0_40) + 0x60000] = 32 >>u (32 << 48 + ptr_0->field_672)
         goto block_25f2e;
     } else {
         // @25d72
     }
     // @25d77
-    u32[32 >>u (32 << (32 >>u (32 << (1 << (32 >>u (32 << 2 - ptr_0_664))))) + ptr_0_40) + 0x60000] = u32[32 >>u (32 << 0x3C7C + (32 >>u (32 << (2 << ptr_0_672)))) + 0x60000]
+    u32[32 >>u (32 << (32 >>u (32 << (1 << (32 >>u (32 << 2 - ptr_0->field_664))))) + ptr_0_40) + 0x60000] = u32[32 >>u (32 << 0x3C7C + (32 >>u (32 << (2 << ptr_0->field_672)))) + 0x60000]
     // @25e6e
-    u16[32 >>u (32 << (32 >>u (32 << (1 << (32 >>u (32 << 1 - ptr_0_664))))) + ptr_0_40) + 0x60000] = 32 >>u (32 << 48 + ptr_0_672)
+    u16[32 >>u (32 << (32 >>u (32 << (1 << (32 >>u (32 << 1 - ptr_0->field_664))))) + ptr_0_40) + 0x60000] = 32 >>u (32 << 48 + ptr_0->field_672)
 
     block_25f2e:
     // @25f2e
@@ -10033,7 +10281,7 @@ fn func_178(r1: u64, r7: u64) {
 }
 
 fn func_179(r1: u64, r7: u64) {
-    let ptr_4_4
+    let var_14
     // @278b8
     u64[r1 + 80] = r7
     let var_2 = 4 + r7
@@ -10045,11 +10293,12 @@ fn func_179(r1: u64, r7: u64) {
     let var_6 = u32[0x33A00]
     u64[r1 + 112] = var_6
     u64[r1 - 8] = var_6
+    let ptr_4 = var_6 + var_6 + var_6 + var_6 + var_6 + var_6 + var_6 + var_6 + 0x10000
 
-    if (ptr_4_4 == 1) {
+    if (ptr_4->field_4 == 1) {
         // @27919
         r0 = 1230
-        call_indirect(r8)
+        call_indirect(var_14)
     }
 }
 
@@ -10371,7 +10620,6 @@ fn func_212(r1: u64, r7: u64, r11: u64, r12: u64) {
     let ptr_6: ptr
     let var_46: u64
 
-    let ptr_6_0
     // @313ea
     u64[r1 + 544] = r7
     var_46 = u64[r1 + 256]
@@ -10404,14 +10652,14 @@ fn func_212(r1: u64, r7: u64, r11: u64, r12: u64) {
         goto block_25862;
     } else {
         // @258cc
-        let ptr_5_0 = ptr_6_0
+        let ptr_5_0 = ptr_6->field_0
         r2 = ptr_5 + 1
         r3 = ptr_6 + 1
     }
 
     while (ptr_0_64 - 1 != 0) {
         // @258cc
-        ptr_5_0 = ptr_6_0
+        ptr_5_0 = ptr_6->field_0
         r2 = ptr_5 + 1
         r3 = ptr_6 + 1
     }
@@ -10424,11 +10672,13 @@ fn func_212(r1: u64, r7: u64, r11: u64, r12: u64) {
 }
 
 fn func_213(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
+    let ptr_0
     if (r1 - 56 >=u 0xFEFD0000) {
         // @32176
     }
 
     // @32190
+    r7 = ptr_0->field_48
     return
 }
 

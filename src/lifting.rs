@@ -240,7 +240,7 @@ impl LiftedProgram {
         lifted.fold_expressions_cross_block(cfg, dom_tree, &ssa);
         lifted.simplify_all_expressions();
         // Name stack memory slots as local variables, replacing Load/Store patterns.
-        lifted.recover_stack_variables();
+        lifted.recover_stack_variables(cfg, dom_tree);
         // Stack recovery turns loads into Var references, creating new copy chains
         // (e.g., var_13 = ptr_0_80) that can be propagated away.
         // NOTE: Do NOT run eliminate_dead_stores here — stack stores are now
@@ -1322,7 +1322,11 @@ impl LiftedProgram {
     /// Recover stack variables: name stack memory slots (ptr_N + offset) as local
     /// variables, replacing Load expressions with Var references. Stores are kept
     /// but formatted as assignments by `format_pc`.
-    fn recover_stack_variables(&mut self) {
+    fn recover_stack_variables(
+        &mut self,
+        cfg: &ControlFlowGraph,
+        dom_tree: &crate::DominatorTree,
+    ) {
         // 1. Scan ALL expressions (including eliminated) for Load/Store with ptr_* base.
         // Eliminated expressions may still be referenced by other expressions
         // (e.g., folded into branch conditions).
@@ -1335,17 +1339,74 @@ impl LiftedProgram {
         let mut sorted_slots: Vec<(String, i32)> = slots.into_iter().collect();
         sorted_slots.sort_by_key(|(base, offset)| (base.clone(), *offset));
 
+        // Build a PC → block index for dominance checks.
+        let pc_to_block: HashMap<usize, usize> = cfg
+            .blocks
+            .values()
+            .flat_map(|block| {
+                block
+                    .instructions
+                    .iter()
+                    .map(|(pc, _)| (*pc, block.start_pc))
+            })
+            .collect();
+
+        // 3. Find which blocks contain stores and loads for each slot.
+        // Only scan non-eliminated PCs: eliminated expressions that were folded into
+        // live ones already had their Load/Store nodes copied into the live expression
+        // tree, so they'll be found when we scan the live PC.
+        let mut store_blocks_for_slot: HashMap<(String, i32), HashSet<usize>> = HashMap::new();
+        let mut load_blocks_for_slot: HashMap<(String, i32), HashSet<usize>> = HashMap::new();
+        for (&pc, expr) in &self.expressions {
+            if self.eliminated_pcs.contains(&pc) {
+                continue;
+            }
+            let block = pc_to_block.get(&pc).copied().unwrap_or(pc);
+            collect_slot_store_blocks(expr, block, &mut store_blocks_for_slot);
+            collect_slot_load_blocks(expr, block, &mut load_blocks_for_slot);
+        }
+
+        // 4. Only recover slots where every load block is strictly dominated by
+        // some store block. Intra-block store→load is already handled by
+        // forward_store_loads, so remaining intra-block loads have no prior
+        // store — they need a dominating store from an ancestor block.
+        //
+        // Known limitation: this is conservative for convergence patterns like
+        // switch/case where ALL branches assign a slot but no single branch
+        // dominates the merge point. A "must-define" analysis would handle
+        // that, but strict dominance is simpler and avoids use-before-def.
         for (base, offset) in &sorted_slots {
-            let name = format!("{}_{}", base, offset);
-            self.stack_vars
-                .insert((base.clone(), *offset), name.clone());
+            let key = (base.clone(), *offset);
+            let store_blocks = match store_blocks_for_slot.get(&key) {
+                Some(blocks) => blocks,
+                None => continue, // No stores → can't recover this slot
+            };
+            let load_blocks = match load_blocks_for_slot.get(&key) {
+                Some(blocks) => blocks,
+                None => {
+                    // No loads remaining (all forwarded) → still create the var
+                    // so stores are formatted as assignments.
+                    let name = format!("{}_{}", base, offset);
+                    self.stack_vars.insert(key, name);
+                    continue;
+                }
+            };
+            let all_dominated = load_blocks.iter().all(|&load_block| {
+                store_blocks
+                    .iter()
+                    .any(|&store_block| store_block != load_block && dom_tree.dominates(store_block, load_block))
+            });
+            if all_dominated {
+                let name = format!("{}_{}", base, offset);
+                self.stack_vars.insert(key, name);
+            }
         }
 
         if self.stack_vars.is_empty() {
             return;
         }
 
-        // 3. Replace Load nodes with Var references in ALL expressions
+        // 5. Replace Load nodes with Var references in ALL expressions
         // (including eliminated ones that may be embedded in live expressions).
         let pcs: Vec<usize> = self.expressions.keys().copied().collect();
         for pc in pcs {
@@ -2149,6 +2210,83 @@ fn collect_stack_slots(expr: &Expression, slots: &mut HashSet<(String, i32)>) {
         Expression::Call { args, .. } => {
             for arg in args {
                 collect_stack_slots(arg, slots);
+            }
+        }
+        Expression::Const(_) | Expression::Var(_) | Expression::Raw(_) => {}
+    }
+}
+
+/// Collect blocks containing Store expressions targeting ptr_* stack slots.
+fn collect_slot_store_blocks(
+    expr: &Expression,
+    block: usize,
+    out: &mut HashMap<(String, i32), HashSet<usize>>,
+) {
+    match expr {
+        Expression::Store {
+            base,
+            offset,
+            value,
+            ..
+        } => {
+            if let Expression::Var(name) = base.as_ref()
+                && name.starts_with("ptr_")
+            {
+                out.entry((name.clone(), *offset))
+                    .or_default()
+                    .insert(block);
+            }
+            collect_slot_store_blocks(base, block, out);
+            collect_slot_store_blocks(value, block, out);
+        }
+        Expression::Load { base, .. } => {
+            collect_slot_store_blocks(base, block, out);
+        }
+        Expression::BinOp { lhs, rhs, .. } => {
+            collect_slot_store_blocks(lhs, block, out);
+            collect_slot_store_blocks(rhs, block, out);
+        }
+        Expression::UnaryOp { operand, .. } => collect_slot_store_blocks(operand, block, out),
+        Expression::Call { args, .. } => {
+            for arg in args {
+                collect_slot_store_blocks(arg, block, out);
+            }
+        }
+        Expression::Const(_) | Expression::Var(_) | Expression::Raw(_) => {}
+    }
+}
+
+/// Collect blocks containing Load expressions from ptr_* stack slots.
+fn collect_slot_load_blocks(
+    expr: &Expression,
+    block: usize,
+    out: &mut HashMap<(String, i32), HashSet<usize>>,
+) {
+    match expr {
+        Expression::Load { base, offset, .. } => {
+            if let Expression::Var(name) = base.as_ref()
+                && name.starts_with("ptr_")
+            {
+                out.entry((name.clone(), *offset))
+                    .or_default()
+                    .insert(block);
+            }
+            collect_slot_load_blocks(base, block, out);
+        }
+        Expression::Store {
+            base, value, ..
+        } => {
+            collect_slot_load_blocks(base, block, out);
+            collect_slot_load_blocks(value, block, out);
+        }
+        Expression::BinOp { lhs, rhs, .. } => {
+            collect_slot_load_blocks(lhs, block, out);
+            collect_slot_load_blocks(rhs, block, out);
+        }
+        Expression::UnaryOp { operand, .. } => collect_slot_load_blocks(operand, block, out),
+        Expression::Call { args, .. } => {
+            for arg in args {
+                collect_slot_load_blocks(arg, block, out);
             }
         }
         Expression::Const(_) | Expression::Var(_) | Expression::Raw(_) => {}
@@ -3798,6 +3936,160 @@ mod tests {
         assert!(
             lifted.eliminated_pcs.contains(&8),
             "Store at PC 8 should be a dead store after forwarding"
+        );
+    }
+
+    #[test]
+    fn test_stack_variable_recovery_skips_non_dominated_loads() {
+        // Diamond CFG: entry(0) -> A(10), B(20) -> merge(30)
+        // Block A stores to ptr+8; merge block loads from ptr+8.
+        // Block A does NOT dominate merge (B also reaches merge).
+        // The load should NOT be replaced with a stack variable.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (
+                            0,
+                            Instruction::LoadImm {
+                                reg: 1,
+                                value: 4096,
+                            },
+                        ),
+                        (
+                            4,
+                            Instruction::BranchEq {
+                                reg1: 2,
+                                reg2: 3,
+                                offset: 10,
+                            },
+                        ),
+                    ],
+                    vec![10, 20],
+                ),
+                (
+                    10,
+                    vec![
+                        (10, Instruction::LoadImm { reg: 4, value: 42 }),
+                        (
+                            14,
+                            Instruction::StoreIndU32 {
+                                base: 1,
+                                src: 4,
+                                offset: 8,
+                            },
+                        ),
+                    ],
+                    vec![30],
+                ),
+                (
+                    20,
+                    vec![(20, Instruction::LoadImm { reg: 5, value: 99 })],
+                    vec![30],
+                ),
+                (
+                    30,
+                    vec![
+                        (
+                            30,
+                            Instruction::LoadIndU32 {
+                                dst: 6,
+                                base: 1,
+                                offset: 8,
+                            },
+                        ),
+                        (34, Instruction::Trap),
+                    ],
+                    vec![],
+                ),
+            ],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        // The slot (ptr_0, 8) should NOT be in stack_vars because
+        // block 10 (store) does not dominate block 30 (load).
+        assert!(
+            lifted.stack_vars.is_empty(),
+            "Stack variable recovery should skip slots where store does not dominate load, \
+             but got: {:?}",
+            lifted.stack_vars
+        );
+
+        // The load at PC 30 should remain as a Load expression.
+        let expr = lifted.expressions.get(&30).unwrap();
+        assert!(
+            matches!(expr, Expression::Load { .. }),
+            "Load at PC 30 should NOT have been replaced with a stack var, got: {}",
+            format_expression(expr, &ctx())
+        );
+    }
+
+    #[test]
+    fn test_stack_variable_recovery_works_when_store_dominates() {
+        // Linear CFG: entry(0) stores to ptr+8, then block(20) loads from ptr+8.
+        // Entry dominates block 20, so the load SHOULD be replaced with a stack var.
+        let cfg = build_test_cfg(
+            0,
+            vec![
+                (
+                    0,
+                    vec![
+                        (
+                            0,
+                            Instruction::LoadImm {
+                                reg: 1,
+                                value: 4096,
+                            },
+                        ),
+                        (4, Instruction::LoadImm { reg: 4, value: 42 }),
+                        (
+                            8,
+                            Instruction::StoreIndU32 {
+                                base: 1,
+                                src: 4,
+                                offset: 8,
+                            },
+                        ),
+                        // Need a branch so we get a second block (store-load forwarding
+                        // would handle the intra-block case).
+                        (
+                            12,
+                            Instruction::BranchEq {
+                                reg1: 2,
+                                reg2: 3,
+                                offset: 20,
+                            },
+                        ),
+                    ],
+                    vec![20],
+                ),
+                (
+                    20,
+                    vec![
+                        (
+                            20,
+                            Instruction::LoadIndU32 {
+                                dst: 6,
+                                base: 1,
+                                offset: 8,
+                            },
+                        ),
+                        (24, Instruction::Trap),
+                    ],
+                    vec![],
+                ),
+            ],
+        );
+        let dataflow = DataFlowAnalysis::analyze(&cfg);
+        let lifted = LiftedProgram::analyze(&cfg, &dataflow);
+
+        // Entry block (0) dominates block 20, so the slot should be recovered.
+        assert!(
+            !lifted.stack_vars.is_empty(),
+            "Stack variable recovery should work when store dominates load"
         );
     }
 

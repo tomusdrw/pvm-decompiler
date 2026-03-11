@@ -23,6 +23,7 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_72
     let ptr_0_80
     let ptr_7: ptr
+    let ptr_7_40
     let var_109: u64
     let var_110: u32
     let var_131: u64
@@ -348,6 +349,7 @@ fn func_1(r1: u64, r10: u64, r11: u64, r12: u64) {
     while (r1 - 648 - 136 >=u 0xFEFD0000) {
         // @05bd
         ptr_7 = ptr_0 - 136
+        ptr_7_40 = var_131
 
         if (var_131 == 0) {
             // @05e3

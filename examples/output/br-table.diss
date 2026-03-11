@@ -1,31 +1,30 @@
 fn main(r1: u64, r7: u64) {
-    let ptr_0_72
-
+    let ptr_0
     // @0006
     let var_1 = u32[r7]
 
     switch (var_1) {
         case 0:
             // @007b
-            ptr_0_72 = 100
+            ptr_0->field_72 = 100
 
         case 1:
             // @006f
-            ptr_0_72 = 200
+            ptr_0->field_72 = 200
 
         case 2:
             // @0063
-            ptr_0_72 = 300
+            ptr_0->field_72 = 300
 
         default:
             // @0032
-            ptr_0_72 = 999
+            ptr_0->field_72 = 999
 
             break;
     }
 
     // @003a
-    u32[0x3000] = ptr_0_72
+    u32[0x3000] = ptr_0->field_72
     halt()
 }
 

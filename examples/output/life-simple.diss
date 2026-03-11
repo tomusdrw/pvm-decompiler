@@ -4,7 +4,6 @@ fn main(r1: u64, r7: u64) {
     let ptr_0_128
     let ptr_0_136
     let ptr_0_24
-    let ptr_0_280
     let ptr_0_32
     let ptr_0_40
     let ptr_0_48
@@ -63,7 +62,7 @@ fn main(r1: u64, r7: u64) {
                 while (ptr_0_136 <=s 1) {
                     if (var_38 == 0) {
                         // @0519
-                        ptr_0_280 = ptr_0_128
+                        ptr_0->field_280 = ptr_0_128
                         goto block_05b2;
                     } else {
                         // @0514
@@ -76,7 +75,7 @@ fn main(r1: u64, r7: u64) {
                     }
 
                     // @05b2
-                    ptr_0_128 = ptr_0_280
+                    ptr_0_128 = ptr_0->field_280
                     ptr_0_136 = ptr_0_136 + 1
                 }
 
@@ -159,11 +158,11 @@ fn func_1(r1: u64) {
 
 fn func_2(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
     let ptr_0_104
-    let ptr_0_288
     let ptr_0_64
     let ptr_0_72
     let ptr_0_96
 
+    let ptr_0
     let var_20
     if (r1 - 304 >=u 0xFEFD0000) {
         // @02b1
@@ -179,7 +178,7 @@ fn func_2(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
         while (ptr_0_104 <=s 1) {
             if (var_20 == 0) {
                 // @0347
-                ptr_0_288 = ptr_0_96
+                ptr_0->field_288 = ptr_0_96
                 goto block_0410;
             } else {
                 // @0342
@@ -192,7 +191,7 @@ fn func_2(r0: u64, r1: u64, r9: u64, r10: u64, r11: u64, r12: u64) {
             }
 
             // @0410
-            ptr_0_96 = ptr_0_288
+            ptr_0_96 = ptr_0->field_288
             ptr_0_104 = ptr_0_104 + 1
         }
 
