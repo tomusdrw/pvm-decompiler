@@ -31,7 +31,7 @@ wasm-pvm = { version = "0.5.2", default-features = false }
 # native-only
 atty = { version = "0.2", optional = true }
 reqwest = { version = "0.12", optional = true, default-features = false, features = ["blocking", "json", "rustls-tls"] }
-tempfile = { version = "3.13", optional = true }
+tempfile = { version = "3.27", optional = true }
 wait-timeout = { version = "0.2", optional = true }
 
 # wasm-only
