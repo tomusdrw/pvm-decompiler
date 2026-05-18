@@ -1440,9 +1440,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-pvm"
-version = "0.5.2"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "488fd53333b96f8cae6a4a8763344149dcd88dcffbd1e09345e63ca190a65e5b"
+checksum = "71027fbdba2b4dfc322a8685c8dacddfe8ddb2ab1a1c8d8de962247171bb5be3"
 dependencies = [
  "thiserror",
  "tracing",
