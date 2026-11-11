@@ -444,10 +444,7 @@ impl<'a, 'p> Emitter<'a, 'p> {
         let mut seen: HashSet<usize> = HashSet::from([start_pc]);
         let mut current = start_pc;
 
-        loop {
-            let Some(block) = self.cfg.blocks.get(&current) else {
-                break;
-            };
+        while let Some(block) = self.cfg.blocks.get(&current) {
             let Some((_, last_instr)) = block.instructions.last() else {
                 break;
             };
@@ -1489,18 +1486,14 @@ impl<'a, 'p> Emitter<'a, 'p> {
         let mut seen_immediates: HashSet<i32> = HashSet::new();
         let mut current = block_pc;
 
-        loop {
-            let Some(Structure::IfThenElse {
-                header,
-                then_blocks,
-                else_blocks,
-                condition: Some(condition),
-                ..
-            }) = self.if_map.get(&current).cloned()
-            else {
-                break;
-            };
-
+        while let Some(Structure::IfThenElse {
+            header,
+            then_blocks,
+            else_blocks,
+            condition: Some(condition),
+            ..
+        }) = self.if_map.get(&current).cloned()
+        {
             // Only Eq conditions qualify
             if condition.op != CondOp::Eq {
                 return None;
@@ -1827,17 +1820,15 @@ fn build_emission_plan<'a>(
                 then_blocks,
                 else_blocks,
                 ..
-            } => {
-                if !then_blocks.is_empty()
-                    && lifted.is_some_and(|l| {
-                        then_blocks
-                            .iter()
-                            .chain(else_blocks.iter())
-                            .all(|bp| l.suppressed_blocks.contains(bp))
-                    })
-                {
-                    fully_suppressed_if_headers.insert(*header);
-                }
+            } if !then_blocks.is_empty()
+                && lifted.is_some_and(|l| {
+                    then_blocks
+                        .iter()
+                        .chain(else_blocks.iter())
+                        .all(|bp| l.suppressed_blocks.contains(bp))
+                }) =>
+            {
+                fully_suppressed_if_headers.insert(*header);
             }
             _ => {}
         }
