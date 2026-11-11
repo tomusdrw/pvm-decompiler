@@ -25,19 +25,19 @@ native = ["dep:atty", "dep:reqwest", "dep:tempfile", "dep:wait-timeout"]
 wasm = ["dep:wasm-bindgen", "dep:serde", "dep:console_error_panic_hook"]
 
 [dependencies]
-serde_json = "1.0"
-wasm-pvm = { version = "0.5.2", default-features = false }
+serde_json = "1.0.154"
+wasm-pvm = { version = "0.9.0", default-features = false }
 
 # native-only
 atty = { version = "0.2", optional = true }
-reqwest = { version = "0.12", optional = true, default-features = false, features = ["blocking", "json", "rustls-tls"] }
-tempfile = { version = "3.13", optional = true }
+reqwest = { version = "0.13.5", optional = true, default-features = false, features = ["blocking", "json", "rustls"] }
+tempfile = { version = "3.27.0", optional = true }
 wait-timeout = { version = "0.2", optional = true }
 
 # wasm-only
-wasm-bindgen = { version = "0.2", optional = true }
-serde = { version = "1.0", optional = true, features = ["derive"] }
+wasm-bindgen = { version = "0.2.130", optional = true }
+serde = { version = "1.0.229", optional = true, features = ["derive"] }
 console_error_panic_hook = { version = "0.1", optional = true }
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3"
+wasm-bindgen-test = "0.3.80"
