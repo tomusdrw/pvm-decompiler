@@ -1494,7 +1494,6 @@ impl<'a, 'p> Emitter<'a, 'p> {
             ..
         }) = self.if_map.get(&current).cloned()
         {
-
             // Only Eq conditions qualify
             if condition.op != CondOp::Eq {
                 return None;
@@ -1827,8 +1826,8 @@ fn build_emission_plan<'a>(
                         .iter()
                         .chain(else_blocks.iter())
                         .all(|bp| l.suppressed_blocks.contains(bp))
-                })
-            => {
+                }) =>
+            {
                 fully_suppressed_if_headers.insert(*header);
             }
             _ => {}
