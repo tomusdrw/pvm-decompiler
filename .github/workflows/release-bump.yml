@@ -40,7 +40,7 @@ jobs:
         echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
     - name: Create pull request
-      uses: peter-evans/create-pull-request@v7
+      uses: peter-evans/create-pull-request@v8
       with:
         branch: release/v${{ steps.bump.outputs.version }}
         commit-message: "Release v${{ steps.bump.outputs.version }}"
